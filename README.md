@@ -64,6 +64,7 @@ file:///home/你的用户名/path/to/HTMLWallpaper/examples/test.html
 ```
 
 这个测试页面包含：
+
 - 实时时钟
 - 可点击的计数器按钮
 - 可跳转的链接
@@ -78,11 +79,6 @@ file:///home/你的用户名/path/to/HTMLWallpaper/examples/test.html
 - **透明度**：如果你的 HTML 页面背景是透明的，壁纸会显示桌面背景色
 
 ### 卸载
-
-```bash
-# 删除已安装的插件
-rm -rf ~/.local/share/plasma/wallpapers/de.unkn0wn.htmlwallpaper
-```
 
 ### 致谢
 
@@ -152,6 +148,7 @@ file:///home/your-username/path/to/HTMLWallpaper/examples/test.html
 ```
 
 This test page includes:
+
 - Real-time clock
 - Clickable counter button
 - Clickable links
@@ -166,11 +163,6 @@ If buttons work correctly, mouse passthrough is working.
 - **Transparency**: If your HTML page has a transparent background, the wallpaper will show your desktop background color
 
 ### Uninstall
-
-```bash
-# Remove installed plugin
-rm -rf ~/.local/share/plasma/wallpapers/de.unkn0wn.htmlwallpaper
-```
 
 ### Credits
 
