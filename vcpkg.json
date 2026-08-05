@@ -1,0 +1,21 @@
+{
+  "name": "plasma-htmlwallpaper",
+  "version-string": "1.0.0",
+  "description": "A KDE Plasma 6 wallpaper plugin that allows setting any HTML page as desktop wallpaper with mouse interaction",
+  "homepage": "https://github.com/Marcel1202/HTMLWallpaper",
+  "license": "LGPL-2.0-or-later",
+  "dependencies": [
+    {
+      "name": "ecm",
+      "host": true
+    }
+  ],
+  "features": {
+    "qtwebengine": {
+      "description": "Bundled QtWebEngine built via vcpkg. Only needed on platforms without a system QtWebEngine (on Linux this adds hours of compile time).",
+      "dependencies": [
+        "qtwebengine"
+      ]
+    }
+  }
+}
