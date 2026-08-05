@@ -17,12 +17,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import QtQuick 2
-import QtQuick.Layouts 1
-import QtQuick.Controls 2
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import org.kde.kirigami as Kirigami
 
 
-ColumnLayout {
+Kirigami.FormLayout {
+    id: root
+    twinFormLayouts: parentLayout
     property alias cfg_DisplayPage: displayPageField.text
     property alias cfg_ZoomFactor: zoomFactorSlider.value
     property alias cfg_InsecureHTTPS: insecureHTTPSCheckBox.checked
@@ -37,7 +40,7 @@ ColumnLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_de.unkn0wn.htmlwallpaper", "URL:")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "URL:")
         }
         TextField {
             id: displayPageField
@@ -56,7 +59,7 @@ ColumnLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_de.unkn0wn.htmlwallpaper", "Web:")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Web:")
         }
         Label {
             Layout.minimumWidth: width
@@ -64,7 +67,7 @@ ColumnLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignLeft
 
-            text: i18nd("plasma_wallpaper_de.unkn0wn.htmlwallpaper", " https://yourwebsite.com")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", " https://yourwebsite.com")
         }
     }
 
@@ -77,7 +80,7 @@ ColumnLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_de.unkn0wn.htmlwallpaper", "Local:")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Local:")
         }
         Label {
             Layout.minimumWidth: width
@@ -85,7 +88,7 @@ ColumnLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignLeft
 
-            text: i18nd("plasma_wallpaper_de.unkn0wn.htmlwallpaper", " file:///absolute/path/to/your/website.html")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", " file:///absolute/path/to/your/website.html")
         }
     }
         
@@ -98,7 +101,7 @@ ColumnLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_de.unkn0wn.htmlwallpaper", "Zoom:")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Zoom:")
         }
         Slider{
             id: zoomFactorSlider
@@ -124,7 +127,7 @@ ColumnLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignLeft
 
-            text: i18nd("plasma_wallpaper_de.unkn0wn.htmlwallpaper", "0.5       1       1.5        2       2.5       3")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "0.5       1       1.5        2       2.5       3")
         }
     }
 
@@ -137,13 +140,13 @@ ColumnLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_de.unkn0wn.htmlwallpaper", "Insecure HTTPS")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Insecure HTTPS")
         }
         CheckBox {
             id: insecureHTTPSCheckBox
 
             ToolTip {
-                text: i18nd("plasma_wallpaper_de.unkn0wn.htmlwallpaper", "Ignore HTTPS errors")
+                text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Ignore HTTPS errors")
                 visible: parent.hovered
             }
         }
