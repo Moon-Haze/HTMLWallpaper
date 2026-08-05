@@ -1,4 +1,5 @@
 build/
 .history/
-plasma-htmlwallpaper/
-plasma-htmlwallpaper-*-x86_64.pkg.tar.zst
+plasma-HTMLWallpaper/
+plasma-HTMLWallpaper-*-x86_64.pkg.tar.zst
+pkg/

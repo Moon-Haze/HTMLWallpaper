@@ -40,7 +40,7 @@ Kirigami.FormLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "URL:")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.HTMLWallpaper", "URL:")
         }
         TextField {
             id: displayPageField
@@ -59,7 +59,7 @@ Kirigami.FormLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Web:")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.HTMLWallpaper", "Web:")
         }
         Label {
             Layout.minimumWidth: width
@@ -67,7 +67,7 @@ Kirigami.FormLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignLeft
 
-            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", " https://yourwebsite.com")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.HTMLWallpaper", " https://yourwebsite.com")
         }
     }
 
@@ -80,7 +80,7 @@ Kirigami.FormLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Local:")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.HTMLWallpaper", "Local:")
         }
         Label {
             Layout.minimumWidth: width
@@ -88,7 +88,7 @@ Kirigami.FormLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignLeft
 
-            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", " file:///absolute/path/to/your/website.html")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.HTMLWallpaper", " file:///absolute/path/to/your/website.html")
         }
     }
         
@@ -101,7 +101,7 @@ Kirigami.FormLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Zoom:")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.HTMLWallpaper", "Zoom:")
         }
         Slider{
             id: zoomFactorSlider
@@ -127,7 +127,7 @@ Kirigami.FormLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignLeft
 
-            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "0.5       1       1.5        2       2.5       3")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.HTMLWallpaper", "0.5       1       1.5        2       2.5       3")
         }
     }
 
@@ -140,13 +140,13 @@ Kirigami.FormLayout {
             width: formAlignment - 20
             horizontalAlignment: Text.AlignRight
 
-            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Insecure HTTPS")
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.HTMLWallpaper", "Insecure HTTPS")
         }
         CheckBox {
             id: insecureHTTPSCheckBox
 
             ToolTip {
-                text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Ignore HTTPS errors")
+                text: i18nd("plasma_wallpaper_com.github.Moon-Haze.HTMLWallpaper", "Ignore HTTPS errors")
                 visible: parent.hovered
             }
         }

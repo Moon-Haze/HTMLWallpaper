@@ -2,7 +2,7 @@
   "name": "plasma-htmlwallpaper",
   "version-string": "1.0.0",
   "description": "A KDE Plasma 6 wallpaper plugin that allows setting any HTML page as desktop wallpaper with mouse interaction",
-  "homepage": "https://github.com/Marcel1202/HTMLWallpaper",
+  "homepage": "https://github.com/Moon-Haze/HTMLWallpaper",
   "license": "LGPL-2.0-or-later",
   "dependencies": [
     {

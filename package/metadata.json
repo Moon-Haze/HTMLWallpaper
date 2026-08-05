@@ -10,7 +10,7 @@
         "Category": "",
         "Description": "Allows you to have a HTML page as your KDE Plasma wallpaper",
         "Icon": "preferences-desktop-wallpaper",
-        "Id": "com.github.Moon-Haze.htmlwallpaper",
+        "Id": "com.github.Moon-Haze.HTMLWallpaper",
         "License": "LGPLv2+",
         "MimeTypes": [
             "image/avif",
