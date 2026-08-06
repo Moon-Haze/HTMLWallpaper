@@ -10,31 +10,22 @@
         "Category": "",
         "Description": "Allows you to have a HTML page as your KDE Plasma wallpaper",
         "Icon": "preferences-desktop-wallpaper",
-        "Id": "com.github.Moon-Haze.HTMLWallpaper",
+        "Id": "com.github.Moon-Haze.htmlwallpaper",
         "License": "LGPLv2+",
         "MimeTypes": [
-            "image/avif",
-            "image/heif",
-            "image/jpeg",
-            "image/png",
-            "image/bmp",
-            "image/tiff",
-            "image/webp"
+            "text/html",
+            "application/xhtml+xml"
         ],
         "Name": "HTML Wallpaper",
-        "Website": "https://github.com/Moon-Haze/HTMLWallpaper/"
+        "Website": "https://github.com/Moon-Haze/HTMLWallpaper.git"
     },
     "Keywords": "html;wallpaper;web",
-    "MimeType": "image/avif;image/heif;image/jpeg;image/png;image/bmp;image/tiff;image/webp;",
+    "MimeType": "text/html;application/xhtml+xml;",
     "X-KDE-ParentApp": "org.kde.plasmashell",
     "X-Plasma-API-Minimum-Version": "6.0",
     "X-Plasma-DropMimeTypes": [
-        "image/avif",
-        "image/heif",
-        "image/jpeg",
-        "image/png",
-        "image/bmp",
-        "image/tiff",
-        "image/webp"
+        "text/html",
+        "application/xhtml+xml",
+        "text/uri-list"
     ]
 }
