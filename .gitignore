@@ -2,4 +2,9 @@ build/
 .history/
 plasma-HTMLWallpaper/
 plasma-HTMLWallpaper-*-x86_64.pkg.tar.zst
-pkg/
+ref/
+# makepkg 构建产物（pkg/*/ 下的 PKGBUILD 需要被 git 跟踪）
+pkg/*/src/
+pkg/*/pkg/
+pkg/*/*.pkg.tar.zst
+pkg/*/plasma-htmlwallpaper/

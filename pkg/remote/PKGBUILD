@@ -1,0 +1,53 @@
+# Maintainer: Moon-Haze <swx1126200515@outlook.com>
+# 原始项目作者: Marcel Richter <Richter02@protonmail.com>
+# 上游: https://github.com/Marcel1202/HTMLWallpaper
+
+# 从 git 仓库克隆最新源码构建的 VCS 包。
+# 版本号由 pkgver() 基于 git tag/提交动态生成，每次构建都会拉取最新代码。
+_pkgname=plasma-htmlwallpaper
+pkgname="${_pkgname}-git"
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="KDE Plasma 6 HTML wallpaper plugin - set any HTML page as desktop wallpaper with mouse interaction (git version)"
+arch=('x86_64')
+url="https://github.com/Moon-Haze/HTMLWallpaper"
+license=('LGPL-2.1-or-later')
+depends=(
+  'libplasma>=6.6.90'
+  'qt6-base>=6.10.0'
+  'qt6-declarative>=6.10.0'
+  'qt6-webengine>=6.10.0'
+)
+makedepends=(
+  'extra-cmake-modules>=6.26.0'
+  'cmake'
+  'ninja'
+  'git'
+)
+provides=("${_pkgname}")
+conflicts=("${_pkgname}")
+source=("${_pkgname}::git+https://github.com/Moon-Haze/HTMLWallpaper.git")
+sha256sums=('SKIP')
+
+# 动态版本号：优先用最近 tag，形如 1.0.0.r2.g62444ec；
+# 无 tag 时 --always 会退化为提交短哈希（如 62444ec），保证返回值非空。
+pkgver() {
+  cd "$srcdir/$_pkgname"
+  git describe --long --tags --always 2>/dev/null | sed 's/^v//; s/\([^-]*-g\)/r\1/; s/-/./g'
+}
+
+build() {
+  cd "$srcdir/$_pkgname"
+  cmake -B build \
+    -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_INSTALL_LIBDIR=lib
+  cmake --build build
+}
+
+package() {
+  cd "$srcdir/$_pkgname"
+  DESTDIR="$pkgdir" cmake --install build
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

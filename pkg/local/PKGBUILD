@@ -1,0 +1,57 @@
+# Maintainer: Moon-Haze <swx1126200515@outlook.com>
+_pkgname=plasma-htmlwallpaper
+pkgname="${_pkgname}"
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="KDE Plasma 6 HTML wallpaper plugin - set any HTML page as desktop wallpaper with mouse interaction (local build)"
+arch=('x86_64')
+url="https://github.com/Moon-Haze/HTMLWallpaper"
+license=('LGPL-2.1-or-later')
+depends=(
+  'libplasma>=6.6.90'
+  'qt6-base>=6.10.0'
+  'qt6-declarative>=6.10.0'
+  'qt6-webengine>=6.10.0'
+)
+makedepends=(
+  'extra-cmake-modules>=6.26.0'
+  'cmake'
+  'ninja'
+)
+# 源码直接用 pkg/local 下的副本，无需 makepkg 下载
+source=()
+sha256sums=()
+
+prepare() {
+  # 每次打包前从项目根自动同步源码副本。
+  # $startdir 即本 PKGBUILD 所在目录（pkg/local），上上级就是项目根。
+  local repo_root
+  repo_root="$(cd "$startdir/../.." && pwd)"
+  if [[ ! -d "$repo_root/package" ]]; then
+    echo "警告：未找到项目根（$repo_root），跳过源码同步" >&2
+    return 0
+  fi
+  rm -rf "$startdir/src"
+  mkdir -p "$startdir/src"
+  cp -r "$repo_root/CMakeLists.txt" \
+        "$repo_root/LICENSE" \
+        "$repo_root/package" \
+        "$startdir/src/"
+}
+
+build() {
+  cd "$startdir/src"
+  cmake -B build \
+    -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DKDE_INSTALL_DIRS_NO_CMAKE_VARIABLES=ON \
+    -DKDE_INSTALL_LIBDIR=lib
+  cmake --build build
+}
+
+package() {
+  cd "$startdir/src"
+  DESTDIR="$pkgdir" cmake --install build
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
