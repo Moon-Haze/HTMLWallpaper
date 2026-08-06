@@ -1,0 +1,774 @@
+{
+	"contentrating" : "Everyone",
+	"description" : "Main Features:\r\n- Image to ASCII converter\r\n- Now playing support\r\n- Time tracking utilities\r\n\r\nCustomization Features:\r\n- Custom ASCII art resolution and colors\r\n- Dark, Light, and Custom themes\r\n- Timezone clocks with labels and day progress bars\r\n- Date countdowns and countups with reocurring support\r\n- OS Details section\r\n\r\nNotes:\r\n- ASCII Art best viewed on dark backgrounds",
+	"file" : "index.html",
+	"general" : 
+	{
+		"properties" : 
+		{
+			"appearance" : 
+			{
+				"index" : 0,
+				"order" : 100,
+				"text" : "Appearance",
+				"type" : "group",
+				"value" : ""
+			},
+			"asciiart" : 
+			{
+				"index" : 32,
+				"order" : 132,
+				"text" : "ASCII Art",
+				"type" : "group",
+				"value" : ""
+			},
+			"asciiresolution" : 
+			{
+				"fraction" : false,
+				"group" : "asciiart",
+				"index" : 34,
+				"max" : 300,
+				"min" : 50,
+				"order" : 134,
+				"step" : 25,
+				"text" : "Resolution (Higher = Lag)",
+				"type" : "slider",
+				"value" : 50
+			},
+			"audio" : 
+			{
+				"index" : 29,
+				"order" : 129,
+				"text" : "Audio",
+				"type" : "group",
+				"value" : ""
+			},
+			"backgroundcolor" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 10,
+				"order" : 110,
+				"text" : "Background : <small>#0d1110</small>",
+				"type" : "color",
+				"value" : "0.050980392156862744 0.06666666666666667 0.06274509803921569"
+			},
+			"black" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 13,
+				"order" : 113,
+				"text" : "Black : #0d1110",
+				"type" : "color",
+				"value" : "0.050980392156862744 0.06666666666666667 0.06274509803921569"
+			},
+			"blue" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 21,
+				"order" : 121,
+				"text" : "Blue : #61afef",
+				"type" : "color",
+				"value" : "0.3803921568627451 0.6862745098039216 0.9372549019607843"
+			},
+			"bright-black" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 14,
+				"order" : 114,
+				"text" : "Bright Black : #5c6370",
+				"type" : "color",
+				"value" : "0.3607843137254902 0.38823529411764707 0.4392156862745098"
+			},
+			"bright-blue" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 22,
+				"order" : 122,
+				"text" : "Bright Blue : #82aaff",
+				"type" : "color",
+				"value" : "0.5098039215686274 0.6666666666666666 1"
+			},
+			"bright-cyan" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 26,
+				"order" : 126,
+				"text" : "Bright Cyan : #9aedfe",
+				"type" : "color",
+				"value" : "0.6039215686274509 0.9294117647058824 0.996078431372549"
+			},
+			"bright-green" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 18,
+				"order" : 118,
+				"text" : "Bright Green : #b1f2a7",
+				"type" : "color",
+				"value" : "0.6941176470588235 0.9490196078431372 0.6549019607843137"
+			},
+			"bright-magenta" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 24,
+				"order" : 124,
+				"text" : "Bright Magenta : #d4bfff",
+				"type" : "color",
+				"value" : "0.8313725490196079 0.7490196078431373 1"
+			},
+			"bright-red" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 16,
+				"order" : 116,
+				"text" : "Bright Red : #f28b82",
+				"type" : "color",
+				"value" : "0.9490196078431372 0.5450980392156862 0.5098039215686274"
+			},
+			"bright-white" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 28,
+				"order" : 128,
+				"text" : "Bright White : #ffffff",
+				"type" : "color",
+				"value" : "1 1 1"
+			},
+			"bright-yellow" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 20,
+				"order" : 120,
+				"text" : "Bright Yellow : #ffdd88",
+				"type" : "color",
+				"value" : "1 0.8666666666666667 0.5333333333333333"
+			},
+			"clabel0" : 
+			{
+				"condition" : "time0.value == true",
+				"index" : 41,
+				"order" : 141,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : "HOME"
+			},
+			"clabel1" : 
+			{
+				"condition" : "time1.value == true",
+				"index" : 43,
+				"order" : 143,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : "CEST"
+			},
+			"clabel2" : 
+			{
+				"condition" : "time2.value == true",
+				"index" : 46,
+				"order" : 146,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : "UTC"
+			},
+			"clabel3" : 
+			{
+				"condition" : "time3.value == true",
+				"index" : 49,
+				"order" : 149,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : "PST"
+			},
+			"clabel4" : 
+			{
+				"condition" : "time4.value == true",
+				"index" : 52,
+				"order" : 152,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : "IST"
+			},
+			"coloredascii" : 
+			{
+				"group" : "asciiart",
+				"index" : 36,
+				"order" : 136,
+				"text" : "Colored Art",
+				"type" : "bool",
+				"value" : true
+			},
+			"cpu" : 
+			{
+				"index" : 77,
+				"order" : 177,
+				"text" : "CPU",
+				"type" : "textinput",
+				"value" : "[CPU]"
+			},
+			"cyan" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 25,
+				"order" : 125,
+				"text" : "Cyan : #56b6c2",
+				"type" : "color",
+				"value" : "0.33725490196078434 0.7137254901960784 0.7607843137254902"
+			},
+			"dateformat" : 
+			{
+				"index" : 2,
+				"options" : 
+				[
+					{
+						"label" : "DD/MM/YYYY",
+						"value" : "ddmmyyyy"
+					},
+					{
+						"label" : "MM/DD/YYYY",
+						"value" : "mmddyyyy"
+					},
+					{
+						"label" : "YYYY/MM/DD",
+						"value" : "yyyymmdd"
+					}
+				],
+				"order" : 102,
+				"text" : "Date Format",
+				"type" : "combo",
+				"value" : "ddmmyyyy"
+			},
+			"defaultimage" : 
+			{
+				"group" : "appearance",
+				"index" : 33,
+				"order" : 133,
+				"text" : "Logo",
+				"type" : "file",
+				"value" : "default.png"
+			},
+			"disk" : 
+			{
+				"index" : 80,
+				"order" : 180,
+				"text" : "Disk",
+				"type" : "textinput",
+				"value" : "930G"
+			},
+			"gpu" : 
+			{
+				"index" : 78,
+				"order" : 178,
+				"text" : "GPU",
+				"type" : "textinput",
+				"value" : "[GPU]"
+			},
+			"green" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 17,
+				"order" : 117,
+				"text" : "Green : #98c379",
+				"type" : "color",
+				"value" : "0.596078431372549 0.7647058823529411 0.4745098039215686"
+			},
+			"hostname" : 
+			{
+				"index" : 72,
+				"order" : 172,
+				"text" : "Hostname",
+				"type" : "textinput",
+				"value" : "[USER]"
+			},
+			"ip" : 
+			{
+				"index" : 73,
+				"order" : 173,
+				"text" : "IP",
+				"type" : "textinput",
+				"value" : "192.168.0.2"
+			},
+			"kernel" : 
+			{
+				"index" : 75,
+				"order" : 175,
+				"text" : "Kernel",
+				"type" : "textinput",
+				"value" : "10.0.26100.4656"
+			},
+			"leaveemptyfordefaults" : 
+			{
+				"index" : 3,
+				"order" : 103,
+				"text" : "Leave Empty for defaults",
+				"type" : "text",
+				"value" : false
+			},
+			"magenta" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 23,
+				"order" : 123,
+				"text" : "Magenta : #c678dd",
+				"type" : "color",
+				"value" : "0.7764705882352941 0.47058823529411764 0.8666666666666667"
+			},
+			"newproperty" : 
+			{
+				"index" : 39,
+				"order" : 139,
+				"text" : "Hour offset of the timezone.<small><br>Use decimals for minute offset:<br>.25 (15min) | .5 (30min) | .75 (45min)</small>",
+				"type" : "text",
+				"value" : false
+			},
+			"newproperty1" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 12,
+				"order" : 112,
+				"text" : "<b>Note: </b> Changing colors below will affect ASCII art. ASCII art colors are picked by similarity",
+				"type" : "text",
+				"value" : false
+			},
+			"os" : 
+			{
+				"index" : 74,
+				"order" : 174,
+				"text" : "OS",
+				"type" : "textinput",
+				"value" : "Windows 11"
+			},
+			"ram" : 
+			{
+				"index" : 79,
+				"order" : 179,
+				"text" : "RAM",
+				"type" : "textinput",
+				"value" : "32G"
+			},
+			"red" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 15,
+				"order" : 115,
+				"text" : "Red : #e06c75",
+				"type" : "color",
+				"value" : "0.8784313725490196 0.4235294117647059 0.4588235294117647"
+			},
+			"saturation" : 
+			{
+				"condition" : "coloredascii.value == true",
+				"fraction" : true,
+				"group" : "asciiart",
+				"index" : 37,
+				"max" : 5,
+				"min" : 0,
+				"order" : 137,
+				"precision" : 2,
+				"step" : 0.1,
+				"text" : "Saturation<small><br>0 = Grayscale<br>1 = Normal<br>> 1 = More Vivid</small>",
+				"type" : "slider",
+				"value" : 1
+			},
+			"schemecolor" : 
+			{
+				"group" : "appearance",
+				"index" : 1,
+				"order" : 1,
+				"text" : "Scheme Color",
+				"type" : "color",
+				"value" : "0.050980392156862744 0.06666666666666667 0.06274509803921569"
+			},
+			"shell" : 
+			{
+				"index" : 76,
+				"order" : 176,
+				"text" : "Shell",
+				"type" : "textinput",
+				"value" : "PowerShell 7.4"
+			},
+			"shiftbottom" : 
+			{
+				"index" : 5,
+				"order" : 105,
+				"text" : "Shift Bottom (px)",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"shiftgap" : 
+			{
+				"index" : 4,
+				"order" : 104,
+				"text" : "Gap (px)",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"shiftleft" : 
+			{
+				"index" : 7,
+				"order" : 107,
+				"text" : "Shift Left (px)",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"shifttop" : 
+			{
+				"index" : 6,
+				"order" : 106,
+				"text" : "Shift Top (px)",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"showextras" : 
+			{
+				"group" : "audio",
+				"index" : 30,
+				"order" : 130,
+				"text" : "Show Extra Sliders (Bass/Mid/Treble)",
+				"type" : "bool",
+				"value" : true
+			},
+			"smoothness" : 
+			{
+				"fraction" : true,
+				"group" : "audio",
+				"index" : 31,
+				"max" : 0.9,
+				"min" : 0,
+				"order" : 131,
+				"precision" : 2,
+				"step" : 0.1,
+				"text" : "Smoothness",
+				"type" : "slider",
+				"value" : 0.6
+			},
+			"systeminformation" : 
+			{
+				"index" : 71,
+				"order" : 171,
+				"text" : "System Information",
+				"type" : "group",
+				"value" : ""
+			},
+			"tdate0" : 
+			{
+				"condition" : "timer0.value == true",
+				"index" : 58,
+				"order" : 158,
+				"text" : "Date",
+				"type" : "textinput",
+				"value" : "1/1"
+			},
+			"tdate1" : 
+			{
+				"condition" : "timer1.value == true",
+				"index" : 61,
+				"order" : 161,
+				"text" : "Date",
+				"type" : "textinput",
+				"value" : "1/1/2000"
+			},
+			"tdate2" : 
+			{
+				"condition" : "timer2.value == true",
+				"index" : 64,
+				"order" : 164,
+				"text" : "Date",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"tdate3" : 
+			{
+				"condition" : "timer3.value == true",
+				"index" : 67,
+				"order" : 167,
+				"text" : "Date",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"tdate4" : 
+			{
+				"condition" : "timer4.value == true",
+				"index" : 70,
+				"order" : 170,
+				"text" : "Date",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"textcolor" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 11,
+				"order" : 111,
+				"text" : "Text Color : <small>#e4edea</small>",
+				"type" : "color",
+				"value" : "0.8941176470588236 0.9294117647058824 0.9176470588235294"
+			},
+			"textsize" : 
+			{
+				"fraction" : true,
+				"group" : "appearance",
+				"index" : 1,
+				"max" : 48,
+				"min" : 4,
+				"order" : 101,
+				"text" : "Font Size (pt)",
+				"type" : "slider",
+				"value" : 16
+			},
+			"theme" : 
+			{
+				"index" : 9,
+				"options" : 
+				[
+					{
+						"label" : "Dark",
+						"value" : "dark"
+					},
+					{
+						"label" : "Light",
+						"value" : "light"
+					},
+					{
+						"label" : "Custom",
+						"value" : "custom"
+					}
+				],
+				"order" : 109,
+				"text" : "Theme",
+				"type" : "combo",
+				"value" : "dark"
+			},
+			"themegroup" : 
+			{
+				"index" : 8,
+				"order" : 108,
+				"text" : "Theme",
+				"type" : "group",
+				"value" : ""
+			},
+			"time0" : 
+			{
+				"index" : 40,
+				"order" : 140,
+				"text" : "Time-0",
+				"type" : "bool",
+				"value" : true
+			},
+			"time1" : 
+			{
+				"index" : 42,
+				"order" : 142,
+				"text" : "Time-1",
+				"type" : "bool",
+				"value" : true
+			},
+			"time2" : 
+			{
+				"index" : 45,
+				"order" : 145,
+				"text" : "Time-2",
+				"type" : "bool",
+				"value" : true
+			},
+			"time3" : 
+			{
+				"index" : 48,
+				"order" : 148,
+				"text" : "Time-3",
+				"type" : "bool",
+				"value" : true
+			},
+			"time4" : 
+			{
+				"index" : 51,
+				"order" : 151,
+				"text" : "Time-4",
+				"type" : "bool",
+				"value" : true
+			},
+			"timer0" : 
+			{
+				"index" : 56,
+				"order" : 156,
+				"text" : "Timer-0",
+				"type" : "bool",
+				"value" : true
+			},
+			"timer1" : 
+			{
+				"index" : 59,
+				"order" : 159,
+				"text" : "Timer-1",
+				"type" : "bool",
+				"value" : true
+			},
+			"timer2" : 
+			{
+				"index" : 62,
+				"order" : 162,
+				"text" : "Timer-2",
+				"type" : "bool",
+				"value" : false
+			},
+			"timer3" : 
+			{
+				"index" : 65,
+				"order" : 165,
+				"text" : "Timer-3",
+				"type" : "bool",
+				"value" : false
+			},
+			"timer4" : 
+			{
+				"index" : 68,
+				"order" : 168,
+				"text" : "Timer-4",
+				"type" : "bool",
+				"value" : false
+			},
+			"timers" : 
+			{
+				"index" : 54,
+				"order" : 154,
+				"text" : "Timers",
+				"type" : "group",
+				"value" : ""
+			},
+			"timerstext" : 
+			{
+				"index" : 55,
+				"order" : 155,
+				"text" : "Use DD/MM/YYYY for countdowns<br>or DD/MM for repeated events",
+				"type" : "text",
+				"value" : false
+			},
+			"times" : 
+			{
+				"index" : 38,
+				"order" : 138,
+				"text" : "Times",
+				"type" : "group",
+				"value" : ""
+			},
+			"timezone1" : 
+			{
+				"condition" : "time1.value == true",
+				"index" : 44,
+				"order" : 144,
+				"text" : "Timezone",
+				"type" : "textinput",
+				"value" : "2"
+			},
+			"timezone2" : 
+			{
+				"condition" : "time2.value == true",
+				"index" : 47,
+				"order" : 147,
+				"text" : "Timezone",
+				"type" : "textinput",
+				"value" : "0"
+			},
+			"timezone3" : 
+			{
+				"condition" : "time3.value == true",
+				"index" : 50,
+				"order" : 150,
+				"text" : "Timezone",
+				"type" : "textinput",
+				"value" : "-7"
+			},
+			"timezone4" : 
+			{
+				"condition" : "time4.value == true",
+				"index" : 53,
+				"order" : 153,
+				"text" : "Timezone",
+				"type" : "textinput",
+				"value" : "5.5"
+			},
+			"tlabel0" : 
+			{
+				"condition" : "timer0.value == true",
+				"index" : 57,
+				"order" : 157,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : "NEW_YEAR"
+			},
+			"tlabel1" : 
+			{
+				"condition" : "timer1.value == true",
+				"index" : 60,
+				"order" : 160,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : "YEAR_2000"
+			},
+			"tlabel2" : 
+			{
+				"condition" : "timer2.value == true",
+				"index" : 63,
+				"order" : 163,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"tlabel3" : 
+			{
+				"condition" : "timer3.value == true",
+				"index" : 66,
+				"order" : 166,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"tlabel4" : 
+			{
+				"condition" : "timer4.value == true",
+				"index" : 69,
+				"order" : 169,
+				"text" : "Label",
+				"type" : "textinput",
+				"value" : ""
+			},
+			"usemediaart" : 
+			{
+				"group" : "appearance",
+				"index" : 35,
+				"order" : 135,
+				"text" : "Use Media Art",
+				"type" : "bool",
+				"value" : true
+			},
+			"white" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 27,
+				"order" : 127,
+				"text" : "White : #e4edea",
+				"type" : "color",
+				"value" : "0.8941176470588236 0.9294117647058824 0.9176470588235294"
+			},
+			"yellow" : 
+			{
+				"condition" : "theme.value === \"custom\"",
+				"index" : 19,
+				"order" : 119,
+				"text" : "Yellow : #e5c07b",
+				"type" : "color",
+				"value" : "0.8980392156862745 0.7529411764705882 0.4823529411764706"
+			}
+		},
+		"supportsaudioprocessing" : true
+	},
+	"preview" : "preview.gif",
+	"ratingsex" : "none",
+	"ratingviolence" : "none",
+	"supportsAudio" : true,
+	"tags" : [ "Retro" ],
+	"title" : "Neofetch Terminal",
+	"type" : "Web",
+	"version" : 4,
+	"visibility" : "public",
+	"workshopid" : "3528316973",
+	"workshopurl" : "steam://url/CommunityFilePage/3528316973"
+}

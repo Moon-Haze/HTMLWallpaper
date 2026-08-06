@@ -1,0 +1,25 @@
+{
+	"contentrating" : "Everyone",
+	"description" : "CodeTime is a minimalist and stylish interactive wallpaper for Wallpaper Engine that transforms your workspace into a digital developer environment. The clock is designed as a code snippet, displaying the current date, day of the week, time, and daily progress percentage.\n\nIt features animated clock hands and real-time data updates, creating the effect of a live programming interface. Perfect for developers, programmers, and tech enthusiasts!\n\nFeatures:\n✅ Minimalist design with a coding aesthetic\n✅ Live clock styled as a JavaScript object\n✅ Animated clock hands and smooth transitions\n✅ Supports both 12-hour and 24-hour formats\n✅ Lightweight and non-intrusive interface\n\nYou can check out my other works here:\nhttps://steamcommunity.com/id/timaskg/myworkshopfiles/",
+	"file" : "CodeTime.html",
+	"general" : 
+	{
+		"properties" : 
+		{
+			"schemecolor" : 
+			{
+				"order" : 0,
+				"text" : "ui_browse_properties_scheme_color",
+				"type" : "color",
+				"value" : "0 0 0"
+			}
+		}
+	},
+	"preview" : "preview.gif",
+	"ratingsex" : "none",
+	"ratingviolence" : "none",
+	"tags" : [ "Technology" ],
+	"title" : "CodeTime",
+	"type" : "Web",
+	"version" : 0
+}

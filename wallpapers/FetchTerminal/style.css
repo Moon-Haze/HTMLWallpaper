@@ -1,0 +1,125 @@
+.terminal {
+  width: 100ch;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* 信息区(ascii logo)已删除，内容改为水平居中；原 margin-left:auto 会把内容推到右侧 */
+  margin: 0 auto;
+}
+
+.time-terminal {
+  display: flex;
+  flex-direction: column;
+}
+
+.overview-terminal {
+  display: flex;
+  flex-direction: column;
+  width: 100ch;
+}
+.overview-terminal .information {
+  display: flex;
+  gap: 3ch;
+  margin-top: var(--p);
+}
+.overview-terminal .information .image pre.ascii {
+  margin: 0;
+  white-space: pre;
+}
+.overview-terminal .information .image pre.ascii,
+.overview-terminal .information .image pre.ascii * {
+  font-size: var(--ascii-font-size, var(--p));
+}
+.overview-terminal .information .ascii span {
+  display: inline;
+}
+.overview-terminal .information .text {
+  width: 47ch;
+}
+.overview-terminal .information .text .separator {
+  height: var(--p);
+}
+
+.block {
+  display: flex;
+  gap: 1ch;
+}
+.block > :last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time-container {
+  display: grid;
+  grid-template-columns: 7ch max-content 9ch 8ch 1ch 11ch auto;
+  -moz-column-gap: 1ch;
+       column-gap: 1ch;
+}
+.time-container .time {
+  display: contents;
+}
+.time-container .progress {
+  display: grid;
+  grid-template-columns: 1ch 25ch 4ch 1ch;
+}
+
+.timer-container {
+  display: grid;
+  grid-template-columns: 8ch 12ch max-content max-content;
+  -moz-column-gap: 1ch;
+       column-gap: 1ch;
+}
+.timer-container .timer {
+  display: contents;
+}
+
+.slider {
+  display: flex;
+  gap: 1ch;
+}
+.slider .title {
+  width: 8ch;
+}
+.slider .value {
+  display: grid;
+  grid-template-columns: 1ch 15ch 10ch 6ch 4ch 1ch;
+}
+.slider .value > * {
+  white-space: pre;
+}
+.slider .value .ansi-bright-black {
+  text-align: right;
+}
+.slider .volume {
+  width: 4ch;
+}
+
+.song {
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 8ch 25ch 40ch 27ch;
+}
+.song > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.divider {
+  grid-column: 1/100;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: clip !important;
+}
+
+.playing-song {
+  display: flex;
+  justify-content: space-between;
+}
+
+.load-information {
+  display: grid;
+  grid-template-columns: 50ch 50ch;
+}

@@ -1,0 +1,132 @@
+{
+	"description" : "h5 canvas background",
+	"file" : "index.html",
+	"general" : 
+	{
+		"properties" : 
+		{
+			"schemecolor" : 
+			{
+				"order" : 0,
+				"text" : "ui_browse_properties_scheme_color",
+				"type" : "color",
+				"value" : "0 0 0"
+			},
+			"number" : 
+			{
+				"order" : 1,
+				"max" : 8,
+				"min" : 1,
+				"text" : "<br />数量等级<br />Num level<br />",
+				"type" : "slider",
+				"value" : 3
+			},
+			"ratio" : 
+			{
+				"order" : 2,
+				"max" : 50,
+				"min" : 1,
+				"text" : "<br />粒子大小<br />Dots Size<br />",
+				"type" : "slider",
+				"value" : 25
+			},
+			"usePColor" :
+			{
+				"order" : 3,
+				"text" : "<br />是否自定义粒子颜色<br />Use custom color for dots?<br />",
+				"type" : "bool",
+				"value" : false
+			},
+			"pColor" : 
+			{
+				"order" : 4,
+				"text" : "<br />粒子颜色<br />Dots color<br />",
+				"type" : "color",
+				"value" : "1 1 1"
+			},
+			"bgcolor" : 
+			{
+				"order" : 5,
+				"text" : "<br />背景颜色<br />Background color<br />",
+				"type" : "color",
+				"value" : "0 0 0"
+			},
+			"image" : 
+			{
+				"order" : 6,
+				"text" : "<br />自定背景图<br />Background img<br />",
+				"type" : "file"
+			},
+			"style" : 
+			{
+				"order" : 7,
+				"options" : 
+				[
+					{
+						"label" : "填充 ( fill )",
+						"value" : 1
+					},
+					{
+						"label" : "描边 ( stroke )",
+						"value" : 0
+					}
+				],
+				"text" : "<br />粒子样式<br />Dots style<br />",
+				"type" : "combo",
+				"value" : 1
+			},
+			"isBlur" :
+			{
+				"order" : 8,
+				"text" : "<br />是否开启模糊(影响性能-慎用)<br />Is blur?(affect performance)<br />",
+				"type" : "bool",
+				"value" : false
+			},
+			"blurColor" : 
+			{
+				"order" : 9,
+				"text" : "<br />模糊颜色<br />Blur color<br />",
+				"type" : "color",
+				"value" : "1 1 1"
+			},
+			"showline" : 
+			{
+				"order" : 10,
+				"text" : "<br />是否显示连线<br />Show line?<br />",
+				"type" : "bool",
+				"value" : false
+			},
+			"showpoint" : 
+			{
+				"order" : 11,
+				"text" : "<br />是否显示粒子<br />Show dots?<br />",
+				"type" : "bool",
+				"value" : true
+			},
+			"smovefollow" : 
+			{
+				"order" : 12,
+				"text" : "<br />是否跟随音频移动<br />Move follow with sound?<br />",
+				"type" : "bool",
+				"value" : true
+			},
+			"tEqualize" : 
+			{
+				"order" : 13,
+				"max" : 8,
+				"min" : 0,
+				"text" : "<br />瞬态补偿<br />Transient equalize<br />",
+				"type" : "slider",
+				"value" : 5
+			}
+		},
+		"supportsaudioprocessing" : true
+	},
+	"monetization" : false,
+	"preview" : "preview.jpg",
+	"tags" : [ "Music", "Relaxing" ],
+	"title" : "canvasBg",
+	"type" : "web",
+	"visibility" : "public",
+	"workshopid" : 830067666
+}

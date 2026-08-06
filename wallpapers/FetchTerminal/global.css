@@ -1,0 +1,160 @@
+@font-face {
+	font-family: "Share Tech Mono";
+	src: url("./fonts/ShareTechMono-Regular.ttf");
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Fira Code";
+	src: url("./fonts/FiraCode-Regular.ttf");
+	font-weight: normal;
+	font-style: normal;
+}
+
+:root {
+	font-family: "Share Tech Mono", monospace;
+	--p: 16pt;
+	--scale: 1;
+
+	--color-fg: #e4edea;
+	--color-bg: #0d1110;
+
+	--color-black: #0d1110;
+	--color-red: #e06c75;
+	--color-green: #98c379;
+	--color-yellow: #e5c07b;
+	--color-blue: #61afef;
+	--color-magenta: #c678dd;
+	--color-cyan: #56b6c2;
+	--color-white: #e4edea;
+
+	--color-bright-black: #5c6370;
+	--color-bright-red: #f28b82;
+	--color-bright-green: #b1f2a7;
+	--color-bright-yellow: #ffdd88;
+	--color-bright-blue: #82aaff;
+	--color-bright-magenta: #d4bfff;
+	--color-bright-cyan: #9aedfe;
+	--color-bright-white: #ffffff;
+}
+
+[data-theme="light"] {
+	--color-fg: #0d1110 !important;
+	--color-bg: #e4edea !important;
+
+	--color-black: #f0f0f0;
+	--color-red: #d32f2f;
+	--color-green: #388e3c;
+	--color-yellow: #c59a20;
+	--color-blue: #1976d2;
+	--color-magenta: #9c27b0;
+	--color-cyan: #0097a7;
+	--color-white: #1a1a1a;
+
+	--color-bright-black: #b0b0b0;
+	--color-bright-red: #ef5350;
+	--color-bright-green: #66bb6a;
+	--color-bright-yellow: #f9a825;
+	--color-bright-blue: #42a5f5;
+	--color-bright-magenta: #ba68c8;
+	--color-bright-cyan: #26c6da;
+	--color-bright-white: #000000;
+}
+
+.ansi-black {
+	color: var(--color-black);
+}
+.ansi-red {
+	color: var(--color-red);
+}
+.ansi-green {
+	color: var(--color-green);
+}
+.ansi-yellow {
+	color: var(--color-yellow);
+}
+.ansi-blue {
+	color: var(--color-blue);
+}
+.ansi-magenta {
+	color: var(--color-magenta);
+}
+.ansi-cyan {
+	color: var(--color-cyan);
+}
+.ansi-white {
+	color: var(--color-white);
+}
+
+.ansi-bright-black {
+	color: var(--color-bright-black);
+}
+.ansi-bright-red {
+	color: var(--color-bright-red);
+}
+.ansi-bright-green {
+	color: var(--color-bright-green);
+}
+.ansi-bright-yellow {
+	color: var(--color-bright-yellow);
+}
+.ansi-bright-blue {
+	color: var(--color-bright-blue);
+}
+.ansi-bright-magenta {
+	color: var(--color-bright-magenta);
+}
+.ansi-bright-cyan {
+	color: var(--color-bright-cyan);
+}
+.ansi-bright-white {
+	color: var(--color-bright-white);
+}
+
+.bold {
+	font-weight: 800;
+}
+
+* {
+	box-sizing: border-box;
+	font-family: "Share Tech Mono", monospace;
+	font-size: var(--p);
+}
+
+html {
+	background-color: var(--color-bg);
+	color: var(--color-fg);
+	scrollbar-width: none;
+	overflow: hidden;
+	user-select: none;
+}
+
+body {
+	height: 100vh;
+	max-height: 100vh;
+	opacity: 1;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	transition: opacity 0.5s ease;
+	overflow: hidden;
+}
+
+p {
+	margin: 0;
+}
+
+.flex {
+	display: flex;
+}
+.f-col {
+	flex-direction: column;
+}
+.gap {
+	gap: 1ch;
+}
+.hidden {
+	display: none !important;
+}

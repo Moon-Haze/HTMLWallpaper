@@ -1,0 +1,62 @@
+{
+	"description" : "connecting dots copy but reacting on audio input lel",
+	"file" : "index.html",
+	"general" : 
+	{
+		"properties" : 
+		{
+			"background" : 
+			{
+				"order" : 0,
+				"text" : "Background color",
+				"type" : "color",
+				"value" : "0.0313 0.18823 0.243"
+			},
+			"combo" : 
+			{
+				"options" : 
+				[
+					{
+						"label" : "No",
+						"value" : 1
+					},
+					{
+						"label" : "Yes",
+						"value" : 2
+					}
+				],
+				"text" : "Use custom image?",
+				"type" : "combo",
+				"value" : 1
+			},
+			"image" : 
+			{
+				"text" : "Custom image background",
+				"type" : "file"
+			},
+			"multiplier" : 
+			{
+				"max" : 25,
+				"min" : 1,
+				"text" : "Effect multiplier",
+				"type" : "slider",
+				"value" : 5
+			},
+			"schemecolor" : 
+			{
+				"order" : 0,
+				"text" : "ui_browse_properties_scheme_color",
+				"type" : "color",
+				"value" : "0 0 0"
+			}
+		},
+		"supportsaudioprocessing" : true
+	},
+	"monetization" : false,
+	"preview" : "preview.jpg",
+	"tags" : [ "Multi-monitor optimized", "Abstract" ],
+	"title" : "Connecting Dots w/ Audio Visualizer",
+	"type" : "web",
+	"visibility" : "public",
+	"workshopid" : 819343682
+}
