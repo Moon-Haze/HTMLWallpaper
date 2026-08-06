@@ -21,29 +21,27 @@
 - KDE Plasma 6.0 或更高版本
 - QtWebEngine
 
-### 安装
+### 构建
 
-#### 方法一：使用构建脚本（推荐）
-
-```bash
-# 克隆项目
-git clone https://github.com/Marcel1202/HTMLWallpaper.git
-cd HTMLWallpaper
-
-# 赋予执行权限并运行构建脚本
-chmod +x build.sh
-./build.sh
-```
-
-#### 方法二：手动构建
+依赖：KDE Plasma 6 开发包、Qt 6.10+（含 QtWebEngine）、vcpkg。
 
 ```bash
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=~/.local ..
-make -j$(nproc)
-make install
+# 1. 设置 vcpkg 根目录（提供 ECM）
+export VCPKG_ROOT=/path/to/vcpkg
+
+# 2. 配置（vcpkg + 系统 KF6 预设）
+cmake --preset vcpkg
+
+# 3. 构建并安装
+cmake --build --preset vcpkg
+cmake --install build
+
+# 4. 重启 plasmashell 使插件生效
+kquitapp6 plasmashell && plasmashell &
 ```
+
+> 提示：`cmake --preset vcpkg` 已把安装前缀设为 `~/.local`。
+> 如果系统自带 QtWebEngine，不要启用 vcpkg 的 `qtwebengine` feature（可避免数小时的编译）。
 
 ### 使用方法
 
@@ -59,7 +57,7 @@ make install
 
 项目提供了一个测试页面，你可以使用这个路径测试交互功能：
 
-```
+```text
 file:///home/你的用户名/path/to/HTMLWallpaper/examples/test.html
 ```
 
@@ -79,6 +77,13 @@ file:///home/你的用户名/path/to/HTMLWallpaper/examples/test.html
 - **透明度**：如果你的 HTML 页面背景是透明的，壁纸会显示桌面背景色
 
 ### 卸载
+
+删除已安装的插件文件：
+
+```bash
+rm -rf ~/.local/share/plasma/wallpapers/com.github.Moon-Haze.htmlwallpaper
+kquitapp6 plasmashell && plasmashell &
+```
 
 ### 致谢
 
@@ -105,29 +110,27 @@ This is a KDE Plasma 6 wallpaper plugin that allows you to set any HTML page as 
 - KDE Plasma 6.0 or higher
 - QtWebEngine
 
-### Installation
+### Building
 
-#### Method 1: Using build script (recommended)
-
-```bash
-# Clone the project
-git clone https://github.com/Marcel1202/HTMLWallpaper.git
-cd HTMLWallpaper
-
-# Make executable and run build script
-chmod +x build.sh
-./build.sh
-```
-
-#### Method 2: Manual build
+Dependencies: KDE Plasma 6 development packages, Qt 6.10+ (with QtWebEngine), and vcpkg.
 
 ```bash
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=~/.local ..
-make -j$(nproc)
-make install
+# 1. Point vcpkg at your vcpkg root (provides ECM)
+export VCPKG_ROOT=/path/to/vcpkg
+
+# 2. Configure using the vcpkg + system KF6 preset
+cmake --preset vcpkg
+
+# 3. Build and install
+cmake --build --preset vcpkg
+cmake --install build
+
+# 4. Restart plasmashell to load the plugin
+kquitapp6 plasmashell && plasmashell &
 ```
+
+> Note: `cmake --preset vcpkg` already sets the install prefix to `~/.local`.
+> If your system ships QtWebEngine, keep the vcpkg `qtwebengine` feature disabled to avoid hours of compilation.
 
 ### Usage
 
@@ -143,7 +146,7 @@ make install
 
 The project includes a test page, you can use this path to test interaction:
 
-```
+```text
 file:///home/your-username/path/to/HTMLWallpaper/examples/test.html
 ```
 
@@ -163,6 +166,13 @@ If buttons work correctly, mouse passthrough is working.
 - **Transparency**: If your HTML page has a transparent background, the wallpaper will show your desktop background color
 
 ### Uninstall
+
+Remove the installed plugin files:
+
+```bash
+rm -rf ~/.local/share/plasma/wallpapers/com.github.Moon-Haze.htmlwallpaper
+kquitapp6 plasmashell && plasmashell &
+```
 
 ### Credits
 
