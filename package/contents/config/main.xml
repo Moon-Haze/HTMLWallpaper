@@ -9,10 +9,6 @@
       <label>Page to display</label>
       <default>https://kde.org/</default>
     </entry>
-    <!-- <entry name="SlidePaths" type="StringList">
-      <label>Paths to scan for wallpapers</label>
-      <default></default>
-    </entry> -->
     <entry name="ZoomFactor" type="Double">
       <label>Factor to zoom content</label>
       <default>1.0</default>

@@ -30,21 +30,6 @@ ColumnLayout {
     property var configuration: wallpaper.configuration
     property var screenSize: Qt.size(Screen.width, Screen.height)
 
-    // 把 cfg_SlideInterval（秒）拆成时/分/秒三段，供三个 SpinBox 分别显示
-    property int hoursIntervalValue: Math.floor(cfg_SlideInterval / 3600)
-    property int minutesIntervalValue: Math.floor(cfg_SlideInterval % 3600) / 60
-    property int secondsIntervalValue: cfg_SlideInterval % 3600 % 60
-
-    // 各段对应的默认值（用于高亮未改动项）
-    property int hoursIntervalValueDefault: Math.floor(cfg_SlideIntervalDefault / 3600)
-    property int minutesIntervalValueDefault: Math.floor(cfg_SlideIntervalDefault % 3600) / 60
-    property int secondsIntervalValueDefault: cfg_SlideIntervalDefault % 3600 % 60
-
-    // 配置变化时同步回对应 SpinBox 的显示值
-    onHoursIntervalValueChanged: hoursInterval.value = hoursIntervalValue
-    onMinutesIntervalValueChanged: minutesInterval.value = minutesIntervalValue
-    onSecondsIntervalValueChanged: secondsInterval.value = secondsIntervalValue
-
     spacing: 0
 
     Kirigami.FormLayout {
@@ -59,6 +44,41 @@ ColumnLayout {
             }
         }
 
+        QQC2.TextField {
+            id: displayPageField
+            Kirigami.FormData.label: i18ndc("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "@label:textfield", "URL:")
+            Layout.fillWidth: true
+            placeholderText: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", 
+                                    "https://yourwebsite.com 或 file:///absolute/path/to/your/website.html")
+            QQC2.ToolTip.visible: hovered && displayPageField.text.length > 0
+            QQC2.ToolTip.text: displayPageField.text
+        }
+
+        // RowLayout {
+        //     Kirigami.FormData.label: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Zoom:")
+
+        //     QQC2.Slider {
+        //         id: zoomFactorSlider
+        //         Layout.fillWidth: true
+        //         from: 0.5
+        //         to: 3.0
+        //         stepSize: 0.1
+        //         snapMode: QQC2.Slider.SnapAlways
+        //     }
+
+        //     Label {
+        //         text: zoomFactorSlider.value.toFixed(1)
+        //         Layout.minimumWidth: Kirigami.Units.gridUnit * 2
+        //         horizontalAlignment: Text.AlignRight
+        //     }
+        // }
+
+        // QQC2.CheckBox {
+        //     id: insecureHTTPSCheckBox
+        //     Kirigami.FormData.label: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Insecure HTTPS")
+        //     QQC2.ToolTip.visible: hovered
+        //     QQC2.ToolTip.text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Ignore HTTPS certificate errors")
+        // }
         // —— 轮播排序方式下拉框 ——
         RowLayout {
             id: slideshowModeRow
@@ -121,73 +141,6 @@ ColumnLayout {
 
                 KCM.SettingHighlighter {
                     highlight: root.cfg_SlideshowFoldersFirst !== cfg_SlideshowFoldersFirstDefault
-                }
-            }
-        }
-
-        // —— 轮播切换间隔：时 / 分 / 秒 三个 SpinBox ——
-        // FIXME: there should be only one spinbox: QtControls spinboxes are still too limited for it tough
-        RowLayout {
-            Kirigami.FormData.label: i18nd("plasma_wallpaper_org.kde.image", "Change every:")
-            QQC2.SpinBox {
-                id: hoursInterval
-                value: slideshowComponent.hoursIntervalValue
-                from: 0
-                to: 24
-                editable: true
-                // 任一段改动都重组 cfg_SlideInterval（秒），并写回配置
-                onValueChanged: cfg_SlideInterval = hoursInterval.value * 3600 + minutesInterval.value * 60 + secondsInterval.value
-
-                textFromValue: function(value, locale) {
-                    return i18ndp("plasma_wallpaper_org.kde.image","%1 hour", "%1 hours", value)
-                }
-                valueFromText: function(text, locale) {
-                    return parseInt(text);
-                }
-
-                KCM.SettingHighlighter {
-                    highlight: slideshowComponent.hoursIntervalValue != slideshowComponent.hoursIntervalValueDefault
-                }
-            }
-
-            QQC2.SpinBox {
-                id: minutesInterval
-                value: slideshowComponent.minutesIntervalValue
-                from: 0
-                to: 60
-                editable: true
-                onValueChanged: cfg_SlideInterval = hoursInterval.value * 3600 + minutesInterval.value * 60 + secondsInterval.value
-
-                textFromValue: function(value, locale) {
-                    return i18ndp("plasma_wallpaper_org.kde.image","%1 minute", "%1 minutes", value)
-                }
-                valueFromText: function(text, locale) {
-                    return parseInt(text);
-                }
-
-                KCM.SettingHighlighter {
-                    highlight: slideshowComponent.minutesIntervalValue != slideshowComponent.minutesIntervalValueDefault
-                }
-            }
-
-            QQC2.SpinBox {
-                id: secondsInterval
-                value: slideshowComponent.secondsIntervalValue
-                // 时与分都为 0 时，秒最小值为 1，保证间隔不为 0（否则立即闪切）
-                from: slideshowComponent.hoursIntervalValue === 0 && slideshowComponent.minutesIntervalValue === 0 ? 1 : 0
-                to: 60
-                editable: true
-                onValueChanged: cfg_SlideInterval = hoursInterval.value * 3600 + minutesInterval.value * 60 + secondsInterval.value
-
-                textFromValue: function(value, locale) {
-                    return i18ndp("plasma_wallpaper_org.kde.image","%1 second", "%1 seconds", value)
-                }
-                valueFromText: function(text, locale) {
-                    return parseInt(text);
-                }
-
-                KCM.SettingHighlighter {
-                    highlight: slideshowComponent.secondsIntervalValue != slideshowComponent.secondsIntervalValueDefault
                 }
             }
         }
