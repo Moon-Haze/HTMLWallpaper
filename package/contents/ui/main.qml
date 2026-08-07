@@ -29,8 +29,7 @@ WallpaperItem {
     WebEngineView {
         id: webView
         anchors.fill: parent
-        // 多屏幕共享同一个 profile，复用缓存/UA/Cookie
-        profile: ProfileProvider.sharedProfile
+        // 不指定 profile，使用 QtWebEngine 默认 profile
         // 加载用户配置的页面地址（可为本地 file:// 或远程 https://）
         url: wallpaper.configuration.DisplayPage
         // 缩放因子，对应配置项中的 ZoomFactor
