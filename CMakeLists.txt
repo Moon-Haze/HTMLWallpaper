@@ -13,3 +13,8 @@ find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Core Quick)
 find_package(Plasma ${PROJECT_DEP_VERSION} REQUIRED)
 
 plasma_install_package(package com.github.Moon-Haze.htmlwallpaper wallpapers wallpaper)
+
+# 壁纸数据目录独立于 KPackage 安装
+# 本地开发（CMAKE_INSTALL_PREFIX=~/.local）→ ~/.local/share/html-wallpapers
+# Arch 包（CMAKE_INSTALL_PREFIX=/usr）→ /usr/share/html-wallpapers
+install(DIRECTORY html-wallpapers/ DESTINATION share/html-wallpapers)

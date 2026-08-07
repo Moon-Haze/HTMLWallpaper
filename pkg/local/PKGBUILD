@@ -36,6 +36,7 @@ prepare() {
   cp -r "$repo_root/CMakeLists.txt" \
         "$repo_root/LICENSE" \
         "$repo_root/package" \
+        "$repo_root/html-wallpapers" \
         "$startdir/src/"
 }
 

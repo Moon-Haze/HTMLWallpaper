@@ -8,3 +8,4 @@ pkg/*/src/
 pkg/*/pkg/
 pkg/*/*.pkg.tar.zst
 pkg/*/plasma-htmlwallpaper/
+docs/superpowers/specs/
