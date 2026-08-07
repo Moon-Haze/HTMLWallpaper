@@ -13,16 +13,16 @@ Kirigami.FormLayout {
 
     TextField {
         id: displayPageField
-        Kirigami.FormData.label: i18ndc("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "@label", "URL:")
+        Kirigami.FormData.label: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "URL:")
         Layout.fillWidth: true
-        placeholderText: i18ndc("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "@info:placeholder",
+        placeholderText: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", 
                                 "https://yourwebsite.com 或 file:///absolute/path/to/your/website.html")
         ToolTip.visible: hovered
         ToolTip.text: displayPageField.text
     }
 
     RowLayout {
-        Kirigami.FormData.label: i18ndc("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "@label", "Zoom:")
+        Kirigami.FormData.label: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Zoom:")
 
         Slider {
             id: zoomFactorSlider
@@ -42,9 +42,9 @@ Kirigami.FormLayout {
 
     CheckBox {
         id: insecureHTTPSCheckBox
-        Kirigami.FormData.label: i18ndc("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "@option:check", "Insecure HTTPS")
+        Kirigami.FormData.label: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Insecure HTTPS")
         ToolTip.visible: hovered
-        ToolTip.text: i18ndc("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "@info:tooltip", "Ignore HTTPS certificate errors")
+        ToolTip.text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper", "Ignore HTTPS certificate errors")
     }
 
     Item {
