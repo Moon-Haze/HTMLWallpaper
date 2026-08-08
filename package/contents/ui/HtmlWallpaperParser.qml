@@ -47,12 +47,16 @@ QtObject {
     // 置 false 则收录目录下所有含 project.json 的子目录。
     property bool requireWebType: true
 
+    // 尚未完成 project.json 读取的目录数（_collectWallpapers 中维护）
+    property int _pending: 0
     // 扫描是否进行中（避免重复触发 scan()）
     readonly property bool scanInProgress: dirLister.status === FolderListModel.Loading || _pending > 0
 
     // —— 扫描结果：壁纸列表模型，可直接作为 GridView/ListView 的 model ——
-    // 每项字段：name（目录名）、title、description、tags(string[])、type、
+    // 每项字段：name（目录名）、title、description、tags(逗号分隔字符串)、type、
     //           visibility、workshopid、path(目录 url)、entry(入口 html url)、preview(预览图 url)
+    // 注意 tags 不能存 JS 字符串数组：ListModel 会把数组 role 转成嵌套 ListModel，
+    // 且字符串元素会变成空对象（数据丢失）。标签本质是展示文本，用逗号分隔字符串。
     readonly property ListModel wallpapers: ListModel {
         id: wallpapersModel
     }
@@ -60,12 +64,13 @@ QtObject {
     // —— 最近一次 parseWallpaper() 的解析结果 ——
     // 元数据对象（字段同 wallpapers 每项）；尚未解析时为 null
     property var currentWallpaper: null
-    // 当前壁纸的可配置属性模型（由 general.properties 解析而来，按 order 排序）
-    // 每项字段：key、type、text、value、min、max、step、fraction、precision、
+    // 当前壁纸的可配置属性列表（由 general.properties 解析而来，按 order 排序）
+    // 每项字段：key、type、text、propValue、min、max、step、fraction、precision、
     //           options(数组)、condition、group、order
-    readonly property ListModel currentProperties: ListModel {
-        id: propertiesModel
-    }
+    // 注意：用 JS 数组而非 ListModel——ListModel 的 role 有类型锁定（由首次 append
+    // 决定，后续不同类型会被拒/转），而可配置属性恰恰是混合类型（number/string/bool），
+    // 无法承载。JS 数组无此限制，且 Repeater 直接支持作 model。
+    property var currentProperties: []
 
     // 扫描全部完成（可能部分子目录解析失败，已在日志警告）
     signal scanFinished()
@@ -74,24 +79,44 @@ QtObject {
     // 某个根目录无法读取时发出（path：根目录 url，error：底层错误字符串）
     signal scanFailed(var path, string error)
 
-    // 枚举目录用（QtObject 内可放置非可视项）。目录扫描完成后 folder 由 scanPath() 逐根赋值。
-    FolderListModel {
-        id: dirLister
+    // 枚举目录用。目录扫描完成后 folder 由 scanPath() 逐根赋值。
+    // 注意：FolderListModel 继承 QAbstractListModel，不是 QtObject 子类，
+    // 无法放入 QtObject 的默认属性 data，只能作为属性声明。
+    property FolderListModel dirLister: FolderListModel {
         showDirs: true          // 只需子目录
         showFiles: false
         showDotAndDotDot: false
         sortField: FolderListModel.Name
     }
 
-    // 等待 FolderListModel 异步填充完成（Loading → Ready / 失败）
-    function _waitFolderReady(cb) {
-        if (dirLister.status !== FolderListModel.Loading) {
+    // 等待 FolderListModel 异步填充完成（Null/Loading → Ready / 失败）
+    // 注意：FolderListModel 枚举值 Null=0、Ready=1、Loading=2，与直觉相反；
+    // folder 刚赋值后 status 是 Null，不能以 `!== Loading` 判断"已就绪"。
+    // 用 statusChanged 信号驱动而非 callLater 轮询：枚举完成时信号必然触发，
+    // 帧数轮询会把帧数与真实时间混为一谈（offScreen 下 10 万帧 < 枚举耗时）。
+    // 注意 errorString 无错误时为 undefined（而非空串），必须用真值判断。
+    //
+    // validate 为可选回调：确认枚举的是目标目录。offscreen 测试环境里
+    // FolderListModel.folder 赋值后偶尔会先枚举一次 cwd（首项不是目标路径）
+    // 并把 status 置 Ready，随后才枚举真正的目标目录；单靠 status==Ready
+    // 会把"错误的就绪"当成完成。validate 返回 false 时继续等待下一次 Ready。
+    function _waitFolderReady(cb, validate) {
+        if (dirLister.errorString) {
             cb();
-        } else {
-            Qt.callLater(function () {
-                _waitFolderReady(cb);
-            });
+            return;
         }
+        if (dirLister.status === FolderListModel.Ready && (!validate || validate())) {
+            cb();
+            return;
+        }
+        const onStatus = function () {
+            if (dirLister.errorString ||
+                (dirLister.status === FolderListModel.Ready && (!validate || validate()))) {
+                dirLister.statusChanged.disconnect(onStatus);
+                cb();
+            }
+        };
+        dirLister.statusChanged.connect(onStatus);
     }
 
     // —— 扫描入口：顺序扫描 rootPaths，把各根下的合法壁纸填入 wallpapers ——
@@ -108,7 +133,7 @@ QtObject {
             scanFinished();
             return;
         }
-        const base = _toUrl(rootPaths[index]);
+        const base = rootPaths[index]; // url 类型，直接赋给 FolderListModel.folder
         dirLister.folder = base;
         _waitFolderReady(function () {
             if (dirLister.status !== FolderListModel.Ready) {
@@ -120,16 +145,28 @@ QtObject {
                     _scanPath(index + 1);
                 });
             }
+        }, function () {
+            // 确认枚举的是目标目录（首项路径在 base 之下）；空目录视为合法
+            return dirLister.count === 0 || _isUnder(dirLister.get(0, "filePath"), base);
         });
     }
 
+    // 判断 filePath（本地绝对路径）是否位于 base（file:// URL）之下
+    function _isUnder(filePath, base) {
+        const p = "file://" + String(filePath);
+        const b = String(base).replace(/\/+$/, "");
+        return p.indexOf(b) === 0;
+    }
+
     // 读取当前 dirLister 下列出的每个子目录的 project.json，命中则追加进模型
+    // 注意：FolderListModel 的 get() 签名是 get(idx, property)，不是 ListModel 的
+    // get(idx)；判断目录用 isFolder()。role 名没有 fileURL，只有 filePath（本地
+    // 绝对路径，无 file:// 前缀），需手动补前缀。
     function _collectWallpapers(done) {
         let dirs = [];
         for (let i = 0; i < dirLister.count; i++) {
-            const entry = dirLister.get(i);
-            if (entry.fileIsDir) {
-                dirs.push(entry.fileURL);
+            if (dirLister.isFolder(i)) {
+                dirs.push("file://" + dirLister.get(i, "filePath"));
             }
         }
         if (dirs.length === 0) {
@@ -137,14 +174,14 @@ QtObject {
             return;
         }
 
-        let pending = dirs.length;
+        _pending = dirs.length;
         dirs.forEach(function (dirUrl) {
             _loadProjectJson(dirUrl, function (data, url) {
                 const meta = data ? _parseMetadata(url, data) : null;
                 if (meta) {
                     wallpapersModel.append(meta);
                 }
-                if (--pending === 0) {
+                if (--_pending === 0) {
                     done();
                 }
             });
@@ -158,7 +195,7 @@ QtObject {
             if (!data) {
                 console.warn("HtmlWallpaperParser: no project.json in " + url);
                 currentWallpaper = null;
-                propertiesModel.clear();
+                currentProperties = [];
                 return;
             }
             currentWallpaper = _parseMetadata(url, data);
@@ -203,7 +240,7 @@ QtObject {
             "name": name,
             "title": data.title || name,
             "description": data.description || "",
-            "tags": data.tags || [],
+            "tags": _toTagsString(data.tags),
             "type": data.type || "web",
             "visibility": data.visibility || "",
             "workshopid": String(data.workshopid || ""),
@@ -213,9 +250,18 @@ QtObject {
         };
     }
 
+    // project.json 的 tags 是字符串数组，但 ListModel role 不能存字符串数组
+    // （会被转成嵌套 ListModel 且元素变空对象），故序列化成逗号分隔字符串。
+    function _toTagsString(tags) {
+        if (Array.isArray(tags)) {
+            return tags.join(", ");
+        }
+        return String(tags || "");
+    }
+
     // 解析 general.properties 为排序后的属性模型（未定义字段保持空/undefined，由 UI 按 type 兜底）
     function _parseProperties(properties) {
-        propertiesModel.clear();
+        currentProperties = [];
         if (!properties) {
             return;
         }
@@ -228,11 +274,11 @@ QtObject {
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             const p = properties[key];
-            propertiesModel.append({
+            currentProperties.push({
                 "key": key,
                 "type": p.type || "text",
                 "text": p.text || key,
-                "value": p.value !== undefined ? p.value : _defaultValue(p),
+                "propValue": p.value !== undefined ? p.value : _defaultValue(p),
                 "min": p.min,
                 "max": p.max,
                 "step": p.step,
@@ -268,9 +314,9 @@ QtObject {
     // color 转成 #RRGGBB；bool 转 true/false；空值跳过
     function buildQueryString() {
         let parts = [];
-        for (let i = 0; i < propertiesModel.count; i++) {
-            const item = propertiesModel.get(i);
-            let v = item.value;
+        for (let i = 0; i < currentProperties.length; i++) {
+            const item = currentProperties[i];
+            let v = item.propValue;
             if (v === undefined || v === null || v === "") {
                 continue;
             }
