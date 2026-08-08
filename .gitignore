@@ -1,5 +1,8 @@
 build/
 build-*/
+# 后端模块产物（构建时由 backend/CMakeLists.txt POST_BUILD 复制进来，
+# 供 config.qml 相对 import "backend"；非源文件，勿提交）
+package/contents/ui/backend/
 .history/
 plasma-HTMLWallpaper/
 plasma-HTMLWallpaper-*-x86_64.pkg.tar.zst

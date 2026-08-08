@@ -1,0 +1,31 @@
+{
+    "title": "Fetch Terminal",
+    "description": "Test fixture with groups and conditions",
+    "tags": ["test", "group", "condition"],
+    "type": "Web",
+    "file": "index.html",
+    "preview": "preview.gif",
+    "general": {
+        "properties": {
+            "schemecolor": { "type": "color", "text": "Scheme Color", "value": "0 0 0", "order": 1, "group": "appearance" },
+            "appearance": { "type": "group", "text": "Appearance", "order": 2, "value": "" },
+            "textsize": { "type": "slider", "text": "Font Size (pt)", "min": 4, "max": 48, "value": 16, "order": 3, "group": "appearance" },
+            "themegroup": { "type": "group", "text": "Theme", "order": 100, "value": "" },
+            "theme": {
+                "type": "combo",
+                "text": "Theme",
+                "order": 101,
+                "value": "dark",
+                "options": [
+                    { "label": "Dark", "value": "dark" },
+                    { "label": "Custom", "value": "custom" }
+                ]
+            },
+            "backgroundcolor": { "type": "color", "text": "Background", "value": "0.05 0.06 0.06", "order": 102, "condition": "theme.value === \"custom\"" },
+            "glow": { "type": "bool", "text": "Glow", "value": true, "order": 110 },
+            "infotext": { "type": "text", "text": "Info <small>hint</small>", "order": 120, "value": false },
+            "name": { "type": "textinput", "text": "Name", "value": "x", "order": 130 },
+            "logo": { "type": "file", "text": "Logo", "value": "default.png", "order": 140 }
+        }
+    }
+}

@@ -11,16 +11,12 @@ import QtQuick.Layouts
 
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
-import org.kde.newstuff as NewStuff
-import org.kde.kitemmodels as KItemModels
 
 /**
- * 壁纸缩略图网格（图片模式与幻灯片/HTML 模式共用）。
+ * HTML 壁纸缩略图网格（com.github.moon_haze.htmlwallpaper 模式中栏）。
  *
- * - 单图模式（org.kde.image）：展示用户壁纸库，点击某张直接设为壁纸；
- * - 幻灯片/HTML 模式（com.github.Moon-Haze.htmlwallpaper）：展示可选幻灯片，
- *   每项带勾选框，勾选集合决定轮播内容。
- * 工具栏提供“添加 / 获取新壁纸 / 全选 / 全不选”操作。
+ * 展示 imageWallpaper.wallpapers（C++ WallpaperListModel），每项带勾选框，
+ * 勾选集合决定轮播内容。工具栏提供"全选 / 全不选"操作。
  */
 Item {
     id: thumbnailsComponent
@@ -29,58 +25,13 @@ Item {
     // 暴露底层 GridView，供外部滚动到指定项
     property alias view: wallpapersGrid.view
     property var screenSize: Qt.size(Screen.width, Screen.height)
+    // 注入的解析器实例（由 SlideshowComponent 传入）
+    property QtObject imageWallpaper: null
 
-    // 供网格使用的数据模型：
-    // - 单图模式：排序后的用户壁纸模型（sortedWallpaperModel）
-    // - 幻灯片模式：ImageBackend 提供的 slideFilterModel（含勾选状态）
-    readonly property QtObject imageModel: (configDialog.currentWallpaper === "org.kde.image") ? sortedWallpaperModel : imageWallpaper.slideFilterModel
+    // 供网格使用的数据模型：解析器扫描到的壁纸列表（含勾选状态）
+    readonly property QtObject imageModel: imageWallpaper ? imageWallpaper.wallpapers : null
 
-    // 对 imageWallpaper.wallpaperModel 做不区分大小写的字母排序
-    KItemModels.KSortFilterProxyModel  {
-        id: sortedWallpaperModel
-        sortRole: Qt.DisplayRole
-        sortCaseSensitivity: Qt.CaseInsensitive
-        sortColumn: 0
-        sourceModel: (configDialog.currentWallpaper === "org.kde.image") ? imageWallpaper.wallpaperModel : null
-        // 在排序后的模型中查找某张图片的索引（做源/代理索引映射）
-        function indexOf(image : string) : int {
-            if (!sourceModel) {
-                return -1
-            }
-            const idx = sourceModel.indexOf(image)
-
-            if (idx < 0) {
-                return idx
-            }
-
-            const sourceIndex = sourceModel.index(idx, 0)
-            return mapFromSource(sourceIndex).row
-        }
-        // 打开某个列表项对应的文件夹（反向映射回源模型再调用）
-        function openContainingFolder(listIndex : int) {
-            if (sourceModel) {
-                sourceModel.openContainingFolder(mapToSource(index(listIndex, 0)).row)
-            }
-        }
-    }
-
-
-    // 监听壁纸库加载完成：若当前选中的图片不在模型里，自动补加
-    Connections {
-        target: imageWallpaper
-        function onLoadingChanged(loading: bool) {
-            if (loading) {
-                return;
-            }
-            // 单图模式下，确保 cfg_Image 指向的图片存在于用户壁纸库中
-            if (configDialog.currentWallpaper === "org.kde.image" && imageModel.indexOf(cfg_Image) < 0) {
-                imageWallpaper.addUsersWallpaper(cfg_Image);
-            }
-            wallpapersGrid.resetCurrentIndex();
-        }
-    }
-
-    // 监听“添加壁纸完成”信号：滚动回顶部以展示新加入的图片
+    // 监听"添加壁纸完成"信号：滚动回顶部以展示新加入的壁纸
     Connections {
         target: root
         function onWallpaperBrowseCompleted() {
@@ -105,41 +56,31 @@ Item {
             Layout.fillWidth: true
             text: i18nd("plasma_wallpaper_org.kde.image", "Images")
             actions: [
-                // “添加图片…”：仅单图模式可见，弹出文件选择框
-                Kirigami.Action {
-                    icon.name: "list-add-symbolic"
-                    text: i18ndc("plasma_wallpaper_org.kde.image", "@action:button the thing being added is an image file", "Add…")
-                    Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Add Wallpaper Image…")
-                    visible: configDialog.currentWallpaper == "org.kde.image"
-                    onTriggered: root.openChooserDialog();
-                },
-                // “获取新壁纸…”：通过 KNewStuff 下载壁纸包
-                NewStuff.Action {
-                    configFile: Kirigami.Settings.isMobile ? "wallpaper-mobile.knsrc" : "wallpaper.knsrc"
-                    text: i18ndc("plasma_wallpaper_org.kde.image", "@action:button the new things being gotten are wallpapers", "Get New…")
-                    Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Get New Wallpaper Images…")
-                    displayHint: Kirigami.DisplayHint.KeepVisible
-                    viewMode: NewStuff.Page.ViewMode.Preview
-                },
-                // “全选”：批量勾选所有幻灯片（仅 HTMLWallpaper 模式）
+                // "全选"：批量勾选所有幻灯片
                 Kirigami.Action {
                     icon.name: "edit-select-all-symbolic"
                     shortcut: StandardKey.SelectAll
                     text: i18ndc("plasma_wallpaper_org.kde.image", "@action:button the things being selected are wallpapers", "Select All")
                     Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Select All Slides")
                     displayHint: Kirigami.DisplayHint.KeepVisible
-                    visible: configDialog.currentWallpaper == "com.github.Moon-Haze.htmlwallpaper"
-                    onTriggered: thumbnailsComponent.imageModel.selectAllSlides();
+                    onTriggered: {
+                        for (let i = 0; i < thumbnailsComponent.imageModel.count; i++) {
+                            thumbnailsComponent.imageModel.setProperty(i, "checked", true);
+                        }
+                    }
                 },
-                // “全不选”：取消勾选全部幻灯片
+                // "全不选"：取消勾选全部幻灯片
                 Kirigami.Action {
                     icon.name: "edit-select-none-symbolic"
                     shortcut: StandardKey.Deselect
                     text: i18ndc("plasma_wallpaper_org.kde.image", "@action:button the things being unselected are wallpapers", "Select None")
                     Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Unselect All Slides")
                     displayHint: Kirigami.DisplayHint.KeepVisible
-                    visible: configDialog.currentWallpaper == "com.github.Moon-Haze.htmlwallpaper"
-                    onTriggered: thumbnailsComponent.imageModel.deselectAllSlides();
+                    onTriggered: {
+                        for (let i = 0; i < thumbnailsComponent.imageModel.count; i++) {
+                            thumbnailsComponent.imageModel.setProperty(i, "checked", false);
+                        }
+                    }
                 }
             ]
         }
@@ -158,21 +99,14 @@ Item {
 
                 framedView: false
 
-                // 把当前选中项指向 cfg_Image 对应的缩略图
+                // 模型异步加载后把选中项重置回第一项
                 function resetCurrentIndex() {
-                    //that min is needed as the module will be populated in an async way
-                    //and only on demand so we can't ensure it already exists
-                    // 取 min 是因为模型是异步加载的，索引可能暂时越界
-                    if (configDialog.currentWallpaper === "org.kde.image") {
-                        wallpapersGrid.view.currentIndex = Qt.binding(() => configDialog.currentWallpaper === "org.kde.image" ?  Math.min(imageModel.indexOf(cfg_Image), imageModel.count - 1) : 0);
-                    }
+                    wallpapersGrid.view.currentIndex = 0;
                 }
 
-                //kill the space for label under thumbnails
                 // 直接挂模型，节省缩略图下方标签的额外空间
                 view.model: thumbnailsComponent.imageModel
 
-                //set the size of the cell, depending on Screen resolution to respect the aspect ratio
                 // 单元格尺寸随屏幕宽高比调整，保持缩略图比例不拉伸
                 view.implicitCellWidth: {
                     const factor = screenSize.width / screenSize.height; // As a pct of screen height
@@ -187,9 +121,9 @@ Item {
                 // 复用项视图实例以提升滚动性能
                 view.reuseItems: true
 
-                // 网格项使用 WallpaperDelegate，并传入配色与预览采样尺寸
+                // 网格项使用 WallpaperDelegate，并传入配色、预览采样尺寸与解析器实例
                 view.delegate: WallpaperDelegate {
-                    color: cfg_Color
+                    imageWallpaper: thumbnailsComponent.imageWallpaper
                     // 计算缩略图采样尺寸：太小会糊，按屏幕 1/8 起，下限一档
                     previewSize: {
                         // Set minimum image sample size, otherwise it's very blurry
@@ -216,11 +150,5 @@ Item {
                 }
             }
         }
-    }
-
-    // 单图模式下选中了非默认壁纸时高亮网格
-    KCM.SettingHighlighter {
-        target: wallpapersGrid
-        highlight: configDialog.currentWallpaper === "org.kde.image" && cfg_Image != cfg_ImageDefault
     }
 }

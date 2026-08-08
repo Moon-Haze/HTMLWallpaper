@@ -81,7 +81,7 @@ file:///home/你的用户名/path/to/HTMLWallpaper/examples/test.html
 删除已安装的插件文件：
 
 ```bash
-rm -rf ~/.local/share/plasma/wallpapers/com.github.Moon-Haze.htmlwallpaper
+rm -rf ~/.local/share/plasma/wallpapers/com.github.moon_haze.htmlwallpaper
 kquitapp6 plasmashell && plasmashell &
 ```
 
@@ -170,7 +170,7 @@ If buttons work correctly, mouse passthrough is working.
 Remove the installed plugin files:
 
 ```bash
-rm -rf ~/.local/share/plasma/wallpapers/com.github.Moon-Haze.htmlwallpaper
+rm -rf ~/.local/share/plasma/wallpapers/com.github.moon_haze.htmlwallpaper
 kquitapp6 plasmashell && plasmashell &
 ```
 

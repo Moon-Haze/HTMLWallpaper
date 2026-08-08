@@ -7,12 +7,13 @@
 import QtQuick
 import QtTest
 import Qt.labs.folderlistmodel
+import com.github.moon_haze.htmlwallpaper
 
 /**
- * HtmlWallpaperParser 单元测试。
+ * HTMLBackend（C++）单元测试。
  *
  * 覆盖解析器的全部纯函数（colorToHex / 元数据 / 属性 / 查询串 / 路径工具）
- * 与异步扫描流程（FolderListModel 枚举 + XMLHttpRequest 读 project.json）。
+ * 与异步扫描流程（QtConcurrent worker 枚举目录 + QFile 读 project.json）。
  * fixtures 位于 tests/data/wallpapers/（aurora=web、matrix=web+属性表、
  * neon=无 project.json、offline=非 web 类型）。
  */
@@ -35,11 +36,9 @@ TestCase {
     }
 
     function init() {
-        let comp = Qt.createComponent("../package/contents/ui/HtmlWallpaperParser.qml");
-        verify(comp.status === Component.Ready, "HtmlWallpaperParser 加载失败: " + comp.errorString());
-        parser = comp.createObject(testCase);
-        verify(parser !== null, "Parser 实例化失败");
-        comp.destroy();
+        // C++ 后端模块类型，每个测试函数独立重建实例
+        parser = Qt.createQmlObject("import com.github.moon_haze.htmlwallpaper; HTMLBackend {}", testCase);
+        verify(parser !== null, "HTMLBackend 实例化失败");
     }
 
     function cleanup() {
@@ -120,8 +119,14 @@ TestCase {
         parser.requireWebType = true;
         verify(parser._parseMetadata("file:///d", { "type": "web" }) !== null);
         verify(parser._parseMetadata("file:///d", { "type": "web dynamic" }) !== null);
-        // 非 web 类型 → null
+        // 明确非 HTML 类型（视频/3D 场景/程序/纯音频）→ null
         verify(parser._parseMetadata("file:///d", { "type": "scene" }) === null);
+        verify(parser._parseMetadata("file:///d", { "type": "video" }) === null);
+        verify(parser._parseMetadata("file:///d", { "type": "application" }) === null);
+        // HTML 类壁纸除 "web" 外还有 color（纯色/渐变）、group（分组），
+        // 必须收录——否则这些壁纸的扫描结果为空（历史 bug：白名单误杀）
+        verify(parser._parseMetadata("file:///d", { "type": "color" }) !== null);
+        verify(parser._parseMetadata("file:///d", { "type": "group" }) !== null);
         verify(parser._parseMetadata("file:///d", { "type": "Web" }) !== null); // 大小写不敏感
         // 类型缺失按 web 处理
         verify(parser._parseMetadata("file:///d", {}) !== null);
@@ -210,6 +215,62 @@ TestCase {
         verify(qs.indexOf("key%20with%20space=a%26b%3Dc") >= 0, "URL 编码不正确: " + qs);
     }
 
+    // —— 参数 JSON 序列化 ——
+
+    function test_buildPropertiesJson() {
+        parser._parseProperties({
+            "speed": { "type": "slider", "value": 5 },
+            "color": { "type": "color", "value": "0 1 0" },
+            "glow": { "type": "bool", "value": true },
+            "off": { "type": "bool", "value": false },
+            "empty": { "type": "text", "value": "" }
+        });
+        let obj = JSON.parse(parser.buildPropertiesJson());
+        compare(obj.speed, 5);
+        compare(obj.color, "#00ff00"); // color → hex
+        compare(obj.glow, true);
+        compare(obj.off, false);
+        // 空值属性跳过
+        verify(!("empty" in obj), "空值不应出现在 JSON 中");
+    }
+
+    // —— 扫描路径（rootPaths）——
+
+    // 创建即带默认 rootPaths（配置界面打开时已有路径必须可见）
+    function test_rootPaths_initial() {
+        compare(parser.rootPaths.length, 1, "创建后应有默认 rootPaths");
+        compare(String(parser.rootPaths[0]), "file:///usr/share/html-wallpapers");
+    }
+
+    // 直接赋值 rootPaths 生效（数据源就是它本身，无中间模型）
+    function test_rootPaths_assign() {
+        parser.rootPaths = ["file:///a", "file:///b"];
+        compare(parser.rootPaths.length, 2);
+        compare(String(parser.rootPaths[0]), "file:///a");
+        compare(String(parser.rootPaths[1]), "file:///b");
+    }
+
+    function test_rootPaths_addRemove() {
+        // rootPaths 默认带一个扫描路径，先清空从无开始
+        parser.rootPaths = [];
+        compare(parser.rootPaths.length, 0, "初始无扫描路径");
+
+        parser.addScanPath("file:///a");
+        parser.addScanPath("file:///b/");
+        compare(parser.rootPaths.length, 2);
+        compare(String(parser.rootPaths[0]), "file:///a");
+        compare(String(parser.rootPaths[1]), "file:///b/");
+
+        // 重复路径去重
+        parser.addScanPath("file:///a");
+        compare(parser.rootPaths.length, 2, "重复路径应被拒绝");
+
+        // 删除
+        parser.removeScanPath("file:///a");
+        compare(parser.rootPaths.length, 1);
+        compare(String(parser.rootPaths[0]), "file:///b/");
+    }
+
     // —— URL 拼接 ——
 
     function test_applyPropertiesToUrl() {
@@ -249,17 +310,21 @@ TestCase {
         scanSpy.wait(5000);
         verify(scanSpy.count > 0, "scanFinished 未在 5s 内发出");
 
-        // aurora + matrix 被收录；neon 无 project.json、offline 非 web 被过滤
-        compare(parser.wallpapers.count, 2, "期望 2 个壁纸，实际 " + parser.wallpapers.count);
+        // aurora + matrix + nova + fetch 被收录；neon 无 project.json、offline 非 web 被过滤
+        compare(parser.wallpapers.count, 4, "期望 4 个壁纸，实际 " + parser.wallpapers.count);
 
-        let aurora = null, matrix = null;
+        let aurora = null, matrix = null, nova = null, fetch = null;
         for (let i = 0; i < parser.wallpapers.count; i++) {
             let item = parser.wallpapers.get(i);
             if (item.name === "aurora") aurora = item;
             if (item.name === "matrix") matrix = item;
+            if (item.name === "nova") nova = item;
+            if (item.name === "fetch") fetch = item;
         }
         verify(aurora !== null, "缺少 aurora");
         verify(matrix !== null, "缺少 matrix");
+        verify(nova !== null, "缺少 nova");
+        verify(fetch !== null, "缺少 fetch");
 
         // aurora 字段（缺省 file 用 index.html）
         compare(aurora.title, "Aurora");
@@ -270,6 +335,10 @@ TestCase {
 
         // matrix 用自定义 file=main.html
         verify(matrix.entry.endsWith("/data/wallpapers/matrix/main.html"), "matrix entry: " + matrix.entry);
+
+        // nova 无 preview 字段 → 自动探测到 preview.jpg
+        verify(nova.preview.endsWith("/data/wallpapers/nova/preview.jpg"), "nova preview 应自动探测: " + nova.preview);
+        compare(nova.title, "Nova");
     }
 
     function test_parseWallpaper() {
@@ -303,5 +372,122 @@ TestCase {
         // neon 无 project.json → currentWallpaper 为 null
         verify(parser.currentWallpaper === null, "无 project.json 时 currentWallpaper 应为 null");
         compare(parser.currentProperties.length, 0);
+    }
+
+    // —— 协议辅助：绝对 URL / 子路径 / query 保留 ——
+
+    function test_parseMetadata_absoluteEntry() {
+        // 绝对 URL 原样使用（不拼接壁纸目录）
+        let meta = parser._parseMetadata("file:///d/wp", { "file": "https://example.com/a.html", "type": "web" });
+        compare(meta.entry, "https://example.com/a.html");
+        meta = parser._parseMetadata("file:///d/wp", { "file": "file:///x/y.html", "type": "web" });
+        compare(meta.entry, "file:///x/y.html");
+        // 相对子路径拼接
+        meta = parser._parseMetadata("file:///d/wp", { "file": "img/bg.html", "type": "web" });
+        compare(meta.entry, "file:///d/wp/img/bg.html");
+        // 带 query 保留
+        meta = parser._parseMetadata("file:///d/wp", { "file": "page.html?x=1", "type": "web" });
+        compare(meta.entry, "file:///d/wp/page.html?x=1");
+    }
+
+    // —— 协议辅助：condition 求值 ——
+
+    function test_evaluateCondition() {
+        // 空 / 未定义 → true
+        verify(parser.evaluateCondition("", {}));
+        verify(parser.evaluateCondition(undefined, {}));
+        // 字符串比较（===）
+        verify(parser.evaluateCondition("theme.value === \"custom\"", { "theme": "custom" }));
+        verify(!parser.evaluateCondition("theme.value === \"custom\"", { "theme": "dark" }));
+        // 布尔宽松比较（WE 惯用 ==）
+        verify(parser.evaluateCondition("coloredascii.value == true", { "coloredascii": true }));
+        verify(!parser.evaluateCondition("coloredascii.value == true", { "coloredascii": false }));
+        // 数值比较
+        verify(parser.evaluateCondition("saturation.value > 1", { "saturation": 2 }));
+        verify(!parser.evaluateCondition("saturation.value > 1", { "saturation": 0.5 }));
+        // 多属性引用 + 逻辑组合
+        verify(parser.evaluateCondition("theme.value === \"custom\" && alpha.value > 0",
+                                        { "theme": "custom", "alpha": 1 }));
+        // 表达式异常 → 宽松 true（不崩溃）
+        verify(parser.evaluateCondition("theme.value ===", {}));
+    }
+
+    // —— 协议辅助：group 分组 ——
+
+    function test_propertyGroups() {
+        // 给 g1 内属性固定 order，避免依赖无 order 属性的排序稳定性（V4 排序不稳定）
+        parser._parseProperties({
+            "a": { "type": "slider", "group": "g1", "value": 1, "order": 1 },
+            "b": { "type": "bool", "value": true },
+            "c": { "type": "combo", "group": "g2", "value": "x" },
+            "d": { "type": "text", "group": "g1", "order": 2 }
+        });
+        function findGroup(groups, name) {
+            for (let i = 0; i < groups.length; i++) {
+                if (groups[i].group === name) {
+                    return groups[i];
+                }
+            }
+            return null;
+        }
+        let groups = parser.propertyGroups();
+        compare(groups.length, 3, "期望 3 组，实际 " + groups.length);
+        let g1 = findGroup(groups, "g1");
+        verify(g1 !== null, "缺少 g1 组");
+        compare(g1.items.length, 2);
+        // g1 内按 order 排序：a(1) 在 d(2) 前
+        compare(g1.items[0].key, "a");
+        compare(g1.items[1].key, "d");
+        let def = findGroup(groups, "");
+        verify(def !== null, "缺少默认组");
+        compare(def.items.length, 1);
+        compare(def.items[0].key, "b");
+        let g2 = findGroup(groups, "g2");
+        verify(g2 !== null, "缺少 g2 组");
+        compare(g2.items.length, 1);
+        compare(g2.items[0].key, "c");
+    }
+
+    function test_propertyGroups_typeGroupAnchor() {
+        // type="group" 属性是组锚点：key 即组名、text 即组标题；不进入任何组。
+        // 无显式 group 的属性归入最近的锚点（顺序锚定）。
+        parser._parseProperties({
+            "schemecolor": { "type": "color", "group": "appearance", "order": 1 },
+            "appearance": { "type": "group", "text": "Appearance", "order": 2 },
+            "textsize": { "type": "slider", "group": "appearance", "order": 3 },
+            "themegroup": { "type": "group", "text": "Theme", "order": 100 },
+            "theme": { "type": "combo", "order": 101 },
+            "glow": { "type": "bool", "order": 102 }
+        });
+        function findGroup(groups, name) {
+            for (let i = 0; i < groups.length; i++) {
+                if (groups[i].group === name) {
+                    return groups[i];
+                }
+            }
+            return null;
+        }
+        let groups = parser.propertyGroups();
+        compare(groups.length, 2, "期望 2 组，实际 " + groups.length);
+        // appearance 组：显式 group 的成员，锚点标题取自 type="group" 的 text
+        let app = findGroup(groups, "appearance");
+        verify(app !== null, "缺少 appearance 组");
+        compare(app.title, "Appearance");
+        compare(app.items.length, 2);
+        compare(app.items[0].key, "schemecolor"); // order 1 < 3
+        compare(app.items[1].key, "textsize");
+        // themegroup 组：theme/glow 无显式 group，顺序锚定到最近的 themegroup 锚点
+        let theme = findGroup(groups, "themegroup");
+        verify(theme !== null, "缺少 themegroup 组");
+        compare(theme.title, "Theme");
+        compare(theme.items.length, 2);
+        compare(theme.items[0].key, "theme");
+        compare(theme.items[1].key, "glow");
+        // 锚点自身（type="group"）不进入任何组的 items
+        for (let i = 0; i < groups.length; i++) {
+            for (let j = 0; j < groups[i].items.length; j++) {
+                verify(groups[i].items[j].type !== "group", "group 类型属性不应出现在 items 中");
+            }
+        }
     }
 }
