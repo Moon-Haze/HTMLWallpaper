@@ -1,12 +1,12 @@
 # Maintainer: Moon-Haze <swx1126200515@outlook.com>
-_pkgname=plasma-htmlwallpaper
+_pkgname=plasma6-wallpapers-htmlwallpaper
 pkgname="${_pkgname}"
 pkgver=1.0.0
 pkgrel=1
 pkgdesc="KDE Plasma 6 HTML wallpaper plugin - set any HTML page as desktop wallpaper with mouse interaction (local build)"
 arch=('x86_64')
 url="https://github.com/Moon-Haze/HTMLWallpaper"
-license=('LGPL-2.1-or-later')
+license=('GPL-3')
 depends=(
   'libplasma>=6.6.90'
   'qt6-base>=6.10.0'

@@ -36,7 +36,7 @@
     </entry>
     <entry name="SlidePaths" type="StringList">
       <label>Paths used for the slideshow</label>
-      <default>preferred://wallpaperlocations</default>
+      <default>/usr/share/html-wallpapers</default>
     </entry>
     <entry name="SlideInterval" type="int">
       <label>Interval between slides (s)</label>

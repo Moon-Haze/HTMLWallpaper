@@ -1,0 +1,97 @@
+# Maintainer: Moon-Haze <swx1126200515@outlook.com>
+# 上游: https://github.com/Moon-Haze/HTMLWallpaper
+
+# ============================================================
+# Split package：一个 PKGBUILD 把 html-wallpapers/ 下五个 HTML
+# 壁纸分别打成五个独立的 .pkg.tar.zst。
+# 在 pkg/wallpapers 目录直接运行 `makepkg` 即可一次得到五个包。
+#
+# 壁纸数据安装到 /usr/share/html-wallpapers/<Name>/，由主插件
+# plasma6-wallpapers-htmlwallpaper 加载（配置项"壁纸目录"默认
+# 就是该路径，见 package/contents/config/main.xml）。
+#
+# ⚠ 重要：主插件 CMakeLists.txt 目前会安装整个 html-wallpapers/
+#   目录，必须移除下面这行，否则主包与这些壁纸包文件冲突：
+#     install(DIRECTORY html-wallpapers/ DESTINATION share/html-wallpapers)
+#   移除后，主插件不再自带壁纸，壁纸按需通过本包安装。
+# ============================================================
+
+pkgbase=plasma6-wallpapers-htmlwallpaper-wallpapers
+
+# 子包名（小写+连字符）与源码目录名（原始大小写）一一对应
+pkgname=(
+  'plasma6-wallpapers-htmlwallpaper-audiovisualizer'
+  'plasma6-wallpapers-htmlwallpaper-canvasbg'
+  'plasma6-wallpapers-htmlwallpaper-codetime'
+  'plasma6-wallpapers-htmlwallpaper-fallingcherry'
+  'plasma6-wallpapers-htmlwallpaper-fetchterminal'
+)
+
+_wallpaper_srcs=(
+  'AudioVisualizer'
+  'CanvasBg'
+  'CodeTime'
+  'FallingCherry'
+  'FetchTerminal'
+)
+
+pkgver=1.0.0
+pkgrel=1
+arch=('any')          # 纯数据包，与架构无关
+url="https://github.com/Moon-Haze/HTMLWallpaper"
+license=('GPL-3')
+
+# 壁纸需由主插件加载才能作为 KDE 壁纸使用。
+# 若你的主插件用的是 -git 版，请把这里改为 'plasma6-wallpapers-htmlwallpaper-git'。
+# depends=('plasma6-wallpapers-htmlwallpaper')
+
+# 纯数据包，源码在本仓库内，无需 makepkg 下载
+source=()
+sha256sums=()
+
+prepare() {
+  # 从项目根把五个壁纸目录同步进 $srcdir，供各 package_* 使用。
+  # $startdir 即本 PKGBUILD 所在目录（pkg/wallpapers），上两级就是项目根。
+  local repo_root d
+  repo_root="$(cd "$startdir/../.." && pwd)"
+  if [[ ! -d "$repo_root/html-wallpapers" ]]; then
+    echo "警告：未找到项目根（$repo_root），跳过源码同步" >&2
+    return 0
+  fi
+  for d in "${_wallpaper_srcs[@]}"; do
+    rm -rf "$srcdir/$d"
+    cp -a "$repo_root/html-wallpapers/$d" "$srcdir/"
+  done
+}
+
+# 通用逻辑：把一个壁纸目录装进目标路径
+_install_wallpaper() {
+  local src="$1"
+  install -d "$pkgdir/usr/share/html-wallpapers/$src"
+  cp -a "$srcdir/$src/." "$pkgdir/usr/share/html-wallpapers/$src/"
+}
+
+package_plasma6-wallpapers-htmlwallpaper-audiovisualizer() {
+  pkgdesc="KDE Plasma 6 HTML wallpaper - Connecting Dots w/ Audio Visualizer"
+  _install_wallpaper 'AudioVisualizer'
+}
+
+package_plasma6-wallpapers-htmlwallpaper-canvasbg() {
+  pkgdesc="KDE Plasma 6 HTML wallpaper - canvasBg (particle dots)"
+  _install_wallpaper 'CanvasBg'
+}
+
+package_plasma6-wallpapers-htmlwallpaper-codetime() {
+  pkgdesc="KDE Plasma 6 HTML wallpaper - CodeTime (code-snippet clock)"
+  _install_wallpaper 'CodeTime'
+}
+
+package_plasma6-wallpapers-htmlwallpaper-fallingcherry() {
+  pkgdesc="KDE Plasma 6 HTML wallpaper - Falling Cherry blossom petals"
+  _install_wallpaper 'FallingCherry'
+}
+
+package_plasma6-wallpapers-htmlwallpaper-fetchterminal() {
+  pkgdesc="KDE Plasma 6 HTML wallpaper - Neofetch Terminal (ASCII system info)"
+  _install_wallpaper 'FetchTerminal'
+}
