@@ -1,0 +1,10 @@
+{
+    "title": "Aurora",
+    "description": "Aurora borealis wallpaper",
+    "tags": ["aurora", "sky"],
+    "type": "web",
+    "visibility": "public",
+    "workshopid": "1234567890",
+    "file": "index.html",
+    "preview": "preview.jpg"
+}

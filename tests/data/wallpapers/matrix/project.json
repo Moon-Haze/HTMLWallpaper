@@ -1,0 +1,25 @@
+{
+    "title": "Matrix Rain",
+    "description": "Digital rain effect",
+    "tags": ["matrix", "hacker"],
+    "type": "web",
+    "file": "main.html",
+    "preview": "preview.png",
+    "general": {
+        "properties": {
+            "speed": { "type": "slider", "text": "Speed", "value": 5, "min": 1, "max": 20, "step": 1, "order": 1 },
+            "color": { "type": "color", "text": "Color", "value": "0 1 0", "order": 2 },
+            "glow": { "type": "bool", "text": "Glow", "value": true, "order": 3 },
+            "charset": {
+                "type": "combo",
+                "text": "Charset",
+                "value": "katakana",
+                "options": [
+                    { "label": "Katakana", "value": "katakana" },
+                    { "label": "Digits", "value": "digits" }
+                ],
+                "order": 4
+            }
+        }
+    }
+}

@@ -1,4 +1,5 @@
 build/
+build-*/
 .history/
 plasma-HTMLWallpaper/
 plasma-HTMLWallpaper-*-x86_64.pkg.tar.zst

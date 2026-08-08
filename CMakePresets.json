@@ -7,22 +7,55 @@
   },
   "configurePresets": [
     {
+      "name": "native",
+      "displayName": "native (system KF6)",
+      "description": "直接用系统的 ECM/Qt6/Plasma 开发包，不跑 vcpkg install。本地开发最快，首选。",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-native",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "$env{HOME}/.local",
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
       "name": "vcpkg",
       "displayName": "vcpkg + system KF6",
-      "description": "Build with vcpkg toolchain (provides ECM; KF6Plasma comes from the system Plasma 6 dev packages)",
+      "description": "vcpkg toolchain 提供 ECM；KF6Plasma 仍来自系统 Plasma 6 开发包（vcpkg 无 kf6plasma 端口）。仅当系统缺 ECM 开发包时用。",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "CMAKE_INSTALL_PREFIX": "$env{HOME}/.local",
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
       }
     }
   ],
   "buildPresets": [
     {
+      "name": "native",
+      "configurePreset": "native"
+    },
+    {
       "name": "vcpkg",
       "configurePreset": "vcpkg"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "native",
+      "configurePreset": "native",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "vcpkg",
+      "configurePreset": "vcpkg",
+      "output": {
+        "outputOnFailure": true
+      }
     }
   ]
 }
