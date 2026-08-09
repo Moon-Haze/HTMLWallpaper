@@ -9,6 +9,7 @@
 import QtQuick
 import QtQuick.Controls as QtControls2
 import Qt5Compat.GraphicalEffects
+import QtWebEngine
 
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
@@ -37,6 +38,53 @@ KCM.GridDelegate {
     subtitle: model.description !== undefined && model.description ? model.description : model.author
 
     hoverEnabled: true
+
+    // —— 悬停 HTML 实时预览 ——
+    // 测试/外部可注入的 WebEngine 组件(测试注入轻量假组件,避免 offscreen 渲染)
+    property Component webViewComponentOverride: null
+    // 预览是否激活(Loader 已实例化);测试与诊断用只读观察
+    readonly property bool hoverPreviewActive: hoverPreview.item !== null
+    // 当前预览 URL(测试断言用)
+    readonly property string hoverPreviewUrl: hoverPreview.item ? hoverPreview.item.url : ""
+
+    // 内联 WebEngineView:仅由 hoverPreview 加载时实例化。
+    // 注意:Component 有独立作用域,不能引用外层委托的 id(会 ReferenceError),
+    // 故加载成功/失败切换统一由委托级 Connections 处理。
+    Component {
+        id: webViewComponent
+        WebEngineView {
+            anchors.fill: parent
+            backgroundColor: "black"
+            visible: false // 加载成功前隐藏,图片保持可见
+            // url 由 startHoverPreview() 在 Loader 创建后赋值
+        }
+    }
+
+    // 悬停驱动统一入口(真实鼠标与测试共用;测试环境 offscreen 无法驱动只读的 hovered)
+    function startHoverPreview() {
+        hoverTimer.start();
+    }
+    function stopHoverPreview() {
+        hoverTimer.stop();
+        hoverPreview.sourceComponent = null; // 移开即销毁渲染实例,恢复 preview 图片
+    }
+
+    Timer {
+        id: hoverTimer
+        interval: 300 // 悬停防抖:快速滑过不触发
+        onTriggered: {
+            hoverPreview.sourceComponent = webViewComponentOverride ? webViewComponentOverride : webViewComponent;
+            hoverPreview.item.url = model.source; // 入口 HTML,无参数(默认效果)
+        }
+    }
+
+    onHoveredChanged: {
+        if (hovered) {
+            startHoverPreview();
+        } else {
+            stopHoverPreview();
+        }
+    }
 
     // —— 缩略图内容 ——
     thumbnail: Rectangle {
@@ -77,6 +125,13 @@ KCM.GridDelegate {
             source: model.preview
         }
 
+        // 悬停 HTML 实时预览:覆盖在 previewImage 之上,默认不加载(零 WebEngine 资源)
+        Loader {
+            id: hoverPreview
+            anchors.fill: parent
+            z: 1
+        }
+
         Behavior on color {
             ColorAnimation {
                 duration: Kirigami.Units.longDuration
@@ -89,6 +144,18 @@ KCM.GridDelegate {
         NumberAnimation {
             duration: Kirigami.Units.longDuration
             easing.type: Easing.InOutQuad
+        }
+    }
+
+    // 委托级监听 WebEngine 加载状态:item 为 null 时自动停用,item 创建后自动生效
+    Connections {
+        target: hoverPreview.item
+        function onLoadingChanged(loadRequest) {
+            if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
+                hoverPreview.item.visible = true; // 覆盖 preview 图片,不闪黑
+            } else if (loadRequest.status === WebEngineView.LoadFailedStatus) {
+                stopHoverPreview(); // 加载失败:销毁实例,回退 preview 图片
+            }
         }
     }
 
