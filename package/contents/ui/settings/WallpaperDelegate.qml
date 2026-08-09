@@ -73,7 +73,7 @@ KCM.GridDelegate {
         }
     }
 
-    // 点击行为：解析并应用该壁纸（参数经 wallpaperParsed 写配置）；
+    // 点击行为：应用该壁纸（wallpaperParsed 已随重构删除，参数不再写配置）；
     // 无路径时仅切换勾选状态
     onClicked: {
         if (htmlWallpaper && model.path) {

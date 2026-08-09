@@ -16,6 +16,16 @@ import org.kde.kquickcontrols as KQuickControls
 /**
  * 壁纸参数设置面板（HTMLWallpaper 模式右栏）。
  *
+ * ⚠️ 已停用：本组件当前被 SlideshowComponent.qml 注释屏蔽，不参与生产。
+ * 其依赖的 HTMLBackend C++ API 已随解耦重构删除——currentWallpaper /
+ * evaluateCondition / colorToHex / wallpaperParsed 信号均已不存在，
+ * 下面的代码引用（currentWallpaper / general.properties）只对旧版有效。
+ * 若未来恢复本组件，须按新契约重写：
+ *   属性表 ← WallpaperItem::properties（WallpaperPropertyModel ListModel）的
+ *   get(i) / byKey(key)，值类型字段见 WallpaperPropertyItem；
+ *   condition 可见性过滤不再有 evaluateCondition 支持（该功能已移除）。
+ *
+ * 原始设计（旧契约，保留作参考）：
  * 消费 HTMLBackend（C++）的 currentWallpaper.general.properties（只读
  * ListModel，WallpaperPropertyModel）把可配置属性渲染成可编辑控件：
  *
@@ -44,7 +54,8 @@ import org.kde.kquickcontrols as KQuickControls
 Item {
     id: propertyPanel
 
-    // 注入的解析器实例（提供 evaluateCondition / colorToHex / currentWallpaper）
+    // 注入的解析器实例（evaluateCondition / colorToHex / currentWallpaper 已随
+    // HTMLBackend 解耦重构删除，下方引用仅对旧契约有效，恢复本组件前须重写）
     property QtObject htmlWallpaper: null
 
     // 便捷只读视图（可直接用于显示，无需额外绑定）

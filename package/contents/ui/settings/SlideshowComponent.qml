@@ -27,7 +27,9 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
  *
  * 数据源是 config.qml 注入的 HTMLBackend（C++）单实例：
  *   目录列表 ← htmlWallpaper.rootPaths；壁纸网格 ← htmlWallpaper.wallpapers；
- *   参数面板 ← htmlWallpaper.currentWallpaper.general.properties（只读 ListModel）。
+ *   参数面板 ← 已随 HTMLBackend 解耦重构停用（见下方右栏 PropertyPanel 注释）；
+ *   可配置属性表现在经 WallpaperItem::properties（WallpaperPropertyModel ListModel）
+ *   的 get(i) / byKey(key) 暴露，不再有 currentWallpaper.general.properties。
  * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_SlidePaths 持久化，
  * 由 rootPaths 绑定同步 htmlWallpaper → 重扫）。参数"可调不持久"：改动只更新
  * 面板会话内镜像，不写 cfg_WallpaperProperties、不应用到壁纸。
@@ -176,6 +178,11 @@ RowLayout {
     }
 
     // —— 右栏：参数面板 ——
+    // PropertyPanel 组件当前停用（HTMLBackend 解耦重构删除了其依赖的
+    // currentWallpaper / evaluateCondition / colorToHex / wallpaperParsed API）。
+    // 若未来恢复，须先按新契约重写 PropertyPanel.qml：
+    // 属性表经 wallpapers.get(i).properties（WallpaperPropertyModel）的
+    // get(i) / byKey(key) 访问，condition 可见性不再有 evaluateCondition 支持。
     // PropertyPanel {
     //     Layout.fillHeight: true
     //     Layout.preferredWidth: Kirigami.Units.gridUnit * 24
