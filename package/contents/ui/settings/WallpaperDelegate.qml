@@ -119,6 +119,7 @@ KCM.GridDelegate {
                 htmlWallpaper.wallpapers.setExclusiveChecked(index, !model.checked)
             }
         }
-        GridView.currentIndex = index;
+        // 注意：不再手动改 GridView.currentIndex，以免销毁 cfg_DisplayPage 驱动的绑定，
+        // 高亮由 resetCurrentIndex() 建立的绑定自动跟随 cfg_DisplayPage
     }
 }

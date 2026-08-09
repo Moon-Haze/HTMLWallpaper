@@ -41,6 +41,18 @@ Item {
         }
     }
 
+    // 监听解析器"扫描完成"信号：模型重扫后重建 currentIndex 绑定，
+    // 让高亮跟随 cfg_DisplayPage（与 config.qml 的 checked 对齐互不干扰）
+    Connections {
+        target: htmlWallpaper
+        function onScanFinished() {
+            wallpapersGrid.resetCurrentIndex();
+        }
+    }
+
+    // 组件就绪即建立首次绑定；模型异步填充后 count 变化会自动重算
+    Component.onCompleted: wallpapersGrid.resetCurrentIndex()
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -71,9 +83,23 @@ Item {
 
                 framedView: false
 
-                // 模型异步加载后把选中项重置回第一项
+                // 查找 cfg_DisplayPage 对应项在模型中的索引；空模型或无匹配回退 0
+                function indexOfDisplayPage() {
+                    const model = thumbnailsComponent.imageModel;
+                    if (!model || model.count === 0) {
+                        return 0;
+                    }
+                    for (let i = 0; i < model.count; i++) {
+                        if (model.get(i).source === root.cfg_DisplayPage) {
+                            return i;
+                        }
+                    }
+                    return 0;
+                }
+
+                // 重建 currentIndex 绑定：高亮始终跟随 cfg_DisplayPage（配置驱动高亮）
                 function resetCurrentIndex() {
-                    wallpapersGrid.view.currentIndex = 0;
+                    wallpapersGrid.view.currentIndex = Qt.binding(() => indexOfDisplayPage());
                 }
 
                 // 直接挂模型，节省缩略图下方标签的额外空间
@@ -92,20 +118,6 @@ Item {
 
                 // 复用项视图实例以提升滚动性能
                 view.reuseItems: true
-
-                view.onCurrentIndexChanged: {
-                    // 选中项变化时滚动到该项，避免被遮挡
-                    for (let i = 0; i < thumbnailsComponent.imageModel.count; i++) {
-                        const item = thumbnailsComponent.imageModel.get(i);
-                        if (item.checked) {
-                            if (thumbnailsComponent.htmlWallpaper && item.path) {
-                                thumbnailsComponent.htmlWallpaper.parseWallpaper(item.path);
-                                root.cfg_DisplayPage = item.source; // source == entry
-                            }
-                            break;
-                        }
-                    }
-                }
 
                 // 网格项使用 WallpaperDelegate，并传入配色、预览采样尺寸与解析器实例
                 view.delegate: WallpaperDelegate {
