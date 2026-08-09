@@ -35,4 +35,21 @@ if(BUILD_TESTING)
     else()
         message(WARNING "未找到 qmltestrunner，跳过 QML 测试（需要安装 qt6-declarative 的测试工具）")
     endif()
+
+    # C++ 数据层单测（QTest）：编译 plugin 下纯数据层源文件，不依赖 QML/KF6。
+    # qt_add_executable 自动开启 AUTOMOC（WallpaperProperty 无 Q_OBJECT，但后续
+    # 任务会把带 Q_OBJECT 的 WallpaperPropertyItem/Model 加进来）。
+    find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Test)
+    qt_add_executable(tst_wallpaperproject tst_wallpaperproject.cpp)
+    target_sources(tst_wallpaperproject PRIVATE
+        ../plugin/wallpaperproperty.cpp
+    )
+    # 让 tst_*.cpp 能 #include "wallpaperproperty.h" 等 plugin 下的头文件
+    target_include_directories(tst_wallpaperproject PRIVATE ../plugin)
+    target_link_libraries(tst_wallpaperproject PRIVATE Qt6::Test Qt6::Core)
+    add_test(NAME tst_wallpaperproject COMMAND tst_wallpaperproject)
+    # WORKING_DIRECTORY 设为 tests/ 目录，让 data/wallpapers fixtures 相对路径可用
+    set_tests_properties(tst_wallpaperproject PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
 endif()
