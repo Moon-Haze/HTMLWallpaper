@@ -87,12 +87,9 @@ TestCase {
 
         // matrix：自定义 file=main.html + general.properties 可配置属性表（ListModel）
         verify(matrix.file.endsWith("/data/wallpapers/matrix/main.html"), "matrix file: " + matrix.file);
-        verify(matrix.general !== null, "matrix.general 应为 WallpaperGeneral 对象");
-        verify(matrix.general.properties !== null, "matrix.general.properties 应为 ListModel");
-        compare(matrix.general.properties.count, 4);
-        compare(matrix.general.properties.byKey("speed").type, "slider");
-        verify(matrix.generalProperties !== null, "matrix generalProperties 应为 ListModel");
-        compare(matrix.generalProperties.byKey("speed").type, "slider");
+        verify(matrix.properties !== null, "matrix.properties 应为 ListModel");
+        compare(matrix.properties.count, 4);
+        compare(matrix.properties.byKey("speed").type, "slider");
         compare(matrix.supportsaudioprocessing, false);
     }
 
