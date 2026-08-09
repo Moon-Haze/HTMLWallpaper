@@ -36,14 +36,14 @@ plasma_install_package(package com.github.moon_haze.htmlwallpaper wallpapers wal
 install(DIRECTORY html-wallpapers/ DESTINATION share/html-wallpapers)
 
 # C++ 后端 QML 模块（com.github.moon_haze.htmlwallpaper）：替代旧 HtmlWallpaperParser.qml
-add_subdirectory(plugin)
+add_subdirectory(./plugin)
 
 # dev 独立调试程序（开发分支 dev/config-app）：config.qml 脱离 plasmashell
 # 运行 + WebEngine 预览。不参与 KPackage 安装，仅供开发调试。
-add_subdirectory(dev)
+add_subdirectory(./dev)
 
 # 测试注册在 tests/CMakeLists.txt（含 include(CTest)）；顶层必须 enable_testing()
 # 才能生成顶层 CTestTestfile.cmake 并递归到 tests/（否则 ctest 从 build/ 读不到测试）
 enable_testing()
 
-add_subdirectory(test)
+add_subdirectory(./test)
