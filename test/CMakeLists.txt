@@ -44,6 +44,7 @@ if(BUILD_TESTING)
     target_sources(tst_wallpaperproject PRIVATE
         ../plugin/wallpaperproperty.cpp
         ../plugin/wallpaperproject.cpp
+        ../plugin/wallpaperpropertyitem.cpp
     )
     # 让 tst_*.cpp 能 #include "wallpaperproperty.h" 等 plugin 下的头文件
     target_include_directories(tst_wallpaperproject PRIVATE ../plugin)
