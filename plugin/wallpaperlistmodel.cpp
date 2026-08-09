@@ -105,14 +105,14 @@ QHash<int, QByteArray> WallpaperListModel::roleNames() const
     };
 }
 
-void WallpaperListModel::setEntries(const QList<QVariantMap> &metas)
+void WallpaperListModel::setEntries(const QList<WallpaperProject> &projects)
 {
     beginResetModel();
     qDeleteAll(m_items);
     m_items.clear();
-    m_items.reserve(metas.size());
-    for (const QVariantMap &meta : metas) {
-        m_items.append(new WallpaperItem(meta, this));
+    m_items.reserve(projects.size());
+    for (const WallpaperProject &project : projects) {
+        m_items.append(new WallpaperItem(project, this));
     }
     endResetModel();
     Q_EMIT dataChanged(index(0, 0),

@@ -25,6 +25,9 @@ target_sources(plasma_wallpaper_htmlwallpaperplugin PRIVATE
     wallpaperitem.cpp
     wallpaperlistmodel.cpp
     wallpaperpropertymodel.cpp
+    wallpaperproject.cpp
+    wallpaperproperty.cpp
+    wallpaperpropertyitem.cpp
 )
 
 target_link_libraries(plasma_wallpaper_htmlwallpaperplugin PRIVATE

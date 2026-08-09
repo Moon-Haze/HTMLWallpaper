@@ -8,24 +8,23 @@
 
 #include <QAbstractListModel>
 #include <QHash>
+#include <QList>
 #include <QVariantList>
-#include <QVariantMap>
+
+#include "wallpaperproperty.h"
+
+class WallpaperPropertyItem;
 
 /**
- * @brief project.json 的 general.properties 可配置属性表（只读 ListModel）。
+ * @brief project.json 的 general.properties 可配置属性表（只读 ListModel，列表层）。
  *
- * 以 QAbstractListModel 存储规范化后的属性定义（每行一个属性，含 key），使
- * QML 可直接作 ListView/Repeater 的 model：delegate 用 model.key / model.type /
- * model.value ...，或经 count / get(i) / byKey(key) 命令式访问。行字段与
- * Wallpaper Engine 的 property 定义一致（key/type/text/value/min/max/step/
- * fraction/precision/options/condition/group/order）。
+ * 与 WallpaperListModel 同构：无参构造，经 setEntries(QList<WallpaperProperty>)
+ * 物化 WallpaperPropertyItem*（QObject 行）。排序/兜底规范化由数据层
+ * WallpaperProperty 完成（后台线程），本类主线程只物化 + 供 QML 访问。
  *
- * 规范化规则（与旧 HTMLBackend 的属性解析一致）：
- *   - 行按 order 升序；无 order 的属性稳定排到最后；
- *   - type 缺失 → "text"；text 缺失 → key；value 缺失 → 按 type 兜底默认值
- *     （bool→false、slider→min（无 min→0）、combo→首个 option、color→"0 0 0"、
- *     其余→空串）。
- * 模型只读：value 不持久化、不写回、不应用到壁纸（改值仅限 QML 会话内）。
+ * QML 用法：delegate 用 roles（key/type/text/value/min/max/step/fraction/
+ * precision/options/condition/group/order），或经 count/get(i)/byKey(key)
+ * 命令式访问（返回 WallpaperPropertyItem，可 .key/.value 等属性访问）。
  */
 class WallpaperPropertyModel : public QAbstractListModel
 {
@@ -50,19 +49,22 @@ public:
     };
     Q_ENUM(Roles)
 
-    explicit WallpaperPropertyModel(const QVariantMap &properties, QObject *parent = nullptr);
+    explicit WallpaperPropertyModel(QObject *parent = nullptr);
+
+    /** 整体替换全部属性行（扫描完成时主线程调用）；只发一次 reset。 */
+    void setEntries(const QList<WallpaperProperty> &properties);
 
     int count() const;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    /** 返回第 i 行完整定义（含 key）；越界返回空 map。 */
-    Q_INVOKABLE QVariantMap get(int i) const;
-    /** 按 key 返回对应定义 map；不存在返回空 map。 */
-    Q_INVOKABLE QVariantMap byKey(const QString &key) const;
+    /** 返回第 i 行属性门面对象；越界返回 nullptr。 */
+    Q_INVOKABLE WallpaperPropertyItem *get(int i) const;
+    /** 按 key 返回属性门面对象；不存在返回 nullptr。 */
+    Q_INVOKABLE WallpaperPropertyItem *byKey(const QString &key) const;
 
 private:
-    QList<QVariantMap> m_rows;
+    QList<WallpaperPropertyItem *> m_items;
     QHash<QString, int> m_indexByKey;
 };

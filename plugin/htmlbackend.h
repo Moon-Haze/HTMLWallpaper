@@ -6,30 +6,27 @@
 
 #pragma once
 
-#include <QJSEngine>
 #include <QObject>
 #include <QStringList>
-#include <QVariantList>
 
 #include <QtQml/qqml.h>
 
 #include "wallpaperlistmodel.h"
+#include "wallpaperproject.h" // ScanResult / WallpaperProjectJson
 
 // QML 类型注册（QML_ELEMENT / Q_OBJECT 的 moc）要求 Q_PROPERTY 指向的类型完整，
 // 故上面直接 include 各模型头而非 forward 声明。m_watcher 用不完整类型指针即可。
 template<typename T>
 class QFutureWatcher;
-struct HTMLBackendScanResult;
 
 /**
- * @brief 解析“html-wallpapers”格式 HTML 壁纸的 C++ 后端。
+ * @brief 解析"html-wallpapers"格式 HTML 壁纸的 C++ 后端（QML 门面）。
  *
  * 等价替代原 QML 的 HtmlWallpaperParser.qml（扫描 project.json、提供壁纸
- * 列表模型、求值 condition、颜色换算），供配置界面（config.qml →
- * SlideshowComponent → ThumbnailsComponent / PropertyPanel / WallpaperDelegate）
- * 消费。可配置属性表（general.properties）以只读 ListModel（WallpaperPropertyModel）
- * 形式暴露在 WallpaperItem::general.properties 上，属性值不存储、不序列化、
- * 不应用到壁纸（改值只在 QML 会话内临时生效）。
+ * 列表模型），供配置界面（config.qml → SlideshowComponent →
+ * ThumbnailsComponent / WallpaperDelegate）消费。扫描/解析逻辑已解耦到
+ * 数据层（WallpaperProject / WallpaperProperty，后台线程执行）；本类只
+ * 负责 rootPaths 管理等属性 + scan() 异步调度 + 结果聚合。
  *
  * 目录约定（Wallpaper Engine 风格）：
  *
@@ -42,8 +39,9 @@ struct HTMLBackendScanResult;
  *
  *     import com.github.moon_haze.htmlwallpaper
  *     HTMLBackend { id: parser }
- *     parser.scan();                       // 扫描 rootPaths → wallpapers 模型
- *     parser.parseWallpaper(selectedPath)  // 解析单壁纸 → currentWallpaper
+ *     parser.scan();  // 扫描 rootPaths → wallpapers 模型（delegate 走 roles，
+ *                     // ThumbnailsComponent 走 get(i).source，PropertyPanel 未来
+ *                     // 走 get(i).properties.get(j)/byKey）
  */
 class HTMLBackend : public QObject
 {
@@ -81,7 +79,7 @@ public:
     bool scanInProgress() const;
     WallpaperListModel *wallpapers() const;
 
-    // —— 扫描 / 解析入口 ——
+    // —— 扫描入口 ——
     /** 顺序扫描 rootPaths，把各根下的合法壁纸填入 wallpapers；完成后发 scanFinished。 */
     Q_INVOKABLE void scan();
     /** 增加一个扫描根目录；重复路径忽略，返回是否新增成功。 */
@@ -92,15 +90,12 @@ public:
 Q_SIGNALS:
     /** 扫描全部完成（可能部分子目录解析失败，已在日志警告）。 */
     void scanFinished();
-    /** 解析单个壁纸完成；参数为元数据对象。 */
-    void wallpaperParsed(WallpaperItem *metadata);
     /** 某个根目录无法读取时发出（path：根目录 url，error：底层错误字符串）。 */
     void scanFailed(const QString &path, const QString &error);
     void rootPathsChanged();
     void requireWebTypeChanged();
     void nonHtmlTypesChanged();
     void scanInProgressChanged();
-    void currentWallpaperChanged();
 
 private:
     void setScanInProgress(bool inProgress);
@@ -110,6 +105,5 @@ private:
     bool m_requireWebType = true;
     bool m_scanning = false;
     WallpaperListModel *m_wallpapers = nullptr;
-    QFutureWatcher<HTMLBackendScanResult> *m_watcher = nullptr;
-    QJSEngine m_engine;
+    QFutureWatcher<ScanResult> *m_watcher = nullptr;
 };

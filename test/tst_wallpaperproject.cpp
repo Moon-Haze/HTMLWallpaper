@@ -8,6 +8,8 @@
 
 #include "wallpaperproject.h"
 #include "wallpaperproperty.h"
+#include "wallpaperpropertyitem.h"
+#include "wallpaperpropertymodel.h"
 
 #include <QFile>
 #include <QFileInfo>
@@ -40,6 +42,7 @@ private Q_SLOTS:
     void isHtmlTypeFilters();
     void entryResolution_absoluteUrl();
     void entryResolution_subPathAndQuery();
+    void propertyModelMaterializes();
 };
 
 void tst_WallpaperProject::propertyTypeTextFallback()
@@ -270,6 +273,37 @@ void tst_WallpaperProject::entryResolution_subPathAndQuery()
     // 注：期望值用字符串拼接而非 QUrl::fromLocalFile —— fromLocalFile 会把 '?'
     // 编码为 %3F，与实现（字符串 pathJoin，保留原始 query）不符；注释意图为"query 保留"。
     QCOMPARE(p.file(), QStringLiteral("file://") + dir.path() + QStringLiteral("/img/bg.html?x=1"));
+}
+
+void tst_WallpaperProject::propertyModelMaterializes()
+{
+    WallpaperProject p(fixtureUrl(QStringLiteral("matrix")));
+    QVERIFY(p.isValid());
+
+    WallpaperPropertyModel model;
+    model.setEntries(p.properties());
+    QCOMPARE(model.count(), 4);
+
+    // data(role) 委托
+    QCOMPARE(model.data(model.index(0), WallpaperPropertyModel::KeyRole).toString(), QStringLiteral("speed"));
+    QCOMPARE(model.data(model.index(1), WallpaperPropertyModel::ValueRole).toString(), QStringLiteral("0 1 0"));
+
+    // get(i) 返回 QObject* 属性访问
+    WallpaperPropertyItem *first = model.get(0);
+    QVERIFY(first != nullptr);
+    QCOMPARE(first->key(), QStringLiteral("speed"));
+    QCOMPARE(first->value(), 5);
+    QCOMPARE(first->order(), 1);
+
+    // byKey 命中 / 未命中
+    WallpaperPropertyItem *color = model.byKey(QStringLiteral("color"));
+    QVERIFY(color != nullptr);
+    QCOMPARE(color->value(), QVariant(QStringLiteral("0 1 0")));
+    QVERIFY(model.byKey(QStringLiteral("nope")) == nullptr);
+
+    // 越界 get → nullptr
+    QVERIFY(model.get(-1) == nullptr);
+    QVERIFY(model.get(4) == nullptr);
 }
 
 QTEST_MAIN(tst_WallpaperProject)

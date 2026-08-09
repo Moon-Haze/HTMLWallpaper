@@ -6,86 +6,34 @@
 
 #include "wallpaperpropertymodel.h"
 
-#include <QStringLiteral>
+#include "wallpaperpropertyitem.h"
 
 #include <algorithm>
-#include <limits>
 
-namespace
-{
-
-// 属性 value 缺失时的兜底默认值（与旧 QML _defaultValue / HTMLBackend 一致）。
-QVariant defaultValue(const QVariantMap &p)
-{
-    const QString type = p.value(QStringLiteral("type")).toString();
-    if (type == QLatin1String("bool")) {
-        return false;
-    }
-    if (type == QLatin1String("slider")) {
-        bool ok = false;
-        const int m = p.value(QStringLiteral("min")).toInt(&ok);
-        return ok ? m : 0;
-    }
-    if (type == QLatin1String("combo")) {
-        const QVariantList opts = p.value(QStringLiteral("options")).toList();
-        if (!opts.isEmpty()) {
-            return opts.first().toMap().value(QStringLiteral("value"));
-        }
-        return 0;
-    }
-    if (type == QLatin1String("color")) {
-        return QStringLiteral("0 0 0");
-    }
-    return QString();
-}
-
-} // namespace
-
-WallpaperPropertyModel::WallpaperPropertyModel(const QVariantMap &properties, QObject *parent)
+WallpaperPropertyModel::WallpaperPropertyModel(QObject *parent)
     : QAbstractListModel(parent)
 {
-    // 规范化：先按 order 收集排序键，再稳定排序，最后归一化字段（type/text/value 兜底）。
-    struct Row {
-        QString key;
-        QVariantMap map;
-        int order;
-    };
-    // 注意：变量名不能用 "slots" —— Qt 定义 #define slots Q_SLOTS（moc 关键字宏），
-    // 普通代码里展开为空，会导致 "declaration does not declare anything" 编译错误。
-    QList<Row> rows;
-    rows.reserve(properties.size());
-    for (auto it = properties.constBegin(); it != properties.constEnd(); ++it) {
-        QVariantMap row = it.value().toMap();
-        bool ok = false;
-        const int order = row.value(QStringLiteral("order")).toInt(&ok);
-        rows.push_back({it.key(), row, ok ? order : std::numeric_limits<int>::max()});
-    }
-    // 按 order 升序；无 order 的属性稳定排到最后（与旧 HTMLBackend 解析一致）
-    std::stable_sort(rows.begin(), rows.end(), [](const Row &a, const Row &b) {
-        return a.order < b.order;
-    });
+}
 
-    m_rows.reserve(rows.size());
-    for (Row &r : rows) {
-        r.map.insert(QStringLiteral("key"), r.key);
-        if (!r.map.contains(QStringLiteral("type"))) {
-            r.map.insert(QStringLiteral("type"), QStringLiteral("text"));
-        }
-        if (!r.map.contains(QStringLiteral("text"))) {
-            r.map.insert(QStringLiteral("text"), r.key);
-        }
-        if (!r.map.contains(QStringLiteral("value"))) {
-            r.map.insert(QStringLiteral("value"), defaultValue(r.map));
-        }
-        r.map.insert(QStringLiteral("order"), r.order);
-        m_indexByKey.insert(r.key, m_rows.size());
-        m_rows.append(r.map);
+void WallpaperPropertyModel::setEntries(const QList<WallpaperProperty> &properties)
+{
+    beginResetModel();
+    qDeleteAll(m_items);
+    m_items.clear();
+    m_indexByKey.clear();
+    m_items.reserve(properties.size());
+    int i = 0;
+    for (const WallpaperProperty &p : properties) {
+        m_items.append(new WallpaperPropertyItem(p, this));
+        m_indexByKey.insert(p.key(), i);
+        ++i;
     }
+    endResetModel();
 }
 
 int WallpaperPropertyModel::count() const
 {
-    return m_rows.size();
+    return m_items.size();
 }
 
 int WallpaperPropertyModel::rowCount(const QModelIndex &parent) const
@@ -93,42 +41,42 @@ int WallpaperPropertyModel::rowCount(const QModelIndex &parent) const
     if (parent.isValid()) {
         return 0;
     }
-    return m_rows.size();
+    return m_items.size();
 }
 
 QVariant WallpaperPropertyModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() < 0 || index.row() >= m_rows.size()) {
+    if (!index.isValid() || index.row() < 0 || index.row() >= m_items.size()) {
         return {};
     }
-    const QVariantMap &row = m_rows.at(index.row());
+    const WallpaperPropertyItem *item = m_items.at(index.row());
     switch (role) {
     case KeyRole:
-        return row.value(QStringLiteral("key"));
+        return item->key();
     case TypeRole:
-        return row.value(QStringLiteral("type"));
+        return item->type();
     case TextRole:
-        return row.value(QStringLiteral("text"));
+        return item->text();
     case ValueRole:
-        return row.value(QStringLiteral("value"));
+        return item->value();
     case MinRole:
-        return row.value(QStringLiteral("min"));
+        return item->min();
     case MaxRole:
-        return row.value(QStringLiteral("max"));
+        return item->max();
     case StepRole:
-        return row.value(QStringLiteral("step"));
+        return item->step();
     case FractionRole:
-        return row.value(QStringLiteral("fraction"));
+        return item->fraction();
     case PrecisionRole:
-        return row.value(QStringLiteral("precision"));
+        return item->precision();
     case OptionsRole:
-        return row.value(QStringLiteral("options"));
+        return item->options();
     case ConditionRole:
-        return row.value(QStringLiteral("condition"));
+        return item->condition();
     case GroupRole:
-        return row.value(QStringLiteral("group"));
+        return item->group();
     case OrderRole:
-        return row.value(QStringLiteral("order"));
+        return item->order();
     default:
         return {};
     }
@@ -153,19 +101,19 @@ QHash<int, QByteArray> WallpaperPropertyModel::roleNames() const
     };
 }
 
-QVariantMap WallpaperPropertyModel::get(int i) const
+WallpaperPropertyItem *WallpaperPropertyModel::get(int i) const
 {
-    if (i < 0 || i >= m_rows.size()) {
-        return {};
+    if (i < 0 || i >= m_items.size()) {
+        return nullptr;
     }
-    return m_rows.at(i);
+    return m_items.at(i);
 }
 
-QVariantMap WallpaperPropertyModel::byKey(const QString &key) const
+WallpaperPropertyItem *WallpaperPropertyModel::byKey(const QString &key) const
 {
     const int i = m_indexByKey.value(key, -1);
     if (i < 0) {
-        return {};
+        return nullptr;
     }
-    return m_rows.at(i);
+    return m_items.at(i);
 }
