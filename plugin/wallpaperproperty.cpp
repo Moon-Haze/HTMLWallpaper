@@ -6,7 +6,7 @@
 
 #include "wallpaperproperty.h"
 
-#include <QStringLiteral>
+#include <QString>
 
 namespace
 {

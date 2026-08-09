@@ -9,7 +9,6 @@
 #include <QAbstractListModel>
 #include <QHash>
 #include <QList>
-#include <QVariantList>
 
 #include "wallpaperproperty.h"
 

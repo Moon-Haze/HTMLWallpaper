@@ -33,7 +33,7 @@ target_sources(plasma_wallpaper_htmlwallpaperplugin PRIVATE
 target_link_libraries(plasma_wallpaper_htmlwallpaperplugin PRIVATE
     Qt6::Concurrent   # QtConcurrent::run 后台扫描
     Qt6::Core
-    Qt6::Qml          # QJSEngine（evaluateCondition）
+    Qt6::Qml          # QML 类型注册/元对象
     Qt6::Quick
     plasma_wallpaper_htmlwallpaperplugin_debug
 )

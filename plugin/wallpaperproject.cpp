@@ -12,11 +12,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
-#include <QRegularExpression>
 #include <QUrl>
 
 #include <algorithm>
-#include <limits>
 
 namespace
 {
