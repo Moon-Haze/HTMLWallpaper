@@ -30,10 +30,6 @@ find_package(Plasma ${PROJECT_DEP_VERSION} REQUIRED)
 
 plasma_install_package(package com.github.moon_haze.htmlwallpaper wallpapers wallpaper)
 
-# 壁纸数据目录独立于 KPackage 安装
-# 本地开发（CMAKE_INSTALL_PREFIX=~/.local）→ ~/.local/share/html-wallpapers
-# Arch 包（CMAKE_INSTALL_PREFIX=/usr）→ /usr/share/html-wallpapers
-install(DIRECTORY html-wallpapers/ DESTINATION share/html-wallpapers)
 
 # C++ 后端 QML 模块（com.github.moon_haze.htmlwallpaper）：替代旧 HtmlWallpaperParser.qml
 add_subdirectory(./plugin)
@@ -47,3 +43,8 @@ add_subdirectory(./dev)
 enable_testing()
 
 add_subdirectory(./test)
+
+# 壁纸数据目录独立于 KPackage 安装
+# 本地开发（CMAKE_INSTALL_PREFIX=~/.local）→ ~/.local/share/html-wallpapers
+# Arch 包（CMAKE_INSTALL_PREFIX=/usr）→ /usr/share/html-wallpapers
+install(DIRECTORY html-wallpapers/ DESTINATION share/html-wallpapers)
