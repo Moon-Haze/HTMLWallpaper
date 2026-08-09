@@ -12,7 +12,6 @@
 #include <QDir>
 #include <QFile>
 #include <QFutureWatcher>
-#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
@@ -21,9 +20,6 @@
 #include <QUrl>
 #include <QVariantMap>
 #include <QtConcurrent>
-
-#include <algorithm>
-#include <limits>
 
 // ---------------------------------------------------------------------------
 // 扫描 worker 的结果聚合（后台线程只产生纯数据，主线程消费）
@@ -147,6 +143,38 @@ QString findPreview(const QString &dirUrl)
     return {};
 }
 
+// 解析 HTML 入口文件（project.json 的 file 字段，绝对 URL）：
+// 指定文件存在（或为远程 URL）→ 原样返回；指定的本地文件缺失或未指定 →
+// 依次探测常见入口名（index.html/main.html/...），再枚举目录下所有 .html/.htm
+// 取字典序第一个；均未命中 → 返回空串（调用方保留原默认值，由页面加载阶段兜底）。
+QString findEntry(const QString &dirUrl, const QString &specified)
+{
+    if (!specified.isEmpty()) {
+        const QString local = QUrl(specified).toLocalFile();
+        if (local.isEmpty() || QFile::exists(local)) {
+            return specified; // 远程 URL（非 file://）或本地文件存在 → 原样返回
+        }
+    }
+    const QString dir = QUrl(dirUrl).toLocalFile();
+    static const QStringList common = {
+        QStringLiteral("index.html"),
+        QStringLiteral("index.htm"),
+        QStringLiteral("main.html"),
+        QStringLiteral("main.htm"),
+        QStringLiteral("start.html"),
+    };
+    for (const QString &c : common) {
+        if (QFile::exists(dir + QLatin1Char('/') + c)) {
+            return pathJoin(dirUrl, c);
+        }
+    }
+    const QStringList html = QDir(dir).entryList({QStringLiteral("*.html"), QStringLiteral("*.htm")}, QDir::Files, QDir::Name);
+    if (!html.isEmpty()) {
+        return pathJoin(dirUrl, html.first());
+    }
+    return {};
+}
+
 // 读 <目录>/project.json → QVariantMap；文件缺失 / JSON 非法 → 空 map。
 QVariantMap loadProjectJson(const QString &dirUrl)
 {
@@ -183,34 +211,37 @@ QVariantMap parseMetadata(const QString &dirUrl, const QVariantMap &data, bool r
     meta.insert(QStringLiteral("visibility"), data.value(QStringLiteral("visibility")).toString());
     meta.insert(QStringLiteral("workshopid"), workshopIdString(data.value(QStringLiteral("workshopid"))));
     meta.insert(QStringLiteral("path"), dirUrl);
-    meta.insert(QStringLiteral("entry"), resolveEntry(dirUrl, entryFile));
+    // file：project.json 的 file 字段，指向 html 壁纸的入口文件（相对路径基于壁纸目录解析为绝对 URL）
+    const QString entry = resolveEntry(dirUrl, entryFile);
+    meta.insert(QStringLiteral("file"), entry);
+    // entry：file 的兼容别名（对齐 slideFilterModel 的历史命名，source=entry）
+    meta.insert(QStringLiteral("entry"), entry);
+    // preview：预览缩略图相对路径，同样基于壁纸目录解析为绝对 URL；缺失 → 空串（由扫描时自动探测补上）
     meta.insert(QStringLiteral("preview"), previewFile.isEmpty() ? QString() : resolveEntry(dirUrl, previewFile));
-    return meta;
-}
 
-// 属性 value 缺失时的兜底默认值（与旧 QML _defaultValue 一致）。
-QVariant defaultValue(const QVariantMap &p)
-{
-    const QString type = p.value(QStringLiteral("type")).toString();
-    if (type == QLatin1String("bool")) {
-        return false;
-    }
-    if (type == QLatin1String("slider")) {
-        bool ok = false;
-        const int m = p.value(QStringLiteral("min")).toInt(&ok);
-        return ok ? m : 0;
-    }
-    if (type == QLatin1String("combo")) {
-        const QVariantList opts = p.value(QStringLiteral("options")).toList();
-        if (!opts.isEmpty()) {
-            return opts.first().toMap().value(QStringLiteral("value"));
-        }
-        return 0;
-    }
-    if (type == QLatin1String("color")) {
-        return QStringLiteral("0 0 0");
-    }
-    return QString();
+    // —— 扩展元数据：覆盖 html-wallpapers 各壁纸 project.json 中的顶层字段 ——
+    // monetization：是否商业壁纸；缺失 → false
+    meta.insert(QStringLiteral("monetization"), data.value(QStringLiteral("monetization")).toBool());
+    // 内容分级：contentrating（整体）与 ratingsex / ratingviolence（分项）；缺失 → 空串
+    meta.insert(QStringLiteral("contentrating"), data.value(QStringLiteral("contentrating")).toString());
+    meta.insert(QStringLiteral("ratingsex"), data.value(QStringLiteral("ratingsex")).toString());
+    meta.insert(QStringLiteral("ratingviolence"), data.value(QStringLiteral("ratingviolence")).toString());
+    // 壁纸版本号；缺失 → 0
+    meta.insert(QStringLiteral("version"), data.value(QStringLiteral("version")).toInt());
+    meta.insert(QStringLiteral("workshopurl"), data.value(QStringLiteral("workshopurl")).toString());
+    // general 容器：原样保留整个 general 对象（properties 可配置属性表 +
+    // supportsaudioprocessing）；缺失 → 空 map
+    const QVariantMap general = data.value(QStringLiteral("general")).toMap();
+    meta.insert(QStringLiteral("general"), general);
+    // 注意：properties 缺省时 value() 返回无效 QVariant，需 toMap() 兜底为空 map，
+    // 否则 QML 侧 m.generalProperties 是 undefined 而非空对象
+    meta.insert(QStringLiteral("generalProperties"), general.value(QStringLiteral("properties")).toMap());
+    meta.insert(QStringLiteral("supportsaudioprocessing"), general.value(QStringLiteral("supportsaudioprocessing")).toBool());
+    // 音频支持：顶层 supportsAudio（FetchTerminal）或 general.supportsaudioprocessing
+    // （AudioVisualizer / CanvasBg）任一为 true 即视为支持；缺失 → false
+    const bool supportsAudio = data.value(QStringLiteral("supportsAudio")).toBool() || general.value(QStringLiteral("supportsaudioprocessing")).toBool();
+    meta.insert(QStringLiteral("supportsAudio"), supportsAudio);
+    return meta;
 }
 
 // "R G B"（各 0~1）→ "#RRGGBB"；非 3 分量或含 NaN → 黑。仅接受字符串输入。
@@ -261,6 +292,17 @@ HTMLBackendScanResult scanWorker(const QStringList &roots, bool requireWebType, 
                 const QString p = findPreview(dirUrl);
                 if (!p.isEmpty()) {
                     meta.insert(QStringLiteral("preview"), p);
+                }
+            }
+            // file 存在性兜底：project.json 的 file（或缺省 index.html）指向的
+            // 本地文件不存在时，自动探测目录下其它 html 入口，保证列表里的
+            // file/entry 始终是可加载的绝对 URL（file/entry 同源同步修正）
+            const QString entryFile = meta.value(QStringLiteral("file")).toString();
+            if (!entryFile.isEmpty()) {
+                const QString found = findEntry(dirUrl, entryFile);
+                if (!found.isEmpty() && found != entryFile) {
+                    meta.insert(QStringLiteral("file"), found);
+                    meta.insert(QStringLiteral("entry"), found);
                 }
             }
             result.wallpapers.append(meta);
@@ -347,30 +389,6 @@ WallpaperListModel *HTMLBackend::wallpapers() const
     return m_wallpapers;
 }
 
-WallpaperItem *HTMLBackend::currentWallpaper() const
-{
-    return m_currentWallpaper;
-}
-
-void HTMLBackend::setCurrentWallpaper(WallpaperItem *currentWallpaper)
-{
-    if (m_currentWallpaper == currentWallpaper) {
-        return;
-    }
-    m_currentWallpaper = currentWallpaper;
-    Q_EMIT currentWallpaperChanged();
-}
-
-QVariantList HTMLBackend::currentProperties() const
-{
-    QVariantList list;
-    list.reserve(m_properties.size());
-    for (const HTMLPropertyItem *item : m_properties) {
-        list.append(QVariant::fromValue(const_cast<HTMLPropertyItem *>(item)));
-    }
-    return list;
-}
-
 bool HTMLBackend::addScanPath(const QString &path)
 {
     const QString p = toUrl(path);
@@ -407,7 +425,7 @@ void HTMLBackend::scan()
 
     if (!m_watcher) {
         m_watcher = new QFutureWatcher<HTMLBackendScanResult>(this);
-        connect(m_watcher, &QFutureWatcher<HTMLBackendScanResult>::finished, this, [this]() {
+        QObject::connect(m_watcher, &QFutureWatcher<HTMLBackendScanResult>::finished, this, [this]() {
             const HTMLBackendScanResult result = m_watcher->result();
             for (const auto &failure : result.failures) {
                 Q_EMIT scanFailed(failure.first, failure.second);
@@ -418,221 +436,4 @@ void HTMLBackend::scan()
         });
     }
     m_watcher->setFuture(QtConcurrent::run(scanWorker, roots, requireWebType, nonHtmlTypes));
-}
-
-void HTMLBackend::parseWallpaper(const QString &path)
-{
-    const QString dirUrl = toUrl(path);
-    const QVariantMap data = loadProjectJson(dirUrl);
-    if (data.isEmpty()) {
-        qWarning().noquote() << "HTMLBackend: no project.json in" << dirUrl;
-        setCurrentWallpaper(nullptr);
-        parsePropertiesIntoItems({});
-        Q_EMIT currentPropertiesChanged();
-        return;
-    }
-    const QVariant meta = _parseMetadata(dirUrl, data);
-    if (meta.isNull()) {
-        // requireWebType 过滤：非 HTML 类型，按“无壁纸”处理
-        setCurrentWallpaper(nullptr);
-        parsePropertiesIntoItems({});
-        Q_EMIT currentPropertiesChanged();
-        Q_EMIT wallpaperParsed(nullptr);
-        return;
-    }
-    auto *item = new WallpaperItem(meta.toMap(), this);
-    setCurrentWallpaper(item);
-    parsePropertiesIntoItems(data.value(QStringLiteral("general")).toMap().value(QStringLiteral("properties")).toMap());
-    Q_EMIT currentPropertiesChanged();
-    Q_EMIT wallpaperParsed(item);
-}
-
-QString HTMLBackend::buildQueryString() const
-{
-    QStringList parts;
-    for (const HTMLPropertyItem *item : m_properties) {
-        const QVariant v = item->propValue();
-        if (v.isNull() || (v.typeId() == QMetaType::QString && v.toString().isEmpty())) {
-            continue;
-        }
-        QString str;
-        if (v.typeId() == QMetaType::Bool) {
-            str = v.toBool() ? QStringLiteral("true") : QStringLiteral("false");
-        } else if (item->type() == QLatin1String("color")) {
-            str = colorToHex(v);
-        } else {
-            str = v.toString();
-        }
-        const QString key = QString::fromUtf8(QUrl::toPercentEncoding(item->key()));
-        const QString val = QString::fromUtf8(QUrl::toPercentEncoding(str));
-        parts << key + QLatin1Char('=') + val;
-    }
-    return parts.join(QLatin1Char('&'));
-}
-
-QString HTMLBackend::buildPropertiesJson() const
-{
-    QJsonObject obj;
-    for (const HTMLPropertyItem *item : m_properties) {
-        QVariant v = item->propValue();
-        if (v.isNull() || (v.typeId() == QMetaType::QString && v.toString().isEmpty())) {
-            continue;
-        }
-        if (item->type() == QLatin1String("color")) {
-            v = colorToHex(v);
-        }
-        obj.insert(item->key(), QJsonValue::fromVariant(v));
-    }
-    return QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
-}
-
-QString HTMLBackend::applyPropertiesToUrl(const QString &baseUrl) const
-{
-    const QString query = buildQueryString();
-    if (query.isEmpty()) {
-        return baseUrl;
-    }
-    return baseUrl + (baseUrl.contains(QLatin1Char('?')) ? QStringLiteral("&") : QStringLiteral("?")) + query;
-}
-
-QString HTMLBackend::colorToHex(const QVariant &value) const
-{
-    if (value.typeId() != QMetaType::QString) {
-        return QStringLiteral("#000000");
-    }
-    return colorToHexImpl(value.toString());
-}
-
-bool HTMLBackend::evaluateCondition(const QVariant &condition, const QVariantMap &props)
-{
-    const QString cond = condition.toString().trimmed();
-    if (cond.isEmpty()) {
-        return true;
-    }
-    // 与旧 QML 的 Function.apply(null, keys.concat(["return ("+cond+")"])) 等价：
-    // 每个属性键作为参数名注入，表达式通过 .value 引用属性值。
-    const QStringList keys = props.keys();
-    const QString src = QStringLiteral("(function(") + keys.join(QStringLiteral(",")) + QStringLiteral(") { return (") + cond + QStringLiteral("); })");
-    QJSValue fn = m_engine.evaluate(src);
-    if (!fn.isCallable()) {
-        return true; // 语法错误（如 "theme.value ==="）→ 宽松 true
-    }
-    QJSValueList args;
-    for (const QString &k : keys) {
-        QJSValue wrapper = m_engine.newObject();
-        wrapper.setProperty(QStringLiteral("value"), m_engine.toScriptValue(props.value(k)));
-        args.append(wrapper);
-    }
-    const QJSValue result = fn.call(args);
-    if (result.isError()) {
-        return true;
-    }
-    return result.toBool();
-}
-
-QVariantList HTMLBackend::propertyGroups() const
-{
-    QStringList order;
-    QMap<QString, QVariantList> map;
-    QMap<QString, QString> titles;
-    QString anchor; // 当前激活的组锚点
-    for (const HTMLPropertyItem *item : m_properties) {
-        if (item->type() == QLatin1String("group")) {
-            anchor = item->key();
-            if (!map.contains(anchor)) {
-                map.insert(anchor, {});
-                order.append(anchor);
-            }
-            titles.insert(anchor, item->text().isEmpty() ? anchor : item->text());
-            continue;
-        }
-        const QString g = item->group().isEmpty() ? anchor : item->group();
-        if (!map.contains(g)) {
-            map.insert(g, {});
-            order.append(g);
-        }
-        if (!g.isEmpty() && !titles.contains(g)) {
-            titles.insert(g, g);
-        }
-        map[g].append(QVariant::fromValue(const_cast<HTMLPropertyItem *>(item)));
-    }
-    QVariantList groups;
-    for (const QString &g : order) {
-        QVariantMap group;
-        group.insert(QStringLiteral("group"), g);
-        group.insert(QStringLiteral("title"), titles.value(g, g));
-        group.insert(QStringLiteral("items"), map.value(g));
-        groups.append(group);
-    }
-    return groups;
-}
-
-QVariant HTMLBackend::_parseMetadata(const QString &dirUrl, const QVariantMap &data)
-{
-    QVariantMap meta = parseMetadata(dirUrl, data, m_requireWebType, m_nonHtmlTypes);
-    if (meta.isEmpty()) {
-        // 过滤命中（非 HTML 类型）：返回 QObject* null，QML 里即 JS null
-        return QVariant::fromValue<QObject *>(nullptr);
-    }
-    return meta;
-}
-
-void HTMLBackend::_parseProperties(const QVariantMap &properties)
-{
-    parsePropertiesIntoItems(properties);
-    Q_EMIT currentPropertiesChanged();
-}
-
-void HTMLBackend::parsePropertiesIntoItems(const QVariantMap &properties)
-{
-    qDeleteAll(m_properties);
-    m_properties.clear();
-
-    struct Slot {
-        QString key;
-        QVariantMap map;
-        int order;
-    };
-    // 注意：变量名不能用 "slots" —— Qt 定义 #define slots Q_SLOTS（moc 关键字宏），
-    // 普通代码里展开为空，会导致 "declaration does not declare anything" 编译错误。
-    QList<Slot> slotList;
-    slotList.reserve(properties.size());
-    for (auto it = properties.constBegin(); it != properties.constEnd(); ++it) {
-        const QVariantMap p = it.value().toMap();
-        bool ok = false;
-        const int order = p.value(QStringLiteral("order")).toInt(&ok);
-        slotList.push_back({it.key(), p, ok ? order : std::numeric_limits<int>::max()});
-    }
-    // 按 order 升序；无 order 的属性稳定排到最后（与旧 QML sort + JS 稳定排序一致）
-    std::stable_sort(slotList.begin(), slotList.end(), [](const Slot &a, const Slot &b) {
-        return a.order < b.order;
-    });
-
-    for (const Slot &s : slotList) {
-        auto *item = new HTMLPropertyItem(this);
-        item->setKey(s.key);
-        item->setType(s.map.value(QStringLiteral("type"), QStringLiteral("text")).toString());
-        item->setText(s.map.value(QStringLiteral("text"), s.key).toString());
-        item->setPropValue(s.map.contains(QStringLiteral("value")) ? s.map.value(QStringLiteral("value")) : defaultValue(s.map));
-        item->setMin(s.map.value(QStringLiteral("min")));
-        item->setMax(s.map.value(QStringLiteral("max")));
-        item->setStep(s.map.value(QStringLiteral("step")));
-        item->setFraction(s.map.value(QStringLiteral("fraction")));
-        item->setPrecision(s.map.value(QStringLiteral("precision")));
-        item->setOptions(s.map.value(QStringLiteral("options")).toList());
-        item->setCondition(s.map.value(QStringLiteral("condition")).toString());
-        item->setGroup(s.map.value(QStringLiteral("group")).toString());
-        item->setOrder(s.order);
-        m_properties.append(item);
-    }
-}
-
-QString HTMLBackend::_pathJoin(const QString &a, const QString &b) const
-{
-    return pathJoin(a, b);
-}
-
-QString HTMLBackend::_basename(const QString &url) const
-{
-    return basename(url);
 }

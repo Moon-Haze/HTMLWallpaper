@@ -31,12 +31,9 @@ KCM.GridDelegate {
 
     // 标记为"待删除"的项半透明显示（HTML 模式模型无此 role，恒为不透明）
     opacity: model.pendingDeletion ? 0.5 : 1
-    scale: index, 1 // Workaround for https://bugreports.qt.io/browse/QTBUG-107458
+    scale: index, 1 
 
-    // 标题与副标题（HTML 模式用 description，缺省时回退 author）
-    text: model.display
-
-    hoverEnabled: true
+    text: model.title
 
     // —— 缩略图内容 ——
     thumbnail: Rectangle {
@@ -80,14 +77,9 @@ KCM.GridDelegate {
     // 无路径时仅切换勾选状态
     onClicked: {
         if (htmlWallpaper && model.path) {
-            htmlWallpaper.parseWallpaper(model.path);
-            root.cfg_DisplayPage = model.source;
-        } else {
-            // 无路径项（如“添加”占位）点击时翻转勾选，同样走互斥写回
-            if (htmlWallpaper && htmlWallpaper.wallpapers) {
-                htmlWallpaper.wallpapers.setExclusiveChecked(index, !model.checked)
-            }
-        }
+            root.cfg_DisplayPage = model.file;
+            console.log("Wallpaper applied:", model.file, "with properties:");
+        } 
         // 注意：不再手动改 GridView.currentIndex，以免销毁 cfg_DisplayPage 驱动的绑定，
         // 高亮由 resetCurrentIndex() 建立的绑定自动跟随 cfg_DisplayPage
     }

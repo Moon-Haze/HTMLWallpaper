@@ -1,0 +1,21 @@
+{
+    "title": "Param Fallback",
+    "description": "Fixture: properties missing value/text/type/order to exercise model normalization",
+    "type": "web",
+    "general": {
+        "properties": {
+            "alpha": { "type": "slider", "min": 3, "max": 9, "order": 2 },
+            "beta": { "type": "bool", "order": 1 },
+            "delta": {
+                "type": "combo",
+                "options": [
+                    { "label": "A", "value": "a" },
+                    { "label": "B", "value": "b" }
+                ],
+                "order": 3
+            },
+            "gamma": { "type": "color", "order": 4 },
+            "epsilon": {}
+        }
+    }
+}

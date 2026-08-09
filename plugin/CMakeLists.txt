@@ -22,9 +22,9 @@ ecm_add_qml_module(plasma_wallpaper_htmlwallpaperplugin
 
 target_sources(plasma_wallpaper_htmlwallpaperplugin PRIVATE
     htmlbackend.cpp
-    htmlpropertyitem.cpp
     wallpaperitem.cpp
     wallpaperlistmodel.cpp
+    wallpaperpropertymodel.cpp
 )
 
 target_link_libraries(plasma_wallpaper_htmlwallpaperplugin PRIVATE

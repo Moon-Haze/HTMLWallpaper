@@ -27,9 +27,10 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
  *
  * 数据源是 config.qml 注入的 HTMLBackend（C++）单实例：
  *   目录列表 ← htmlWallpaper.rootPaths；壁纸网格 ← htmlWallpaper.wallpapers；
- *   参数面板 ← htmlWallpaper.currentProperties + currentWallpaper。
+ *   参数面板 ← htmlWallpaper.currentWallpaper.general.properties（只读 ListModel）。
  * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_SlidePaths 持久化，
- * 由 rootPaths 绑定同步 htmlWallpaper → 重扫）。参数改动序列化写 cfg_WallpaperProperties。
+ * 由 rootPaths 绑定同步 htmlWallpaper → 重扫）。参数"可调不持久"：改动只更新
+ * 面板会话内镜像，不写 cfg_WallpaperProperties、不应用到壁纸。
  *
  * For proper alignment, an ancestor **MUST** have id "appearanceRoot" and property "parentLayout"
  */
@@ -175,17 +176,13 @@ RowLayout {
     }
 
     // —— 右栏：参数面板 ——
-    PropertyPanel {
-        Layout.fillHeight: true
-        Layout.preferredWidth: Kirigami.Units.gridUnit * 24
-        Layout.maximumWidth: Kirigami.Units.gridUnit * 34
-        htmlWallpaper: slideshowComponent.htmlWallpaper
-        // 参数被改动 → 序列化写入配置（运行时混合注入 / 重启后恢复）
-        onPropertyChanged: {
-            if (slideshowComponent.htmlWallpaper) {
-                cfg_WallpaperProperties = slideshowComponent.htmlWallpaper.buildPropertiesJson();
-            }
-        }
-    }
+    // PropertyPanel {
+    //     Layout.fillHeight: true
+    //     Layout.preferredWidth: Kirigami.Units.gridUnit * 24
+    //     Layout.maximumWidth: Kirigami.Units.gridUnit * 34
+    //     htmlWallpaper: slideshowComponent.htmlWallpaper
+    //     // 参数改动不再写 cfg_WallpaperProperties（可调不持久）；propertyChanged
+    //     // 信号保留供测试 / 后续扩展消费
+    // }
 }
 

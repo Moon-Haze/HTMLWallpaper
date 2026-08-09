@@ -51,16 +51,24 @@ QVariant WallpaperListModel::data(const QModelIndex &index, int role) const
         return item->workshopid();
     case PathRole:
         return item->path();
-    case EntryRole:
-        return item->entry();
     case PreviewRole:
         return item->preview();
-    case DisplayRole:
-        return item->title();
-    case SourceRole:
-        return item->entry();
-    case CheckedRole:
-        return item->checked();
+    case MonetizationRole:
+        return item->monetization();
+    case ContentRatingRole:
+        return item->contentrating();
+    case RatingSexRole:
+        return item->ratingsex();
+    case RatingViolenceRole:
+        return item->ratingviolence();
+    case VersionRole:
+        return item->version();
+    case WorkshopUrlRole:
+        return item->workshopurl();
+    case SupportsAudioRole:
+        return item->supportsAudio();
+    case FileRole:
+        return item->file();
     default:
         return {};
     }
@@ -68,12 +76,10 @@ QVariant WallpaperListModel::data(const QModelIndex &index, int role) const
 
 bool WallpaperListModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (!index.isValid() || index.row() < 0 || index.row() >= m_items.size() || role != CheckedRole) {
-        return false;
-    }
-    m_items.at(index.row())->setChecked(value.toBool());
-    Q_EMIT dataChanged(index, index, {CheckedRole});
-    return true;
+    Q_UNUSED(index);
+    Q_UNUSED(value);
+    Q_UNUSED(role);
+    return false; // 目前仅支持 setProperty / setExclusiveChecked 写回 checked
 }
 
 QHash<int, QByteArray> WallpaperListModel::roleNames() const
@@ -87,11 +93,15 @@ QHash<int, QByteArray> WallpaperListModel::roleNames() const
         {VisibilityRole, "visibility"},
         {WorkshopIdRole, "workshopid"},
         {PathRole, "path"},
-        {EntryRole, "entry"},
         {PreviewRole, "preview"},
-        {DisplayRole, "display"},
-        {SourceRole, "source"},
-        {CheckedRole, "checked"},
+        {MonetizationRole, "monetization"},
+        {ContentRatingRole, "contentrating"},
+        {RatingSexRole, "ratingsex"},
+        {RatingViolenceRole, "ratingviolence"},
+        {VersionRole, "version"},
+        {WorkshopUrlRole, "workshopurl"},
+        {SupportsAudioRole, "supportsaudio"},
+        {FileRole, "file"},
     };
 }
 
@@ -105,19 +115,35 @@ void WallpaperListModel::setEntries(const QList<QVariantMap> &metas)
         m_items.append(new WallpaperItem(meta, this));
     }
     endResetModel();
-
-    // 默认选中第一项：保证单选/轮播始终有确定状态（重置完成后设置并刷新）
-    if (!m_items.isEmpty()) {
-        m_items.first()->setChecked(true);
-    }
-    Q_EMIT dataChanged(index(0, 0), index(qMax(0, m_items.size() - 1), 0), {CheckedRole});
-
-    Q_EMIT countChanged();
+    Q_EMIT dataChanged(index(0, 0),
+                       index(qMax(0, m_items.size() - 1), 0),
+                       {
+                           NameRole,
+                           TitleRole,
+                           DescriptionRole,
+                           TagsRole,
+                           TypeRole,
+                           VisibilityRole,
+                           WorkshopIdRole,
+                           PathRole,
+                           PreviewRole,
+                           MonetizationRole,
+                           ContentRatingRole,
+                           RatingSexRole,
+                           RatingViolenceRole,
+                           VersionRole,
+                           WorkshopUrlRole,
+                           SupportsAudioRole,
+                           FileRole,
+                       });
 }
 
 void WallpaperListModel::clear()
 {
-    setEntries({});
+    beginResetModel();
+    qDeleteAll(m_items);
+    m_items.clear();
+    endResetModel();
 }
 
 QObject *WallpaperListModel::get(int i) const
@@ -126,28 +152,4 @@ QObject *WallpaperListModel::get(int i) const
         return nullptr;
     }
     return m_items.at(i);
-}
-
-void WallpaperListModel::setProperty(int i, const QString &property, const QVariant &value)
-{
-    if (property == QLatin1String("checked")) {
-        setData(index(i, 0), value, CheckedRole);
-    }
-}
-
-void WallpaperListModel::setExclusiveChecked(int idx, bool checked)
-{
-    if (idx < 0 || idx >= m_items.size()) {
-        return;
-    }
-    m_items.at(idx)->setChecked(checked);
-    if (checked) {
-        // 勾选本项时取消其余所有项，保证至多一项被勾选
-        for (int i = 0; i < m_items.size(); ++i) {
-            if (i != idx) {
-                m_items.at(i)->setChecked(false);
-            }
-        }
-    }
-    Q_EMIT dataChanged(this->index(0, 0), this->index(m_items.size() - 1, 0), {CheckedRole});
 }

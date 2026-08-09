@@ -16,8 +16,8 @@ import org.kde.kquickcontrols as KQuickControls
 /**
  * 壁纸参数设置面板（HTMLWallpaper 模式右栏）。
  *
- * 消费 HTMLBackend（C++）的 currentWallpaper + currentProperties，按
- * Wallpaper Engine 协议把可配置属性渲染成可编辑控件：
+ * 消费 HTMLBackend（C++）的 currentWallpaper.general.properties（只读
+ * ListModel，WallpaperPropertyModel）把可配置属性渲染成可编辑控件：
  *
  *   group     → 折叠组标题（可点击折叠/展开组内容）
  *   text      → 提示 Label（允许含 HTML，如 <small>/<b>）
@@ -28,40 +28,43 @@ import org.kde.kquickcontrols as KQuickControls
  *   textinput → TextField
  *   file      → 文件选择按钮（存相对壁纸目录的路径）
  *
- * 可观察性：currentProperties 是 JS 数组，元素不可观察（改值不触发绑定），
- * 因此每个属性被转换为一个 QtObject（字段全部 property 化，含
- * visibleByCondition）作 Repeater model。控件读写 QtObject 属性，绑定实时
- * 更新；用户改动值 → 重算所有 condition 的可见性 → 发 propertyChanged()，
- * 外层监听写 cfg_WallpaperProperties。
+ * 只读展示 + 会话内可调：模型本身只读（value 不存储、不写回 C++、不写
+ * cfg_WallpaperProperties、不应用到壁纸），但控件仍可操作——改动只更新
+ * 本面板的可观察镜像（QtObject），关面板重开即恢复默认值。
+ *
+ * 可观察性：模型行元素不可直接观察（改值不触发绑定），因此每个属性被转换
+ * 为一个 QtObject（字段全部 property 化，含 visibleByCondition）作 Repeater
+ * model。控件读写 QtObject 属性，绑定实时更新；用户改动值 → 重算所有
+ * condition 的可见性 → 发 propertyChanged()（外层目前不再消费，保留信号
+ * 供测试 / 后续扩展）。
  *
  * 接口：设置 htmlWallpaper 属性（可为 null，面板显示空态）。选中新壁纸时由
- * htmlWallpaper.currentProperties 的 changed 信号驱动重建。
+ * htmlWallpaper.currentWallpaper 的 changed 信号驱动重建。
  */
 Item {
     id: propertyPanel
 
-    // 注入的解析器实例（提供 evaluateCondition / propertyGroups / currentProperties）
+    // 注入的解析器实例（提供 evaluateCondition / colorToHex / currentWallpaper）
     property QtObject htmlWallpaper: null
 
     // 便捷只读视图（可直接用于显示，无需额外绑定）
     readonly property var currentWallpaper: htmlWallpaper ? htmlWallpaper.currentWallpaper : null
-    readonly property var properties: htmlWallpaper ? htmlWallpaper.currentProperties : []
 
-    // 参数被用户修改（值已同步回 htmlWallpaper.currentProperties 的对应项）
+    // 参数被用户修改（仅会话内镜像更新，不持久化）
     signal propertyChanged()
 
-    // —— 可观察属性镜像：JS 数组元素 → QtObject（元素可观察）——
-    // 每个 QtObject 字段对应 htmlWallpaper.currentProperties 的一项，
-    // 另加 visibleByCondition（condition 求值结果，控制控件显隐）。
+    // —— 可观察属性镜像：模型行 → QtObject（元素可观察）——
+    // 每个 QtObject 字段对应属性定义的一项，另加 visibleByCondition（condition
+    // 求值结果，控制控件显隐）。注意字段名用 propValue（对应模型行的 value）。
     property var _obsItems: []
     // 分组渲染结构：[{ group, title, items:[QtObject...] }]
     property var _groups: []
 
-    // htmlWallpaper 赋值（含初始）即重建；后续 currentProperties 变化由 Connections 驱动
+    // htmlWallpaper 赋值（含初始）即重建；后续 currentWallpaper 变化由 Connections 驱动
     onHtmlWallpaperChanged: { _rebuildObservable(); }
     Connections {
         target: htmlWallpaper
-        function onCurrentPropertiesChanged() { _rebuildObservable(); }
+        function onCurrentWallpaperChanged() { _rebuildObservable(); }
     }
 
     // 按属性 type 选控件组件
@@ -78,19 +81,22 @@ Item {
         }
     }
 
-    // 把 htmlWallpaper.currentProperties 整体重建为可观察 QtObject 数组 + 分组
+    // 把 currentWallpaper.general.properties 模型整体重建为可观察 QtObject 数组 + 分组
     function _rebuildObservable() {
         for (let i = 0; i < _obsItems.length; i++) {
             _obsItems[i].destroy();
         }
         _obsItems = [];
-        if (!htmlWallpaper) {
-            _groups = [];
+        _groups = [];
+        if (!htmlWallpaper || !htmlWallpaper.currentWallpaper || !htmlWallpaper.currentWallpaper.general) {
             return;
         }
-        const props = htmlWallpaper.currentProperties || [];
-        for (let i = 0; i < props.length; i++) {
-            const p = props[i];
+        const model = htmlWallpaper.currentWallpaper.general.properties;
+        if (!model) {
+            return;
+        }
+        for (let i = 0; i < model.count; i++) {
+            const p = model.get(i); // QVariantMap 行（模型已按 order 排序并做了 value 兜底）
             // 每个属性一个 QtObject，字段 property 化（改动触发绑定更新）
             const obj = Qt.createQmlObject(
                 "import QtQuick; QtObject {"
@@ -110,42 +116,60 @@ Item {
                 + " property bool visibleByCondition: true;"
                 + "}",
                 propertyPanel, "propItem" + i);
-            obj.key = p.key;
-            obj.type = p.type;
-            obj.text = p.text;
-            obj.propValue = p.propValue;
+            // 模型行缺键时 get(i) 对应字段为 undefined，赋给 property string/int 会报错，
+            // 故对强类型字段做兜底（模型只规范化了 type/text/value/order）。
+            obj.key = p.key !== undefined ? p.key : "";
+            obj.type = p.type !== undefined ? p.type : "text";
+            obj.text = p.text !== undefined ? p.text : "";
+            obj.propValue = p.value;
             obj.min = p.min;
             obj.max = p.max;
             obj.step = p.step;
             obj.fraction = p.fraction;
             obj.precision = p.precision;
-            obj.options = p.options;
-            obj.condition = p.condition;
-            obj.group = p.group;
-            obj.order = p.order;
+            obj.options = p.options !== undefined ? p.options : [];
+            obj.condition = p.condition !== undefined ? p.condition : "";
+            obj.group = p.group !== undefined ? p.group : "";
+            obj.order = p.order !== undefined ? p.order : 0;
             _obsItems.push(obj);
         }
         _groups = _buildGroups();
         _recomputeVisibility();
     }
 
-    // 把 htmlWallpaper.propertyGroups() 的组骨架映射到可观察 QtObject（按 key 匹配）
+    // 复刻原 HTMLBackend::propertyGroups() 的分组逻辑（_obsItems 已按 order 排序）：
+    // type==="group" 属性是组锚点（key 即组名、text 即组标题），不进入任何组的 items；
+    // 其余属性归入 group 字段指定的组（空则归最近的锚点组）；组按首次出现顺序排列。
     function _buildGroups() {
-        const rawGroups = htmlWallpaper ? htmlWallpaper.propertyGroups() : [];
-        const groups = [];
-        for (let i = 0; i < rawGroups.length; i++) {
-            const rg = rawGroups[i];
-            const items = [];
-            for (let j = 0; j < rg.items.length; j++) {
-                const key = rg.items[j].key;
-                for (let k = 0; k < _obsItems.length; k++) {
-                    if (_obsItems[k].key === key) {
-                        items.push(_obsItems[k]);
-                        break;
-                    }
+        const map = {};   // 组名 → items 数组
+        const order = []; // 组创建顺序
+        const titles = {}; // 组名 → 标题
+        let anchor = "";  // 当前激活的组锚点
+        for (let i = 0; i < _obsItems.length; i++) {
+            const item = _obsItems[i];
+            if (item.type === "group") {
+                anchor = item.key;
+                if (!(anchor in map)) {
+                    map[anchor] = [];
+                    order.push(anchor);
                 }
+                titles[anchor] = item.text !== undefined && item.text !== "" ? item.text : anchor;
+                continue;
             }
-            groups.push({ "group": rg.group, "title": rg.title !== undefined ? rg.title : rg.group, "items": items });
+            const g = item.group !== undefined && item.group !== "" ? item.group : anchor;
+            if (!(g in map)) {
+                map[g] = [];
+                order.push(g);
+            }
+            if (g !== "" && !(g in titles)) {
+                titles[g] = g;
+            }
+            map[g].push(item);
+        }
+        const groups = [];
+        for (let i = 0; i < order.length; i++) {
+            const g = order[i];
+            groups.push({ "group": g, "title": titles[g] !== undefined ? titles[g] : g, "items": map[g] });
         }
         return groups;
     }
@@ -165,20 +189,9 @@ Item {
         }
     }
 
-    // 任一控件的值被改动：把改动同步回 htmlWallpaper.currentProperties（JS 数组元素
-    // 不可观察，只能手动写回）、重算可见性、通知外层写配置
+    // 任一控件的值被改动：值只更新会话内可观察镜像（不写回模型 / C++ / 配置，
+    // 符合"可调不持久"），重算 condition 可见性、通知外层（当前无消费方，保留信号）。
     function _onValueChanged() {
-        if (htmlWallpaper && htmlWallpaper.currentProperties) {
-            for (let i = 0; i < _obsItems.length; i++) {
-                const item = _obsItems[i];
-                for (let j = 0; j < htmlWallpaper.currentProperties.length; j++) {
-                    if (htmlWallpaper.currentProperties[j].key === item.key) {
-                        htmlWallpaper.currentProperties[j].propValue = item.propValue;
-                        break;
-                    }
-                }
-            }
-        }
         _recomputeVisibility();
         propertyChanged();
     }

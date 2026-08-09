@@ -6,5 +6,12 @@
     "visibility": "public",
     "workshopid": "1234567890",
     "file": "index.html",
-    "preview": "preview.jpg"
+    "preview": "preview.jpg",
+    "monetization": false,
+    "contentrating": "Everyone",
+    "ratingsex": "none",
+    "ratingviolence": "none",
+    "version": 3,
+    "workshopurl": "steam://url/CommunityFilePage/1234567890",
+    "supportsAudio": true
 }

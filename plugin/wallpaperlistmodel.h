@@ -18,13 +18,16 @@ class WallpaperItem;
  * count / get(i) / setProperty(i, key, value) 与 data()/setData() 组合。
  * roles 对齐 WallpaperDelegate / ThumbnailsComponent 使用的字段：
  * name / title / description / tags / type / visibility / workshopid / path /
- * entry / preview / display / source / checked。checked 写回经 setData 转发
- * 到 WallpaperItem 并发 dataChanged（网格勾选框即时刷新）。
+ * file / entry / preview / display / source / checked（file 是 project.json 的
+ * file 字段，entry 为其别名）。checked 写回经 setData 转发到 WallpaperItem
+ * 并发 dataChanged（网格勾选框即时刷新）。
+ * 另含 project.json 扩展元数据 role：monetization / contentrating / ratingsex /
+ * ratingviolence / version / workshopurl / supportsAudio（对齐 WallpaperItem）。
  */
 class WallpaperListModel : public QAbstractListModel
 {
     Q_OBJECT
-    Q_PROPERTY(int count READ count NOTIFY countChanged)
+    Q_PROPERTY(int count READ count CONSTANT)
 
 public:
     enum Roles {
@@ -36,11 +39,15 @@ public:
         VisibilityRole,
         WorkshopIdRole,
         PathRole,
-        EntryRole,
         PreviewRole,
-        DisplayRole,
-        SourceRole,
-        CheckedRole,
+        MonetizationRole,
+        ContentRatingRole,
+        RatingSexRole,
+        RatingViolenceRole,
+        VersionRole,
+        WorkshopUrlRole,
+        SupportsAudioRole,
+        FileRole,
     };
     Q_ENUM(Roles)
 
@@ -58,18 +65,6 @@ public:
 
     /** 兼容原 ListModel：返回第 i 项元数据对象（含 checked）。 */
     Q_INVOKABLE QObject *get(int i) const;
-    /** 兼容原 ListModel：写回单个属性（当前支持 "checked"）。 */
-    Q_INVOKABLE void setProperty(int i, const QString &property, const QVariant &value);
-
-    /**
-     * 单选互斥写回：勾选本项（checked=true）时自动取消其余所有项，
-     * 保证至多一项被勾选；取消本项（checked=false）时仅取消本项，允许全不选。
-     * index 越界直接返回。成功后发 dataChanged 刷新全表。
-     */
-    Q_INVOKABLE void setExclusiveChecked(int idx, bool checked);
-
-Q_SIGNALS:
-    void countChanged();
 
 private:
     QList<WallpaperItem *> m_items;

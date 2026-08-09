@@ -1,0 +1,7 @@
+{
+    "title": "Missing Entry",
+    "description": "Fixture: project.json file points to a non-existent html; entry auto-detected",
+    "tags": ["test"],
+    "type": "web",
+    "file": "ghost.html"
+}

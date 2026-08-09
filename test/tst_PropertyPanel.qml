@@ -256,25 +256,4 @@ TestCase {
         compare(combo.currentIndex, 1, "combo 应同步到 custom 的索引");
         compare(combo.currentText, "Custom");
     }
-
-    // —— 可观察镜像的改动同步回 parser.currentProperties（外层序列化依赖）——
-
-    function test_value_syncs_back_to_parser() {
-        loadFetch();
-        // 改可观察项并触发 _onValueChanged（控件 onMoved/onToggled 等价路径）
-        const glow = obsItem("glow");
-        glow.propValue = false;
-        panel._onValueChanged();
-
-        let found = null;
-        for (let i = 0; i < parser.currentProperties.length; i++) {
-            if (parser.currentProperties[i].key === "glow") {
-                found = parser.currentProperties[i];
-                break;
-            }
-        }
-        verify(found !== null, "parser.currentProperties 缺 glow");
-        compare(found.propValue, false,
-               "可观察镜像的改动应同步回 parser.currentProperties");
-    }
 }
