@@ -43,6 +43,7 @@ if(BUILD_TESTING)
     qt_add_executable(tst_wallpaperproject tst_wallpaperproject.cpp)
     target_sources(tst_wallpaperproject PRIVATE
         ../plugin/wallpaperproperty.cpp
+        ../plugin/wallpaperproject.cpp
     )
     # 让 tst_*.cpp 能 #include "wallpaperproperty.h" 等 plugin 下的头文件
     target_include_directories(tst_wallpaperproject PRIVATE ../plugin)

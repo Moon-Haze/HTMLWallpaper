@@ -6,7 +6,13 @@
 
 #include <QtTest>
 
+#include "wallpaperproject.h"
 #include "wallpaperproperty.h"
+
+#include <QFile>
+#include <QFileInfo>
+#include <QTemporaryDir>
+#include <QUrl>
 
 /**
  * C++ 数据层单测。与 QML 测试的分工：解析/规范化/排序等纯逻辑在此用
@@ -16,11 +22,24 @@ class tst_WallpaperProject : public QObject
 {
     Q_OBJECT
 
+private:
+    // 把 fixtures 相对路径转成绝对 file:// URL（ctest WORKING_DIRECTORY=test/）
+    static QString fixtureUrl(const QString &name);
+
 private Q_SLOTS:
     void propertyTypeTextFallback();
     void propertyValueDefaults();
     void propertyOrderFallback();
     void propertyRawPassthrough();
+    void projectParsesAurora();
+    void projectParsesMatrix_properties();
+    void projectParsesMissingEntry();
+    void projectAutoDetectsPreview();
+    void projectFailsWithoutJson();
+    void propertyModelOrdering_paramfallback();
+    void isHtmlTypeFilters();
+    void entryResolution_absoluteUrl();
+    void entryResolution_subPathAndQuery();
 };
 
 void tst_WallpaperProject::propertyTypeTextFallback()
@@ -104,6 +123,153 @@ void tst_WallpaperProject::propertyRawPassthrough()
     QCOMPARE(p.condition(), QStringLiteral("a.value === 1"));
     QCOMPARE(p.group(), QStringLiteral("appearance"));
     QVERIFY(p.options().isEmpty());
+}
+
+QString tst_WallpaperProject::fixtureUrl(const QString &name)
+{
+    return QUrl::fromLocalFile(QFileInfo(QStringLiteral("data/wallpapers/") + name).absoluteFilePath()).toString();
+}
+
+void tst_WallpaperProject::projectParsesAurora()
+{
+    WallpaperProject p(fixtureUrl(QStringLiteral("aurora")));
+    QVERIFY(p.isValid());
+    QCOMPARE(p.name(), QStringLiteral("aurora"));
+    QCOMPARE(p.title(), QStringLiteral("Aurora"));
+    QCOMPARE(p.tags(), QStringLiteral("aurora, sky"));
+    QCOMPARE(p.type(), QStringLiteral("web"));
+    QCOMPARE(p.visibility(), QStringLiteral("public"));
+    QCOMPARE(p.workshopid(), QStringLiteral("1234567890"));
+    QVERIFY(p.file().endsWith(QStringLiteral("/data/wallpapers/aurora/index.html")));
+    QCOMPARE(p.source(), p.file());
+    QCOMPARE(p.display(), QStringLiteral("Aurora"));
+    QVERIFY(p.preview().endsWith(QStringLiteral("/data/wallpapers/aurora/preview.jpg")));
+    QCOMPARE(p.monetization(), false);
+    QCOMPARE(p.contentrating(), QStringLiteral("Everyone"));
+    QCOMPARE(p.ratingsex(), QStringLiteral("none"));
+    QCOMPARE(p.ratingviolence(), QStringLiteral("none"));
+    QCOMPARE(p.version(), 3);
+    QCOMPARE(p.workshopurl(), QStringLiteral("steam://url/CommunityFilePage/1234567890"));
+    QCOMPARE(p.supportsAudio(), true);
+    QVERIFY(p.properties().isEmpty()); // aurora 无 general
+}
+
+void tst_WallpaperProject::projectParsesMatrix_properties()
+{
+    WallpaperProject p(fixtureUrl(QStringLiteral("matrix")));
+    QVERIFY(p.isValid());
+    QVERIFY(p.file().endsWith(QStringLiteral("/data/wallpapers/matrix/main.html")));
+    QCOMPARE(p.supportsaudioprocessing(), false);
+    const auto &props = p.properties();
+    QCOMPARE(props.size(), 4);
+    // 按 order 排序：speed(1) color(2) glow(3) charset(4)
+    QCOMPARE(props.at(0).key(), QStringLiteral("speed"));
+    QCOMPARE(props.at(1).key(), QStringLiteral("color"));
+    QCOMPARE(props.at(2).key(), QStringLiteral("glow"));
+    QCOMPARE(props.at(3).key(), QStringLiteral("charset"));
+    QCOMPARE(props.at(0).value(), 5);
+    QCOMPARE(props.at(0).min(), 1);
+    QCOMPARE(props.at(0).max(), 20);
+    QCOMPARE(props.at(1).value(), QVariant(QStringLiteral("0 1 0")));
+    QCOMPARE(props.at(2).value(), true);
+    QCOMPARE(props.at(3).value(), QVariant(QStringLiteral("katakana")));
+    QCOMPARE(props.at(3).options().size(), 2);
+}
+
+void tst_WallpaperProject::projectParsesMissingEntry()
+{
+    WallpaperProject p(fixtureUrl(QStringLiteral("missing-entry")));
+    QVERIFY(p.isValid());
+    // file 指向不存在的 ghost.html → 自动探测 real.html
+    QVERIFY(p.file().endsWith(QStringLiteral("/data/wallpapers/missing-entry/real.html")));
+}
+
+void tst_WallpaperProject::projectAutoDetectsPreview()
+{
+    WallpaperProject p(fixtureUrl(QStringLiteral("nova")));
+    QVERIFY(p.isValid());
+    QVERIFY(p.preview().endsWith(QStringLiteral("/data/wallpapers/nova/preview.jpg")));
+}
+
+void tst_WallpaperProject::projectFailsWithoutJson()
+{
+    WallpaperProject neon(fixtureUrl(QStringLiteral("neon"))); // 目录无 project.json
+    QVERIFY(!neon.isValid());
+
+    WallpaperProject missing(fixtureUrl(QStringLiteral("does-not-exist")));
+    QVERIFY(!missing.isValid());
+}
+
+void tst_WallpaperProject::propertyModelOrdering_paramfallback()
+{
+    WallpaperProject p(fixtureUrl(QStringLiteral("paramfallback")));
+    QVERIFY(p.isValid());
+    const auto &props = p.properties();
+    QCOMPARE(props.size(), 5);
+    // order 升序：beta(1) alpha(2) delta(3) gamma(4)；无 order 的 epsilon 稳定排最后
+    QCOMPARE(props.at(0).key(), QStringLiteral("beta"));
+    QCOMPARE(props.at(1).key(), QStringLiteral("alpha"));
+    QCOMPARE(props.at(2).key(), QStringLiteral("delta"));
+    QCOMPARE(props.at(3).key(), QStringLiteral("gamma"));
+    QCOMPARE(props.at(4).key(), QStringLiteral("epsilon"));
+    // value 兜底
+    QCOMPARE(props.at(0).value(), false);    // bool → false
+    QCOMPARE(props.at(1).value(), 3);        // slider 无 value → min=3
+    QCOMPARE(props.at(2).value(), QVariant(QStringLiteral("a")));  // combo → 首个 option value
+    QCOMPARE(props.at(3).value(), QVariant(QStringLiteral("0 0 0"))); // color
+    QCOMPARE(props.at(4).value(), QString()); // text → ""
+    // type/text 兜底
+    QCOMPARE(props.at(4).type(), QStringLiteral("text"));
+    QCOMPARE(props.at(4).text(), QStringLiteral("epsilon"));
+}
+
+void tst_WallpaperProject::isHtmlTypeFilters()
+{
+    using namespace WallpaperProjectJson;
+    const QStringList nonHtml{QStringLiteral("video"), QStringLiteral("scene"), QStringLiteral("application"), QStringLiteral("audio")};
+    // type 缺失 → 收录
+    QVERIFY(isHtmlType(QString(), nonHtml));
+    // 黑名单过滤（大小写不敏感）
+    QVERIFY(!isHtmlType(QStringLiteral("video"), nonHtml));
+    QVERIFY(!isHtmlType(QStringLiteral("SCENE"), nonHtml));
+    QVERIFY(!isHtmlType(QStringLiteral("Application"), nonHtml));
+    // HTML 类收录：web/color/group
+    QVERIFY(isHtmlType(QStringLiteral("web"), nonHtml));
+    QVERIFY(isHtmlType(QStringLiteral("Web"), nonHtml));
+    QVERIFY(isHtmlType(QStringLiteral("color"), nonHtml));
+    QVERIFY(isHtmlType(QStringLiteral("group"), nonHtml));
+}
+
+void tst_WallpaperProject::entryResolution_absoluteUrl()
+{
+    // 远程/绝对 URL 原样保留（不拼接壁纸目录）
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    QFile proj(dir.filePath(QStringLiteral("project.json")));
+    QVERIFY(proj.open(QIODevice::WriteOnly));
+    proj.write(R"({"title":"T","type":"web","file":"https://example.com/a.html"})");
+    proj.close();
+
+    WallpaperProject p(QUrl::fromLocalFile(dir.path()).toString());
+    QVERIFY(p.isValid());
+    QCOMPARE(p.file(), QStringLiteral("https://example.com/a.html"));
+}
+
+void tst_WallpaperProject::entryResolution_subPathAndQuery()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    // 相对子路径 + query 保留：img/bg.html?x=1 → 基于目录拼接
+    QFile proj(dir.filePath(QStringLiteral("project.json")));
+    QVERIFY(proj.open(QIODevice::WriteOnly));
+    proj.write(R"({"title":"T","type":"web","file":"img/bg.html?x=1"})");
+    proj.close();
+
+    WallpaperProject p(QUrl::fromLocalFile(dir.path()).toString());
+    QVERIFY(p.isValid());
+    // 注：期望值用字符串拼接而非 QUrl::fromLocalFile —— fromLocalFile 会把 '?'
+    // 编码为 %3F，与实现（字符串 pathJoin，保留原始 query）不符；注释意图为"query 保留"。
+    QCOMPARE(p.file(), QStringLiteral("file://") + dir.path() + QStringLiteral("/img/bg.html?x=1"));
 }
 
 QTEST_MAIN(tst_WallpaperProject)
