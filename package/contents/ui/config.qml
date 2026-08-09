@@ -33,16 +33,8 @@ ColumnLayout {
     property var parentLayout
     property var screenSize: Qt.size(Screen.width, Screen.height)
 
-    property int cfg_SlideshowMode                       // 轮播排序方式
-    property int cfg_SlideshowModeDefault
-    property bool cfg_SlideshowFoldersFirst              // 按文件夹分组轮播
-    property bool cfg_SlideshowFoldersFirstDefault
     property list<string> cfg_SlidePaths             // 扫描文件夹路径列表
     property list<string> cfg_SlidePathsDefault
-    property int cfg_SlideInterval                    // 轮播切换间隔（秒）
-    property int cfg_SlideIntervalDefault
-    property bool cfg_ForceImageAnimation         // 强制动态图播放
-    property bool cfg_ForceImageAnimationDefault
     property string cfg_DisplayPage                  // 当前 HTML 壁纸入口页面（DisplayPage 配置）
     property string cfg_DisplayPageDefault
     property string cfg_WallpaperProperties        // 当前 HTML 壁纸参数 JSON（运行时注入/重启恢复）

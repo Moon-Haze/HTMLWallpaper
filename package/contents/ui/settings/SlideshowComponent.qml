@@ -33,7 +33,7 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
  *
  * For proper alignment, an ancestor **MUST** have id "appearanceRoot" and property "parentLayout"
  */
-ColumnLayout {
+RowLayout {
     id: slideshowComponent
     property var configuration: wallpaper.configuration
     property var screenSize: Qt.size(Screen.width, Screen.height)
@@ -42,233 +42,150 @@ ColumnLayout {
 
     spacing: 0
 
-    Kirigami.FormLayout {
-        id: form
+    // —— 左栏：扫描目录（文件夹）列表 ——
+    ColumnLayout {
+        spacing: 0
+        Layout.maximumWidth: Kirigami.Units.gridUnit * 16
 
-        Layout.bottomMargin: Kirigami.Units.largeSpacing
-
-        // 与上层“外观”设置页对齐同一列标签宽度
-        Component.onCompleted: function () {
-            if (typeof appearanceRoot !== "undefined") {
-                twinFormLayouts = appearanceRoot.parentLayout;
-            }
+        Kirigami.Separator {
+            Layout.fillWidth: true
         }
+        QQC2.ScrollView {
+            id: foldersScroll
+            Layout.fillWidth: true
+            Layout.fillHeight: true
 
-        // —— 轮播排序方式下拉框 ——
-        RowLayout {
-            id: slideshowModeRow
-            Kirigami.FormData.label: i18nd("plasma_wallpaper_org.kde.image", "Order:")
+            // 用主题背景色，视觉上把列表区与设置区区分开
+            background: Rectangle {
+                Kirigami.Theme.inherit: false
+                Kirigami.Theme.colorSet: Kirigami.Theme.View
+                color: Kirigami.Theme.backgroundColor
+            }
 
-            QQC2.ComboBox {
-                id: slideshowModeComboBox
-
-                // 候选排序方式：随机 / A→Z / Z→A / 按修改时间
-                model: [
-                    {
-                        'label': i18nd("plasma_wallpaper_org.kde.image", "Random"),
-                        'slideshowMode':  PlasmaWallpaper.SortingMode.Random
-                    },
-                    {
-                        'label': i18nd("plasma_wallpaper_org.kde.image", "A to Z"),
-                        'slideshowMode':  PlasmaWallpaper.SortingMode.Alphabetical
-                    },
-                    {
-                        'label': i18nd("plasma_wallpaper_org.kde.image", "Z to A"),
-                        'slideshowMode':  PlasmaWallpaper.SortingMode.AlphabeticalReversed
-                    },
-                    {
-                        'label': i18nd("plasma_wallpaper_org.kde.image", "Date modified (newest first)"),
-                        'slideshowMode':  PlasmaWallpaper.SortingMode.ModifiedReversed
-                    },
-                    {
-                        'label': i18nd("plasma_wallpaper_org.kde.image", "Date modified (oldest first)"),
-                        'slideshowMode':  PlasmaWallpaper.SortingMode.Modified
-                    }
-                ]
-                textRole: "label"
-                // 用户选择后写入排序模式配置
-                onActivated: {
-                    cfg_SlideshowMode = model[currentIndex]["slideshowMode"];
+            // 扫描目录列表：数据源是 htmlWallpaper.rootPaths（跟随 cfg_SlidePaths）
+            ListView {
+                id: slidePathsView
+                headerPositioning: ListView.OverlayHeader
+                // 悬浮标题栏，含“添加文件夹”按钮
+                header: Kirigami.InlineViewHeader {
+                    width: slidePathsView.width
+                    text: i18nd("plasma_wallpaper_org.kde.image", "Folders")
+                    actions: [
+                        Kirigami.Action {
+                            icon.name: "list-add-symbolic"
+                            text: i18ndc("plasma_wallpaper_org.kde.image", "@action button the thing being added is a folder", "Add…")
+                            Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Add Folder…")
+                            onTriggered: root.openChooserDialog()
+                        }
+                    ]
                 }
-                Component.onCompleted: setMethod();
-                // 初始化：根据当前配置选中对应选项
-                function setMethod() {
-                    for (var i = 0; i < model.length; i++) {
-                        if (model[i]["slideshowMode"] === configuration.SlideshowMode) {
-                            slideshowModeComboBox.currentIndex = i;
-                            break;
+                // 扫描目录列表：rootPaths 是 QStringList，QML 里即字符串数组，
+                // 直接作 model；数组项没有 role，delegate 用 modelData 取值。
+                model: htmlWallpaper ? htmlWallpaper.rootPaths : null
+                delegate: Kirigami.SubtitleDelegate {
+                    id: baseListItem
+                    // 字符串数组 model：modelData 直接是路径字符串
+                    required property string modelData
+
+                    width: slidePathsView.width
+                    // Don't need a highlight or hover effects
+                    // 列表项无需悬停高亮效果
+                    hoverEnabled: false
+                    down: false
+
+                    // 主标题只显示文件夹名（去掉末尾斜杠后取最后一段）
+                    text: {
+                        var strippedPath = String(modelData).replace(/\/+$/, "");
+                        return strippedPath.split('/').pop()
+                    }
+                    // Subtitle: the path to the folder
+                    // 副标题显示父目录路径
+                    subtitle: {
+                        var strippedPath = String(modelData).replace(/\/+$/, "");
+                        return strippedPath.replace(/\/[^\/]*$/, '');;
+                    }
+
+                    contentItem: RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+
+                        Kirigami.TitleSubtitle {
+                            Layout.fillWidth: true
+                            // Header: the folder
+                            // 标题：文件夹名；副标题：路径
+                            title: baseListItem.text
+                            subtitle: baseListItem.subtitle
+                        }
+
+                        // 从扫描列表移除该文件夹
+                        QQC2.ToolButton {
+                            icon.name: "edit-delete-remove-symbolic"
+                            text: i18nd("plasma_wallpaper_org.kde.image", "Remove Folder")
+                            display: QQC2.Button.IconOnly
+                            onClicked: root.removeScanPath(baseListItem.modelData)
+
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: text
+                            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+                        }
+
+                        // 在文件管理器中打开该文件夹
+                        QQC2.ToolButton {
+                            icon.name: "document-open-folder"
+                            text: i18nd("plasma_wallpaper_org.kde.image", "Open Folder…")
+                            display: QQC2.Button.IconOnly
+                            onClicked: Qt.openUrlExternally(baseListItem.modelData)
+
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: text
+                            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
                         }
                     }
                 }
 
-                // 非默认值时高亮，提示用户该设置已改动
-                KCM.SettingHighlighter {
-                    highlight: cfg_SlideshowMode != cfg_SlideshowModeDefault
-                }
-            }
-
-            // “按文件夹分组”开关：优先播完一个文件夹再播下一个
-            QQC2.CheckBox {
-                id: slideshowFoldersFirstCheckBox
-                text: i18nd("plasma_wallpaper_org.kde.image", "Group by folders")
-                checked: root.cfg_SlideshowFoldersFirst
-                onToggled: cfg_SlideshowFoldersFirst = slideshowFoldersFirstCheckBox.checked
-
-                KCM.SettingHighlighter {
-                    highlight: root.cfg_SlideshowFoldersFirst !== cfg_SlideshowFoldersFirstDefault
+                // 未配置任何文件夹时显示空态提示
+                Kirigami.PlaceholderMessage {
+                    anchors.centerIn: parent
+                    width: parent.width - (Kirigami.Units.largeSpacing * 4)
+                    visible: slidePathsView.count === 0
+                    text: i18nd("plasma_wallpaper_org.kde.image", "There are no wallpaper locations configured")
                 }
             }
         }
     }
 
-    RowLayout {
+    Kirigami.Separator {
+        Layout.fillHeight: true
+    }
 
-        spacing: 0
+    // —— 中栏：HTML 壁纸缩略图网格 ——
+    Loader {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
 
-        // —— 左栏：扫描目录（文件夹）列表 ——
-        ColumnLayout {
-            spacing: 0
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 16
-
-            Kirigami.Separator {
-                Layout.fillWidth: true
-            }
-            QQC2.ScrollView {
-                id: foldersScroll
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                // 用主题背景色，视觉上把列表区与设置区区分开
-                background: Rectangle {
-                    Kirigami.Theme.inherit: false
-                    Kirigami.Theme.colorSet: Kirigami.Theme.View
-                    color: Kirigami.Theme.backgroundColor
-                }
-
-                // 扫描目录列表：数据源是 htmlWallpaper.rootPaths（跟随 cfg_SlidePaths）
-                ListView {
-                    id: slidePathsView
-                    headerPositioning: ListView.OverlayHeader
-                    // 悬浮标题栏，含“添加文件夹”按钮
-                    header: Kirigami.InlineViewHeader {
-                        width: slidePathsView.width
-                        text: i18nd("plasma_wallpaper_org.kde.image", "Folders")
-                        actions: [
-                            Kirigami.Action {
-                                icon.name: "list-add-symbolic"
-                                text: i18ndc("plasma_wallpaper_org.kde.image", "@action button the thing being added is a folder", "Add…")
-                                Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Add Folder…")
-                                onTriggered: root.openChooserDialog()
-                            }
-                        ]
-                    }
-                    // 扫描目录列表：rootPaths 是 QStringList，QML 里即字符串数组，
-                    // 直接作 model；数组项没有 role，delegate 用 modelData 取值。
-                    model: htmlWallpaper ? htmlWallpaper.rootPaths : null
-                    delegate: Kirigami.SubtitleDelegate {
-                        id: baseListItem
-                        // 字符串数组 model：modelData 直接是路径字符串
-                        required property string modelData
-
-                        width: slidePathsView.width
-                        // Don't need a highlight or hover effects
-                        // 列表项无需悬停高亮效果
-                        hoverEnabled: false
-                        down: false
-
-                        // 主标题只显示文件夹名（去掉末尾斜杠后取最后一段）
-                        text: {
-                            var strippedPath = String(modelData).replace(/\/+$/, "");
-                            return strippedPath.split('/').pop()
-                        }
-                        // Subtitle: the path to the folder
-                        // 副标题显示父目录路径
-                        subtitle: {
-                            var strippedPath = String(modelData).replace(/\/+$/, "");
-                            return strippedPath.replace(/\/[^\/]*$/, '');;
-                        }
-
-                        contentItem: RowLayout {
-                            spacing: Kirigami.Units.smallSpacing
-
-                            Kirigami.TitleSubtitle {
-                                Layout.fillWidth: true
-                                // Header: the folder
-                                // 标题：文件夹名；副标题：路径
-                                title: baseListItem.text
-                                subtitle: baseListItem.subtitle
-                            }
-
-                            // 从扫描列表移除该文件夹
-                            QQC2.ToolButton {
-                                icon.name: "edit-delete-remove-symbolic"
-                                text: i18nd("plasma_wallpaper_org.kde.image", "Remove Folder")
-                                display: QQC2.Button.IconOnly
-                                onClicked: root.removeScanPath(baseListItem.modelData)
-
-                                QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: text
-                                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-                            }
-
-                            // 在文件管理器中打开该文件夹
-                            QQC2.ToolButton {
-                                icon.name: "document-open-folder"
-                                text: i18nd("plasma_wallpaper_org.kde.image", "Open Folder…")
-                                display: QQC2.Button.IconOnly
-                                onClicked: Qt.openUrlExternally(baseListItem.modelData)
-
-                                QQC2.ToolTip.visible: hovered
-                                QQC2.ToolTip.text: text
-                                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-                            }
-                        }
-                    }
-
-                    // 未配置任何文件夹时显示空态提示
-                    Kirigami.PlaceholderMessage {
-                        anchors.centerIn: parent
-                        width: parent.width - (Kirigami.Units.largeSpacing * 4)
-                        visible: slidePathsView.count === 0
-                        text: i18nd("plasma_wallpaper_org.kde.image", "There are no wallpaper locations configured")
-                    }
-                }
-            }
+        // 动态加载 ThumbnailsComponent，传入屏幕尺寸 + 解析器实例
+        Component.onCompleted: () => {
+            this.setSource("ThumbnailsComponent.qml",
+                            {"screenSize": slideshowComponent.screenSize,
+                            "htmlWallpaper": slideshowComponent.htmlWallpaper});
         }
+    }
 
-        Kirigami.Separator {
-            Layout.fillHeight: true
-        }
+    Kirigami.Separator {
+        Layout.fillHeight: true
+    }
 
-        // —— 中栏：HTML 壁纸缩略图网格 ——
-        Loader {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            // 动态加载 ThumbnailsComponent，传入屏幕尺寸 + 解析器实例
-            Component.onCompleted: () => {
-                this.setSource("ThumbnailsComponent.qml",
-                               {"screenSize": slideshowComponent.screenSize,
-                                "htmlWallpaper": slideshowComponent.htmlWallpaper});
-            }
-        }
-
-        Kirigami.Separator {
-            Layout.fillHeight: true
-        }
-
-        // —— 右栏：参数面板 ——
-        PropertyPanel {
-            Layout.fillHeight: true
-            Layout.preferredWidth: Kirigami.Units.gridUnit * 24
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 34
-            htmlWallpaper: slideshowComponent.htmlWallpaper
-            // 参数被改动 → 序列化写入配置（运行时混合注入 / 重启后恢复）
-            onPropertyChanged: {
-                if (slideshowComponent.htmlWallpaper) {
-                    cfg_WallpaperProperties = slideshowComponent.htmlWallpaper.buildPropertiesJson();
-                }
+    // —— 右栏：参数面板 ——
+    PropertyPanel {
+        Layout.fillHeight: true
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 24
+        Layout.maximumWidth: Kirigami.Units.gridUnit * 34
+        htmlWallpaper: slideshowComponent.htmlWallpaper
+        // 参数被改动 → 序列化写入配置（运行时混合注入 / 重启后恢复）
+        onPropertyChanged: {
+            if (slideshowComponent.htmlWallpaper) {
+                cfg_WallpaperProperties = slideshowComponent.htmlWallpaper.buildPropertiesJson();
             }
         }
     }
 }
+

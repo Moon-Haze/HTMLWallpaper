@@ -41,6 +41,7 @@ KCM.GridDelegate {
     // —— 缩略图内容 ——
     thumbnail: Rectangle {
         id: backgroundRect
+        color: cfg_Color
         anchors.fill: parent
 
         // 预览图未就绪时显示占位图标
@@ -52,7 +53,22 @@ KCM.GridDelegate {
             visible: previewImage.status != Image.Ready
         }
 
-        // 主预览图
+        FastBlur {
+            id: fastBlur
+            visible: cfg_Blur
+            anchors.fill: parent
+            radius: 4
+            source: Image {
+                asynchronous: true
+                retainWhileLoading: true
+                cache: false
+                fillMode: Image.PreserveAspectCrop
+                source: fastBlur.visible ? previewImage.source : ""
+                sourceSize: previewImage.sourceSize
+                visible: false
+            }
+        }
+
         Image {
             id: previewImage
             anchors.fill: parent
@@ -63,18 +79,18 @@ KCM.GridDelegate {
         }
 
         // 单选按钮：控制该幻灯片是否为唯一轮播项（互斥选择）
-        QtControls2.RadioButton {
-            anchors.left: parent.left
-            anchors.margins: Kirigami.Units.smallSpacing
-            anchors.top: parent.top
-            checked: model.checked
-            onToggled: {
-                // 互斥写回：勾选本项时由模型取消其余项，保证至多一项被勾选
-                if (htmlWallpaper && htmlWallpaper.wallpapers) {
-                    htmlWallpaper.wallpapers.setExclusiveChecked(index, checked)
-                }
-            }
-        }
+        // QtControls2.RadioButton {
+        //     anchors.left: parent.left
+        //     anchors.margins: Kirigami.Units.smallSpacing
+        //     anchors.top: parent.top
+        //     checked: model.checked
+        //     onToggled: {
+        //         // 互斥写回：勾选本项时由模型取消其余项，保证至多一项被勾选
+        //         if (htmlWallpaper && htmlWallpaper.wallpapers) {
+        //             htmlWallpaper.wallpapers.setExclusiveChecked(index, checked)
+        //         }
+        //     }
+        // }
 
         Behavior on color {
             ColorAnimation {

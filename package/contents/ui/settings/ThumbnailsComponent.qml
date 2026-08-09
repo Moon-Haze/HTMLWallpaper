@@ -55,28 +55,6 @@ Item {
         Kirigami.InlineViewHeader {
             Layout.fillWidth: true
             text: i18nd("plasma_wallpaper_org.kde.image", "Images")
-            actions: [
-                // "应用"按钮：把当前唯一勾选项应用为轮播壁纸（写 cfg_DisplayPage + 解析参数）
-                Kirigami.Action {
-                    icon.name: "applyWallpaper"
-                    text: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Apply")
-                    Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Apply Selected Wallpaper")
-                    displayHint: Kirigami.DisplayHint.KeepVisible
-                    onTriggered: {
-                        // 找到当前唯一勾选项；用户取消了全部勾选时安全跳过
-                        for (let i = 0; i < thumbnailsComponent.imageModel.count; i++) {
-                            const item = thumbnailsComponent.imageModel.get(i);
-                            if (item.checked) {
-                                if (thumbnailsComponent.htmlWallpaper && item.path) {
-                                    thumbnailsComponent.htmlWallpaper.parseWallpaper(item.path);
-                                    root.cfg_DisplayPage = item.source; // source == entry
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-            ]
         }
 
         Rectangle {
@@ -114,6 +92,20 @@ Item {
 
                 // 复用项视图实例以提升滚动性能
                 view.reuseItems: true
+
+                view.onCurrentIndexChanged: {
+                    // 选中项变化时滚动到该项，避免被遮挡
+                    for (let i = 0; i < thumbnailsComponent.imageModel.count; i++) {
+                        const item = thumbnailsComponent.imageModel.get(i);
+                        if (item.checked) {
+                            if (thumbnailsComponent.htmlWallpaper && item.path) {
+                                thumbnailsComponent.htmlWallpaper.parseWallpaper(item.path);
+                                root.cfg_DisplayPage = item.source; // source == entry
+                            }
+                            break;
+                        }
+                    }
+                }
 
                 // 网格项使用 WallpaperDelegate，并传入配色、预览采样尺寸与解析器实例
                 view.delegate: WallpaperDelegate {

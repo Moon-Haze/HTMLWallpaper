@@ -72,11 +72,7 @@ ApplicationWindow {
             // 以 KCM 同款方式注入 cfg_* 初始值（main.xml 默认值）
             Component.onCompleted: configLoader.setSource(
                 "../../package/contents/ui/config.qml", {
-                    cfg_SlideshowMode: 0, cfg_SlideshowModeDefault: 0,
-                    cfg_SlideshowFoldersFirst: false, cfg_SlideshowFoldersFirstDefault: false,
                     cfg_SlidePaths: ["/usr/share/html-wallpapers"], cfg_SlidePathsDefault: [],
-                    cfg_SlideInterval: 900, cfg_SlideIntervalDefault: 900,
-                    cfg_ForceImageAnimation: false, cfg_ForceImageAnimationDefault: false,
                     cfg_DisplayPage: "", cfg_DisplayPageDefault: "https://kde.org/",
                     cfg_WallpaperProperties: "{}", cfg_WallpaperPropertiesDefault: "{}"
                 })
