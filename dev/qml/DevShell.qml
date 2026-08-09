@@ -28,7 +28,7 @@ ApplicationWindow {
     width: 1700
     height: 1100
     visible: true
-    title: "HTML Wallpaper Config (dev)"
+    title: "HTML Wallpaper Config"
 
     // —— mock plasmashell/KCM 注入的上下文 ——
 
@@ -58,68 +58,22 @@ ApplicationWindow {
     property var appearanceRoot: QtObject {
         property var parentLayout: null
     }
-
-    RowLayout {
+    // —— 左：config.qml 配置界面 ——
+    Loader {
+        id: configLoader
+        
         anchors.fill: parent
-        spacing: 0
 
-        // —— 左：config.qml 配置界面 ——
-        Loader {
-            id: configLoader
-            Layout.preferredWidth: win.width * 0.6
-            Layout.fillHeight: true
-
-            // 以 KCM 同款方式注入 cfg_* 初始值（main.xml 默认值）
-            Component.onCompleted: configLoader.setSource(
-                "../../package/contents/ui/config.qml", {
-                    cfg_SlidePaths: ["/usr/share/html-wallpapers"], cfg_SlidePathsDefault: [],
-                    cfg_DisplayPage: "", cfg_DisplayPageDefault: "https://kde.org/",
-                    cfg_WallpaperProperties: "{}", cfg_WallpaperPropertiesDefault: "{}"
-                })
-            // config.qml 加载状态 / 错误（Loader 失败错误默认不上屏）
-            onStatusChanged: {
-                if (configLoader.status === Loader.Ready && configLoader.item) {
-                    // 初始同步：cfg_* 的 setSource 注入赋值不触发 onCfg_*Changed
-                    // 信号（那是初始化非变更），必须在这里把初始值喂给预览，
-                    // 否则预览停留在 about:blank（后续用户改动仍走 Connections 实时同步）
-                    preview.displayPage = configLoader.item.cfg_DisplayPage;
-                    preview.propertiesJson = configLoader.item.cfg_WallpaperProperties;
-                }
-                if (configLoader.status === Loader.Error && configLoader.sourceComponent) {
-                    const errs = configLoader.sourceComponent.errors;
-                    for (let i = 0; i < errs.length; ++i) {
-                        console.log("[dev] config.qml 错误:", errs[i].toString());
-                    }
-                }
-            }
-        }
-
-        // 分隔线
-        Rectangle {
-            Layout.fillHeight: true
-            Layout.preferredWidth: 1
-            color: "#555"
-        }
-
-        // —— 右：HTML 壁纸实时预览 ——
-        PreviewPanel {
-            id: preview
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-        }
+        // 以 KCM 同款方式注入 cfg_* 初始值（main.xml 默认值）
+        Component.onCompleted: configLoader.setSource(
+            "../../package/contents/ui/config.qml", {
+                cfg_SlidePaths: ["/usr/share/html-wallpapers"], cfg_SlidePathsDefault: [],
+                cfg_DisplayPage: "", cfg_DisplayPageDefault: "https://kde.org/",
+                cfg_WallpaperProperties: "{}", cfg_WallpaperPropertiesDefault: "{}"
+            })
     }
+    
 
-    // 选中壁纸 / 调参数 → 预览联动。
-    // target 绑定 configLoader.item：加载完成后自动连上，之后 cfg_* 变化实时同步。
-    Connections {
-        target: configLoader.item
-        function onCfg_DisplayPageChanged() {
-            preview.displayPage = configLoader.item.cfg_DisplayPage;
-        }
-        function onCfg_WallpaperPropertiesChanged() {
-            preview.propertiesJson = configLoader.item.cfg_WallpaperProperties;
-        }
-    }
 
     // dev 诊断：确认窗口尺寸与 config.qml 加载结果
     // （自截图由 main.cpp --screenshot 的 grabWindow 负责；QML grabToImage
