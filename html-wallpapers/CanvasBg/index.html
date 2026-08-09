@@ -1,303 +1,342 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-	<meta charset="UTF-8" />
-	<title>canvasLine</title>
-	<meta name="keywords" content="canvas,粒子,背景" />
-	<meta name="description" content="KDE HTML 壁纸 - 利用 canvas 完成的随音乐跳动的背景（无 Wallpaper Engine 时降级为静态粒子动画）" />
-	<style type="text/css">
-		* {
-			margin: 0;
-			padding: 0;
-		}
-		html, body {
-			overflow: hidden;
-			cursor: none;               /* 壁纸不显示鼠标指针 */
-			user-select: none;
-			-webkit-user-select: none;
-		}
-		#canvas {
-			display: block;
-			background-color: #000;
-			background-image: none;
-			background-repeat: no-repeat;
-			background-size: 100% 100%;
-			transition: background-color 0.5s;
-		}
-	</style>
-</head>
-<body>
-	<canvas id="canvas"></canvas>
-	<script type="text/javascript">
-		window.requestAnimFrame = (function () {
-			return  window.requestAnimationFrame       ||
-					window.webkitRequestAnimationFrame ||
-					window.mozRequestAnimationFrame    ||
-					function (callback) {
-						window.setTimeout(callback, 1000 / 60);
-					};
-		})();
+  <head>
+    <meta charset="UTF-8" />
+    <title>canvasLine</title>
+    <meta name="keywords" content="canvas,粒子,背景" />
+    <meta
+      name="description"
+      content="KDE HTML 壁纸 - 利用 canvas 完成的随音乐跳动的背景（无 Wallpaper Engine 时降级为静态粒子动画）"
+    />
+    <style type="text/css">
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        overflow: hidden;
+        /* 壁纸不显示鼠标指针 */
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #canvas {
+        display: block;
+        background-color: #000;
+        background-image: none;
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        transition: background-color 0.5s;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script type="text/javascript">
+      window.requestAnimFrame = (function () {
+        return (
+          window.requestAnimationFrame ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame ||
+          function (callback) {
+            window.setTimeout(callback, 1000 / 60);
+          }
+        );
+      })();
 
-		/* 音频数组：仅 Wallpaper Engine 会填充，KDE 下保持全空（有兜底） */
-		var audioArray = new Array(32);
+      /* 音频数组：仅 Wallpaper Engine 会填充，KDE 下保持全空（有兜底） */
+      var audioArray = new Array(32);
 
-		window.wallpaperRegisterAudioListener && window.wallpaperRegisterAudioListener(wallpaperAudioListener);
-		function wallpaperAudioListener(arr) {
-			for (var i = 0; i < 32; i++) {
-				audioArray[i] = Math.floor(arr[i * 4] * 100);
-			}
-		}
+      window.wallpaperRegisterAudioListener &&
+        window.wallpaperRegisterAudioListener(wallpaperAudioListener);
+      function wallpaperAudioListener(arr) {
+        for (var i = 0; i < 32; i++) {
+          audioArray[i] = Math.floor(arr[i * 4] * 100);
+        }
+      }
 
-		var can = document.getElementById("canvas");
-		var cxt = can.getContext("2d");
-		var dpr = window.devicePixelRatio || 1;
-		var W = 0, H = 0; // 逻辑尺寸（CSS 像素）
+      var can = document.getElementById("canvas");
+      var cxt = can.getContext("2d");
+      var dpr = window.devicePixelRatio || 1;
+      var W = 0,
+        H = 0; // 逻辑尺寸（CSS 像素）
 
-		/* DPR 高清适配：画布像素尺寸 × 设备像素比，逻辑坐标保持不变 */
-		wResize();
-		function wResize() {
-			W = window.innerWidth;
-			H = window.innerHeight;
-			can.width = Math.round(W * dpr);
-			can.height = Math.round(H * dpr);
-			cxt.setTransform(dpr, 0, 0, dpr, 0, 0);
-		}
+      /* DPR 高清适配：画布像素尺寸 × 设备像素比，逻辑坐标保持不变 */
+      wResize();
+      function wResize() {
+        W = window.innerWidth;
+        H = window.innerHeight;
+        can.width = Math.round(W * dpr);
+        can.height = Math.round(H * dpr);
+        cxt.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
 
-		/* 自定义选项 */
-		var ratio = 1; // 粒子大小（系数）
-		var isShowLine = false; // 是否显示连线
-		var isShowPoint = true; // 是否显示粒子
-		var isMoveFollow = true; // 是否跟随音乐移动
-		var numLevel = 3; // 数量等级
-		var equalize = 0.5; // 动态补偿
-		var pStyle = 1; // 粒子样式：0 描边，1 填充
-		var usePColor = false; // 粒子是否使用自定义颜色
-		var pColor = 'rgba(255,255,255,0.8)'; //自定义粒子颜色
-		var isBlur = false;  // 是否开启模糊
-		var blurColor = 'rgb(255,255,255)'; //模糊颜色
-		window.wallpaperPropertyListener = {
-			applyUserProperties: function (properties) {
-				// 数量等级
-				if (properties.number && properties.number.value != numLevel) {
-					numLevel = properties.number.value;
-					createPoint();
-				}
-				// 背景颜色
-				if (properties.bgcolor) {
-					var bgcolor = properties.bgcolor.value.split(' ').map(function (c) { return Math.ceil(c * 255); });
-					can.style.backgroundColor = 'rgb(' + bgcolor + ')';
-				}
-				// 背景图
-				if (properties.image) {
-					if (properties.image.value) {
-						can.style.backgroundImage = 'url(file:///' + properties.image.value + ')';
-						can.style.backgroundSize = '100% 100%';
-					} else {
-						can.style.backgroundImage = 'none';
-					}
-				}
-				// 粒子大小（系数）
-				if (properties.ratio) {
-					ratio = properties.ratio.value / 1.5;
-				}
-				// 粒子大小动态补偿
-				if (properties.tEqualize) {
-					equalize = 1 - properties.tEqualize.value / 10;
-				}
-				// 是否显示连线
-				if (properties.showline) {
-					isShowLine = properties.showline.value;
-				}
-				// 是否显示粒子
-				if (properties.showpoint) {
-					isShowPoint = properties.showpoint.value;
-				}
-				// 粒子是否跟随音频移动
-				if (properties.smovefollow) {
-					isMoveFollow = properties.smovefollow.value;
-				}
-				// 粒子样式
-				if (properties.style) {
-					pStyle = properties.style.value;
-				}
-				// 是否使用单色
-				if (properties.usePColor) {
-					usePColor = properties.usePColor.value;
-				}
-				// 粒子颜色
-				if (properties.pColor) {
-					var color = properties.pColor.value.split(' ').map(function (c) { return Math.ceil(c * 255); });
-					pColor = 'rgba(' + color + ',0.8)';
-				}
-				// 是否开启模糊
-				if (properties.isBlur) {
-					isBlur = properties.isBlur.value;
-				}
-				// 模糊颜色
-				if (properties.blurColor) {
-					var color = properties.blurColor.value.split(' ').map(function (c) { return Math.ceil(c * 255); });
-					blurColor = 'rgb(' + color + ')';
-				}
-			}
-		};
-		// 初始鼠标位置
-		var mouse = {
-			x: W / 2,
-			y: H / 2
-		};
-		can.onmousemove = function (ev) {
-			var ev = ev || window.event;
-			mouse.x = ev.clientX;
-			mouse.y = ev.clientY;
-		};
-		// 粒子参数
-		var points = {
-			num: Math.floor(W * H / 5000),  // 粒子初始数量
-			maxSize: 2.5,  // 粒子最大半径
-			mRadius: 120,  // 粒子与鼠标的距离(在此距离内的粒子允许连线)
-			distance: 80,  // 粒子与粒子的距离(在此距离内的粒子间会连线)
-			arr: []  // 保存每个粒子对象
-		};
-		var num = 0; //实际数量
+      /* 自定义选项 */
+      var ratio = 1; // 粒子大小（系数）
+      var isShowLine = false; // 是否显示连线
+      var isShowPoint = true; // 是否显示粒子
+      var isMoveFollow = true; // 是否跟随音乐移动
+      var numLevel = 3; // 数量等级
+      var equalize = 0.5; // 动态补偿
+      var pStyle = 1; // 粒子样式：0 描边，1 填充
+      var usePColor = false; // 粒子是否使用自定义颜色
+      var pColor = "rgba(255,255,255,0.8)"; //自定义粒子颜色
+      var isBlur = false; // 是否开启模糊
+      var blurColor = "rgb(255,255,255)"; //模糊颜色
+      window.wallpaperPropertyListener = {
+        applyUserProperties: function (properties) {
+          // 数量等级
+          if (properties.number && properties.number.value != numLevel) {
+            numLevel = properties.number.value;
+            createPoint();
+          }
+          // 背景颜色
+          if (properties.bgcolor) {
+            var bgcolor = properties.bgcolor.value.split(" ").map(function (c) {
+              return Math.ceil(c * 255);
+            });
+            can.style.backgroundColor = "rgb(" + bgcolor + ")";
+          }
+          // 背景图
+          if (properties.image) {
+            if (properties.image.value) {
+              can.style.backgroundImage =
+                "url(file:///" + properties.image.value + ")";
+              can.style.backgroundSize = "100% 100%";
+            } else {
+              can.style.backgroundImage = "none";
+            }
+          }
+          // 粒子大小（系数）
+          if (properties.ratio) {
+            ratio = properties.ratio.value / 1.5;
+          }
+          // 粒子大小动态补偿
+          if (properties.tEqualize) {
+            equalize = 1 - properties.tEqualize.value / 10;
+          }
+          // 是否显示连线
+          if (properties.showline) {
+            isShowLine = properties.showline.value;
+          }
+          // 是否显示粒子
+          if (properties.showpoint) {
+            isShowPoint = properties.showpoint.value;
+          }
+          // 粒子是否跟随音频移动
+          if (properties.smovefollow) {
+            isMoveFollow = properties.smovefollow.value;
+          }
+          // 粒子样式
+          if (properties.style) {
+            pStyle = properties.style.value;
+          }
+          // 是否使用单色
+          if (properties.usePColor) {
+            usePColor = properties.usePColor.value;
+          }
+          // 粒子颜色
+          if (properties.pColor) {
+            var color = properties.pColor.value.split(" ").map(function (c) {
+              return Math.ceil(c * 255);
+            });
+            pColor = "rgba(" + color + ",0.8)";
+          }
+          // 是否开启模糊
+          if (properties.isBlur) {
+            isBlur = properties.isBlur.value;
+          }
+          // 模糊颜色
+          if (properties.blurColor) {
+            var color = properties.blurColor.value.split(" ").map(function (c) {
+              return Math.ceil(c * 255);
+            });
+            blurColor = "rgb(" + color + ")";
+          }
+        },
+      };
+      // 初始鼠标位置
+      var mouse = {
+        x: W / 2,
+        y: H / 2,
+      };
+      can.onmousemove = function (ev) {
+        var ev = ev || window.event;
+        mouse.x = ev.clientX;
+        mouse.y = ev.clientY;
+      };
+      // 粒子参数
+      var points = {
+        num: Math.floor((W * H) / 5000), // 粒子初始数量
+        maxSize: 2.5, // 粒子最大半径
+        mRadius: 120, // 粒子与鼠标的距离(在此距离内的粒子允许连线)
+        distance: 80, // 粒子与粒子的距离(在此距离内的粒子间会连线)
+        arr: [], // 保存每个粒子对象
+      };
+      var num = 0; //实际数量
 
-		window.onresize = function () {
-			wResize();
-			points.num = Math.floor(W * H / 5000);
-			createPoint();
-		};
-		// 粒子颜色
-		function ranColor() {  //  随机颜色
-			return Math.floor(Math.random() * 250 + 5);
-		}
-		function addColor(r, g, b, a) {  // 组合颜色
-			return "rgba(" + r + "," + g + "," + b + "," + a + ")";
-		}
-		function mixColor(point1, point2, a) {  // 混合颜色
-			var r = Math.floor((point1.color.r * point1.radius + point2.color.r * point2.radius) / (point1.radius + point2.radius));
-			var g = Math.floor((point1.color.g * point1.radius + point2.color.g * point2.radius) / (point1.radius + point2.radius));
-			var b = Math.floor((point1.color.b * point1.radius + point2.color.b * point2.radius) / (point1.radius + point2.radius));
-			return addColor(r, g, b, a);
-		}
-		function Color() {  // 创建颜色对象
-			this.r = ranColor();
-			this.g = ranColor();
-			this.b = ranColor();
-			this.all = addColor(this.r, this.g, this.b, 0.75);
-		}
-		// 创建粒子对象
-		var pNum = 0;
-		function Point() {
-			this.random = Math.floor(Math.random() * 90) * 0.01 + 0.1;
-			this.alpha = 1 - this.random + 0.05; // 粒子透明度
-			this.radius = this.random * points.maxSize;  // 粒子半径
-			this.x = Math.random() * W;  // 粒子圆心坐标 x,y
-			this.y = Math.random() * H;
-			this.speedX = -0.5 + Math.random();  // 粒子的移动速度
-			this.speedY = -0.5 + Math.random();
-			this.color = new Color();  // 粒子的颜色
-			this.index = pNum++;
-			pNum %= 32;
-			this.r = 0; // 粒子过渡半径
-		}
-		function createPoint() {
-			points.arr = [];
-			num = Math.floor(points.num * numLevel / 4);
-			for (var i = 0; i < num; i++) {  // 将实例化的粒子对象存入数组
-				points.arr.push(new Point());
-			}
-		}
-		// 绘制
-		function drawP(point) {
-			var l = audioArray[point.index] / 20;
-			if (!l || l < 1) l = 1;
-			var radius = Math.min(point.radius * l, 4) * ratio;
-			if (point.r && equalize != 1) radius = radius * equalize + point.r * (1 - equalize);
-			cxt.beginPath();
-			var pointColor = usePColor ? pColor.replace(/0\.8/, point.alpha) : point.color.all;
-			pStyle ? cxt.fillStyle = pointColor : cxt.strokeStyle = pointColor;
-			cxt.arc(point.x, point.y, radius, 0, 2 * Math.PI, false);
-			pStyle ? cxt.fill() : cxt.stroke();
-			if (equalize != 1) point.r = radius;
-		}
-		// 移动
-		function moveP(point, sum) {
-			point.x += point.speedX * sum;
-			point.y += point.speedY * sum;
-			if (point.x >= W) {
-				point.x = W;
-				point.speedX = -point.speedX;
-			} else if (point.x <= 0) {
-				point.x = 0;
-				point.speedX = -point.speedX;
-			}
-			if (point.y >= H) {
-				point.y = H;
-				point.speedY = -point.speedY;
-			} else if (point.y <= 0) {
-				point.y = 0;
-				point.speedY = -point.speedY;
-			}
-		}
-		// 绘制粒子
-		var sum = 0;
-		function drawPoint() {
-			cxt.shadowBlur = isBlur ? 10 : 0;
-			if (isBlur) cxt.shadowColor = blurColor;
-			if (isMoveFollow) {
-				var arr = audioArray.slice(1, 6);
-				sum = arr.reduce(function (a, b) { return a + b; }, 0) * 0.12;
-				if (!sum || sum < 0.5) sum = 0.5;
-				sum = Math.min(sum, 5);
-			} else {
-				sum = 1.5;
-			}
-			cxt.lineWidth = 1.5;
-			for (var i = 0; i < num; i++) {
-				var point = points.arr[i];
-				moveP(point, sum);
-				if (isShowPoint) drawP(point);
-			}
-		}
-		// 粒子连线
-		function connect() {
-			cxt.save();
-			cxt.lineWidth = 1;
-			var mR = points.mRadius, d = points.distance;
-			for (var i = 0; i < num; i++) {
-				var pointI = points.arr[i];
-				// 鼠标距离判断提到内层循环外（原代码在 j 循环内重复计算）
-				var mdx = pointI.x - mouse.x, mdy = pointI.y - mouse.y;
-				if (mdx < -mR || mdx > mR || mdy < -mR || mdy > mR) continue;
+      window.onresize = function () {
+        wResize();
+        points.num = Math.floor((W * H) / 5000);
+        createPoint();
+      };
+      // 粒子颜色
+      function ranColor() {
+        //  随机颜色
+        return Math.floor(Math.random() * 250 + 5);
+      }
+      function addColor(r, g, b, a) {
+        // 组合颜色
+        return "rgba(" + r + "," + g + "," + b + "," + a + ")";
+      }
+      function mixColor(point1, point2, a) {
+        // 混合颜色
+        var r = Math.floor(
+          (point1.color.r * point1.radius + point2.color.r * point2.radius) /
+            (point1.radius + point2.radius),
+        );
+        var g = Math.floor(
+          (point1.color.g * point1.radius + point2.color.g * point2.radius) /
+            (point1.radius + point2.radius),
+        );
+        var b = Math.floor(
+          (point1.color.b * point1.radius + point2.color.b * point2.radius) /
+            (point1.radius + point2.radius),
+        );
+        return addColor(r, g, b, a);
+      }
+      function Color() {
+        // 创建颜色对象
+        this.r = ranColor();
+        this.g = ranColor();
+        this.b = ranColor();
+        this.all = addColor(this.r, this.g, this.b, 0.75);
+      }
+      // 创建粒子对象
+      var pNum = 0;
+      function Point() {
+        this.random = Math.floor(Math.random() * 90) * 0.01 + 0.1;
+        this.alpha = 1 - this.random + 0.05; // 粒子透明度
+        this.radius = this.random * points.maxSize; // 粒子半径
+        this.x = Math.random() * W; // 粒子圆心坐标 x,y
+        this.y = Math.random() * H;
+        this.speedX = -0.5 + Math.random(); // 粒子的移动速度
+        this.speedY = -0.5 + Math.random();
+        this.color = new Color(); // 粒子的颜色
+        this.index = pNum++;
+        pNum %= 32;
+        this.r = 0; // 粒子过渡半径
+      }
+      function createPoint() {
+        points.arr = [];
+        num = Math.floor((points.num * numLevel) / 4);
+        for (var i = 0; i < num; i++) {
+          // 将实例化的粒子对象存入数组
+          points.arr.push(new Point());
+        }
+      }
+      // 绘制
+      function drawP(point) {
+        var l = audioArray[point.index] / 20;
+        if (!l || l < 1) l = 1;
+        var radius = Math.min(point.radius * l, 4) * ratio;
+        if (point.r && equalize != 1)
+          radius = radius * equalize + point.r * (1 - equalize);
+        cxt.beginPath();
+        var pointColor = usePColor
+          ? pColor.replace(/0\.8/, point.alpha)
+          : point.color.all;
+        pStyle ? (cxt.fillStyle = pointColor) : (cxt.strokeStyle = pointColor);
+        cxt.arc(point.x, point.y, radius, 0, 2 * Math.PI, false);
+        pStyle ? cxt.fill() : cxt.stroke();
+        if (equalize != 1) point.r = radius;
+      }
+      // 移动
+      function moveP(point, sum) {
+        point.x += point.speedX * sum;
+        point.y += point.speedY * sum;
+        if (point.x >= W) {
+          point.x = W;
+          point.speedX = -point.speedX;
+        } else if (point.x <= 0) {
+          point.x = 0;
+          point.speedX = -point.speedX;
+        }
+        if (point.y >= H) {
+          point.y = H;
+          point.speedY = -point.speedY;
+        } else if (point.y <= 0) {
+          point.y = 0;
+          point.speedY = -point.speedY;
+        }
+      }
+      // 绘制粒子
+      var sum = 0;
+      function drawPoint() {
+        cxt.shadowBlur = isBlur ? 10 : 0;
+        if (isBlur) cxt.shadowColor = blurColor;
+        if (isMoveFollow) {
+          var arr = audioArray.slice(1, 6);
+          sum =
+            arr.reduce(function (a, b) {
+              return a + b;
+            }, 0) * 0.12;
+          if (!sum || sum < 0.5) sum = 0.5;
+          sum = Math.min(sum, 5);
+        } else {
+          sum = 1.5;
+        }
+        cxt.lineWidth = 1.5;
+        for (var i = 0; i < num; i++) {
+          var point = points.arr[i];
+          moveP(point, sum);
+          if (isShowPoint) drawP(point);
+        }
+      }
+      // 粒子连线
+      function connect() {
+        cxt.save();
+        cxt.lineWidth = 1;
+        var mR = points.mRadius,
+          d = points.distance;
+        for (var i = 0; i < num; i++) {
+          var pointI = points.arr[i];
+          // 鼠标距离判断提到内层循环外（原代码在 j 循环内重复计算）
+          var mdx = pointI.x - mouse.x,
+            mdy = pointI.y - mouse.y;
+          if (mdx < -mR || mdx > mR || mdy < -mR || mdy > mR) continue;
 
-				for (var j = 0; j < num; j++) {
-					var pointJ = points.arr[j];
-					var dx = pointI.x - pointJ.x, dy = pointI.y - pointJ.y;
-					if (dx > d || dx < -d || dy > d || dy < -d) continue;
+          for (var j = 0; j < num; j++) {
+            var pointJ = points.arr[j];
+            var dx = pointI.x - pointJ.x,
+              dy = pointI.y - pointJ.y;
+            if (dx > d || dx < -d || dy > d || dy < -d) continue;
 
-					var lineC = 10 / Math.sqrt(mdx * mdx + mdy * mdy);
-					lineC = Math.min(lineC, 1);
-					cxt.beginPath();
-					var lColor = usePColor ? pColor.replace(/0\.8/, lineC) : mixColor(pointI, pointJ, lineC);
-					cxt.strokeStyle = lColor;
-					cxt.moveTo(pointI.x, pointI.y);
-					cxt.lineTo(pointJ.x, pointJ.y);
-					cxt.closePath();
-					cxt.stroke();
-				}
-			}
-			cxt.restore();
-		}
+            var lineC = 10 / Math.sqrt(mdx * mdx + mdy * mdy);
+            lineC = Math.min(lineC, 1);
+            cxt.beginPath();
+            var lColor = usePColor
+              ? pColor.replace(/0\.8/, lineC)
+              : mixColor(pointI, pointJ, lineC);
+            cxt.strokeStyle = lColor;
+            cxt.moveTo(pointI.x, pointI.y);
+            cxt.lineTo(pointJ.x, pointJ.y);
+            cxt.closePath();
+            cxt.stroke();
+          }
+        }
+        cxt.restore();
+      }
 
-		// 执行效果
-		createPoint();
-		function auto() {
-			cxt.clearRect(0, 0, W, H);
-			drawPoint();
-			if (isShowLine) connect();
-			requestAnimFrame(auto);
-		}
-		auto();
-
-	</script>
-</body>
+      // 执行效果
+      createPoint();
+      function auto() {
+        cxt.clearRect(0, 0, W, H);
+        drawPoint();
+        if (isShowLine) connect();
+        requestAnimFrame(auto);
+      }
+      auto();
+    </script>
+  </body>
 </html>

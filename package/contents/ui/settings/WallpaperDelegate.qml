@@ -41,7 +41,6 @@ KCM.GridDelegate {
     // —— 缩略图内容 ——
     thumbnail: Rectangle {
         id: backgroundRect
-        color: cfg_Color
         anchors.fill: parent
 
         // 预览图未就绪时显示占位图标
@@ -77,20 +76,6 @@ KCM.GridDelegate {
             cache: false
             source: model.preview
         }
-
-        // 单选按钮：控制该幻灯片是否为唯一轮播项（互斥选择）
-        // QtControls2.RadioButton {
-        //     anchors.left: parent.left
-        //     anchors.margins: Kirigami.Units.smallSpacing
-        //     anchors.top: parent.top
-        //     checked: model.checked
-        //     onToggled: {
-        //         // 互斥写回：勾选本项时由模型取消其余项，保证至多一项被勾选
-        //         if (htmlWallpaper && htmlWallpaper.wallpapers) {
-        //             htmlWallpaper.wallpapers.setExclusiveChecked(index, checked)
-        //         }
-        //     }
-        // }
 
         Behavior on color {
             ColorAnimation {
