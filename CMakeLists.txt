@@ -30,7 +30,6 @@ find_package(Plasma ${PROJECT_DEP_VERSION} REQUIRED)
 
 plasma_install_package(package com.github.moon_haze.htmlwallpaper wallpapers wallpaper)
 
-
 # C++ 后端 QML 模块（com.github.moon_haze.htmlwallpaper）：替代旧 HtmlWallpaperParser.qml
 add_subdirectory(./plugin)
 

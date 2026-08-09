@@ -53,7 +53,7 @@ TestCase {
         parser = Qt.createQmlObject("import com.github.moon_haze.htmlwallpaper; HTMLBackend {}", testCase);
         verify(parser !== null, "HTMLBackend 实例化失败");
 
-        let comp = Qt.createComponent("../package/contents/ui/PropertyPanel.qml");
+        let comp = Qt.createComponent("../package/contents/ui/settings/PropertyPanel.qml");
         verify(comp.status === Component.Ready, "PropertyPanel 加载失败: " + comp.errorString());
         panel = comp.createObject(testCase);
         verify(panel !== null, "PropertyPanel 实例化失败");

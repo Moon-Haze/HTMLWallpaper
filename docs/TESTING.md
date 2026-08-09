@@ -55,7 +55,7 @@ plasmashell --replace &
 | HTML 渲染铺满桌面   | `package/contents/ui/main.qml:29`（`WebEngineView`） | 页面是否铺满、有无黑底/白屏闪烁（`backgroundColor` 在 `main.qml:39`） |
 | 配置读取            | `main.qml:35`（`url: configuration.DisplayPage`）    | 改 `DisplayPage` 后页面是否跟随                                       |
 | 拖放 .html 设为壁纸 | `main.qml:23`（`onOpenUrlRequested`）                | 拖本地 html 到桌面是否生效                                            |
-| 幻灯片 / 图像组件   | `ImageStackView.qml`、`SlideshowComponent.qml` 等    | 切换/动画/缩放是否正常                                                |
+| 配置面板            | settings/SlideshowComponent.qml 等                   | 三栏面板（扫描目录/壁纸网格/参数编辑）是否正常显示                    |
 
 ---
 
@@ -112,12 +112,11 @@ kquitapp6 plasmashell; plasmashell & disown
 ### 先说限制（重要）
 
 - `main.qml` 的根 `WallpaperItem` 是 **plasmashell 进程内注册的类型**，`qml6` 直接加载会报 `WallpaperItem is not a type`，**不能**用它做组件预览。
-- `ImageStackView.qml` 依赖 C++ 类型 `Wallpaper.MediaProxy`（位于 `/usr/lib/qt6/qml/org/kde/plasma/wallpapers/image`，本机已装）。它能在 `qml6` 中加载，但无 plasmashell 后端时 `MediaProxy` 会走 `useSingleImageDefaults()` 兜底（`ImageStackView.qml:81`），**看不到真实图片**，只能验证布局与动画。
-- 可独立预览且依赖少的组件：`ThumbnailsComponent.qml`、`SlideshowComponent.qml`、`WallpaperDelegate.qml`、`AddFileDialog.qml`。
+- 可独立预览且依赖少的组件：`settings/ThumbnailsComponent.qml`、`settings/SlideshowComponent.qml`、`settings/WallpaperDelegate.qml`、`settings/PropertyPanel.qml`、`settings/AddFileDialog.qml`。
 
 ### 测试壳（mock wallpaperInterface）
 
-`WallpaperDelegate.qml` 等组件用弱类型 `QtObject` 接收 `wallpaperInterface`（见 `ImageStackView.qml:22` 注释，上游 autotest 就是这么做的），所以单独跑时喂一个 mock 即可：
+配置层组件通过 `imageWallpaper` 属性接收 C++ 后端 `HTMLBackend` 实例（在 `config.qml` 中创建并注入），单独跑时喂一个 mock `QtObject` 即可：
 
 ```qml
 // tests/Harness.qml
@@ -135,10 +134,10 @@ Window {
 
     Loader {
         anchors.fill: parent
-        source: "../package/contents/ui/ThumbnailsComponent.qml"
+        source: "../package/contents/ui/settings/ThumbnailsComponent.qml"
         onLoaded: {
-            // 给 required property 喂测试数据，例如：
-            // item.model = [ { imagePath: "file:///tmp/test.png" } ]
+            // 给 imageWallpaper 喂 mock 解析器（提供 wallpapers/rootPaths 等）
+            // item.imageWallpaper = mockBackend
         }
     }
 }
@@ -176,7 +175,7 @@ QT_LOGGING_RULES="qt.qml.*=true;kf.plasma.*=true" plasmashell --replace &
 
 ## 六、针对 slide-test 分支的工作闭环
 
-当前分支在改 `ImageStackView` / `SlideshowComponent` 幻灯片逻辑，推荐闭环：
+当前分支在改配置面板 / 参数编辑逻辑，推荐闭环：
 
 1. 按[第三节](#三开发迭代测试symlink-快速重载日常推荐)建立 symlink；
 2. 用[第二节](#二端到端测试真实桌面集成)的命令切回本壁纸并设好 `DisplayPage`；

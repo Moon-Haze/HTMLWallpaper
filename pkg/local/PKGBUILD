@@ -36,12 +36,15 @@ prepare() {
   cp -r "$repo_root/CMakeLists.txt" \
         "$repo_root/LICENSE" \
         "$repo_root/package" \
+        "$repo_root/plugin" \
+        "$repo_root/test" \
         "$repo_root/html-wallpapers" \
         "$startdir/src/"
 }
 
 build() {
   cd "$startdir/src"
+  sed -i 's|add_subdirectory(./dev)|# add_subdirectory(./dev)|' CMakeLists.txt
   cmake -B build \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \

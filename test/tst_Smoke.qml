@@ -68,19 +68,19 @@ TestCase {
     }
 
     function test_thumbnails_compiles() {
-        verify(compiles("ThumbnailsComponent.qml"), "ThumbnailsComponent 应可编译");
+        verify(compiles("settings/ThumbnailsComponent.qml"), "ThumbnailsComponent 应可编译");
     }
 
     function test_wallpaperDelegate_compiles() {
-        verify(compiles("WallpaperDelegate.qml"), "WallpaperDelegate 应可编译");
+        verify(compiles("settings/WallpaperDelegate.qml"), "WallpaperDelegate 应可编译");
     }
 
     function test_slideshowComponent_compiles() {
-        verify(compiles("SlideshowComponent.qml"), "SlideshowComponent 应可编译");
+        verify(compiles("settings/SlideshowComponent.qml"), "SlideshowComponent 应可编译");
     }
 
     function test_propertyPanel_compiles() {
-        verify(compiles("PropertyPanel.qml"), "PropertyPanel 应可编译");
+        verify(compiles("settings/PropertyPanel.qml"), "PropertyPanel 应可编译");
     }
 
     function test_parser_compiles() {
@@ -92,7 +92,7 @@ TestCase {
     }
 
     function test_addFileDialog_compiles() {
-        verify(compiles("AddFileDialog.qml"), "AddFileDialog 应可编译");
+        verify(compiles("settings/AddFileDialog.qml"), "AddFileDialog 应可编译");
     }
 
     // —— 字符串数组 model 的 delegate 语义（rootPaths 作 model 用 modelData 防回归）——
@@ -128,7 +128,7 @@ TestCase {
     // —— AddFileDialog 实例化 smoke ——
 
     function test_addFileDialog_loadsFolderDialog() {
-        let d = Qt.createComponent("../package/contents/ui/AddFileDialog.qml").createObject(testCase);
+        let d = Qt.createComponent("../package/contents/ui/settings/AddFileDialog.qml").createObject(testCase);
         verify(d !== null, "AddFileDialog 实例化失败");
         verify(waitForCondition(() => d.status === Loader.Ready, 3000),
                "文件夹对话框未在 3s 内加载，status=" + d.status);
@@ -139,7 +139,7 @@ TestCase {
     // 模拟用户确认：onAccepted 应把选中文件夹交给 config 的 addScanPath
     function test_addFileDialog_accepted_addsScanPath() {
         addedPaths = [];
-        let d = Qt.createComponent("../package/contents/ui/AddFileDialog.qml").createObject(testCase);
+        let d = Qt.createComponent("../package/contents/ui/settings/AddFileDialog.qml").createObject(testCase);
         verify(d !== null, "AddFileDialog 实例化失败");
         verify(waitForCondition(() => d.status === Loader.Ready && d.item, 3000),
                "FolderDialog 未加载");

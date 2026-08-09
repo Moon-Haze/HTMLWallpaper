@@ -8,15 +8,7 @@
 
 import QtQuick
 import QtQuick.Layouts
-// C++ 后端 QML 模块：用"相对 import"随壁纸包分发（backend/ 目录）。
-// 为什么不用绝对 URI（com.github.moon_haze.htmlwallpaper）：
-// systemsettings 的 kcm_wallpaper 引擎默认 QML import path **不含**
-// GenericDataLocation/qml（plasmashell 会注入，KCM 引擎不会），绝对 URI 在
-// KDE 设置里 import 失败 → 组件 not ready → 打开 HTML Wallpaper 报
-// "QQmlComponent: Component is not ready" + "TypeError: Type error"。
-// 相对 import 解析到壁纸包内 contents/ui/backend/，不依赖任何引擎路径，
-// plasmashell 与 KCM 都能加载（与 ImageStackView 的 mediacomponent/ 同构）。
-import "backend"
+import com.github.moon_haze.htmlwallpaper
 
 /**
  * 壁纸"配置"页主界面（在系统设置 / 桌面壁纸右键菜单中打开）。
@@ -79,7 +71,7 @@ ColumnLayout {
 
     // 弹出"添加文件夹"对话框（组件用完即销毁）
     function openChooserDialog() {
-        const dialogComponent = Qt.createComponent("AddFileDialog.qml");
+        const dialogComponent = Qt.createComponent("settings/AddFileDialog.qml");
         dialogComponent.createObject(root);
         dialogComponent.destroy();
     }
@@ -151,7 +143,7 @@ ColumnLayout {
                     configuration: root.wallpaperConfiguration,
                     imageWallpaper: imageWallpaper
                 };
-                thumbnailsLoader.setSource("SlideshowComponent.qml", props);
+                thumbnailsLoader.setSource("settings/SlideshowComponent.qml", props);
             }
         }
 
