@@ -16,8 +16,8 @@ import org.kde.kcmutils as KCM
 /**
  * 网格中的单个壁纸缩略图项。
  *
- * 展示预览图（可带模糊背景），支持点击应用壁纸与勾选参与轮播。
- * 左上角叠加勾选框，用于选择幻灯片集合。
+ * 展示预览图（可带模糊背景），支持点击应用壁纸与单选参与轮播。
+ * 左上角叠加单选按钮，当前勾选项为唯一轮播壁纸（互斥选择）。
  */
 KCM.GridDelegate {
     id: wallpaperDelegate
@@ -26,7 +26,7 @@ KCM.GridDelegate {
     property alias color: backgroundRect.color
     property alias previewSize: previewImage.sourceSize
     // 注入的解析器实例（点选应用时使用）
-    property QtObject imageWallpaper: null
+    property QtObject htmlWallpaper: null
 
     // 标记为"待删除"的项半透明显示（HTML 模式模型无此 role，恒为不透明）
     opacity: model.pendingDeletion ? 0.5 : 1
@@ -62,13 +62,18 @@ KCM.GridDelegate {
             source: model.preview
         }
 
-        // 勾选框：控制该幻灯片是否参与轮播
-        QtControls2.CheckBox {
+        // 单选按钮：控制该幻灯片是否为唯一轮播项（互斥选择）
+        QtControls2.RadioButton {
             anchors.left: parent.left
             anchors.margins: Kirigami.Units.smallSpacing
             anchors.top: parent.top
             checked: model.checked
-            onToggled: model.checked = checked
+            onToggled: {
+                // 互斥写回：勾选本项时由模型取消其余项，保证至多一项被勾选
+                if (htmlWallpaper && htmlWallpaper.wallpapers) {
+                    htmlWallpaper.wallpapers.setExclusiveChecked(index, checked)
+                }
+            }
         }
 
         Behavior on color {
@@ -89,11 +94,14 @@ KCM.GridDelegate {
     // 点击行为：解析并应用该壁纸（参数经 wallpaperParsed 写配置）；
     // 无路径时仅切换勾选状态
     onClicked: {
-        if (imageWallpaper && model.path) {
-            imageWallpaper.parseWallpaper(model.path);
+        if (htmlWallpaper && model.path) {
+            htmlWallpaper.parseWallpaper(model.path);
             root.cfg_DisplayPage = model.source;
         } else {
-            model.checked = !model.checked
+            // 无路径项（如“添加”占位）点击时翻转勾选，同样走互斥写回
+            if (htmlWallpaper && htmlWallpaper.wallpapers) {
+                htmlWallpaper.wallpapers.setExclusiveChecked(index, !model.checked)
+            }
         }
         GridView.currentIndex = index;
     }

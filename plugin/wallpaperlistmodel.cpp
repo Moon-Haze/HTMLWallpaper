@@ -105,6 +105,13 @@ void WallpaperListModel::setEntries(const QList<QVariantMap> &metas)
         m_items.append(new WallpaperItem(meta, this));
     }
     endResetModel();
+
+    // 默认选中第一项：保证单选/轮播始终有确定状态（重置完成后设置并刷新）
+    if (!m_items.isEmpty()) {
+        m_items.first()->setChecked(true);
+    }
+    Q_EMIT dataChanged(index(0, 0), index(qMax(0, m_items.size() - 1), 0), {CheckedRole});
+
     Q_EMIT countChanged();
 }
 
@@ -126,4 +133,21 @@ void WallpaperListModel::setProperty(int i, const QString &property, const QVari
     if (property == QLatin1String("checked")) {
         setData(index(i, 0), value, CheckedRole);
     }
+}
+
+void WallpaperListModel::setExclusiveChecked(int idx, bool checked)
+{
+    if (idx < 0 || idx >= m_items.size()) {
+        return;
+    }
+    m_items.at(idx)->setChecked(checked);
+    if (checked) {
+        // 勾选本项时取消其余所有项，保证至多一项被勾选
+        for (int i = 0; i < m_items.size(); ++i) {
+            if (i != idx) {
+                m_items.at(i)->setChecked(false);
+            }
+        }
+    }
+    Q_EMIT dataChanged(this->index(0, 0), this->index(m_items.size() - 1, 0), {CheckedRole});
 }

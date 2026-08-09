@@ -80,17 +80,35 @@ ColumnLayout {
     // 列表 / 参数表 / 预览。rootPaths 跟随 cfg_SlidePaths（扫描目录 = 轮播目录），
     // 变化时触发重扫；rootPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
     HTMLBackend {
-        id: imageWallpaper
+        id: htmlWallpaper
         rootPaths: root.cfg_SlidePaths
         // 路径变化时重扫（数据源即 rootPaths，无需中间模型同步）
-        onRootPathsChanged: imageWallpaper.scan()
+        onRootPathsChanged: htmlWallpaper.scan()
+        // 扫描完成 → 按 cfg_DisplayPage 匹配勾选当前壁纸（无匹配回退第一项）
+        onScanFinished: root.syncCheckedFromDisplayPage()
         // 初始化：rootPaths 绑定赋初值不触发 onRootPathsChanged，补一次初始扫描，
         // 否则打开配置面板时中栏网格为空
-        Component.onCompleted: imageWallpaper.scan()
+        Component.onCompleted: htmlWallpaper.scan()
+    }
+
+    // 按 cfg_DisplayPage 匹配并勾选对应项；无匹配回退第一项（初始/重扫后保持
+    // 当前壁纸为唯一选中项，保证"勾选项 == 当前应用的壁纸"一致）
+    function syncCheckedFromDisplayPage() {
+        const model = htmlWallpaper.wallpapers;
+        if (!model || model.count === 0) {
+            return;
+        }
+        for (let i = 0; i < model.count; i++) {
+            if (model.get(i).source === cfg_DisplayPage) {
+                model.setExclusiveChecked(i, true);
+                return;
+            }
+        }
+        model.setExclusiveChecked(0, true); // 无匹配回退第一项
     }
 
     // 增删扫描目录：只改 cfg_SlidePaths（持久化 + 触发绑定链），
-    // 由 rootPaths 绑定自动同步 imageWallpaper。
+    // 由 rootPaths 绑定自动同步 htmlWallpaper。
     function addScanPath(path: url): void {
         const p = String(path);
         if (cfg_SlidePaths.indexOf(p) >= 0) {
@@ -108,9 +126,9 @@ ColumnLayout {
 
     // 选中壁纸解析完成 → 把参数 JSON 写入配置（运行时混合注入 / 重启后恢复）
     Connections {
-        target: imageWallpaper
+        target: htmlWallpaper
         function onWallpaperParsed() {
-            cfg_WallpaperProperties = imageWallpaper.buildPropertiesJson();
+            cfg_WallpaperProperties = htmlWallpaper.buildPropertiesJson();
         }
     }
 
@@ -141,7 +159,7 @@ ColumnLayout {
                 let props = {
                     screenSize: root.screenSize,
                     configuration: root.wallpaperConfiguration,
-                    imageWallpaper: imageWallpaper
+                    htmlWallpaper: htmlWallpaper
                 };
                 thumbnailsLoader.setSource("settings/SlideshowComponent.qml", props);
             }

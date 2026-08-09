@@ -26,10 +26,10 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
  *   右栏：PropertyPanel 编辑当前壁纸的协议参数（color/slider/combo/bool/…）。
  *
  * 数据源是 config.qml 注入的 HTMLBackend（C++）单实例：
- *   目录列表 ← imageWallpaper.rootPaths；壁纸网格 ← imageWallpaper.wallpapers；
- *   参数面板 ← imageWallpaper.currentProperties + currentWallpaper。
+ *   目录列表 ← htmlWallpaper.rootPaths；壁纸网格 ← htmlWallpaper.wallpapers；
+ *   参数面板 ← htmlWallpaper.currentProperties + currentWallpaper。
  * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_SlidePaths 持久化，
- * 由 rootPaths 绑定同步 imageWallpaper → 重扫）。参数改动序列化写 cfg_WallpaperProperties。
+ * 由 rootPaths 绑定同步 htmlWallpaper → 重扫）。参数改动序列化写 cfg_WallpaperProperties。
  *
  * For proper alignment, an ancestor **MUST** have id "appearanceRoot" and property "parentLayout"
  */
@@ -38,7 +38,7 @@ ColumnLayout {
     property var configuration: wallpaper.configuration
     property var screenSize: Qt.size(Screen.width, Screen.height)
     // 注入的解析器实例（由 config.qml 创建并传入）
-    property QtObject imageWallpaper: null
+    property QtObject htmlWallpaper: null
 
     spacing: 0
 
@@ -145,7 +145,7 @@ ColumnLayout {
                     color: Kirigami.Theme.backgroundColor
                 }
 
-                // 扫描目录列表：数据源是 imageWallpaper.rootPaths（跟随 cfg_SlidePaths）
+                // 扫描目录列表：数据源是 htmlWallpaper.rootPaths（跟随 cfg_SlidePaths）
                 ListView {
                     id: slidePathsView
                     headerPositioning: ListView.OverlayHeader
@@ -164,7 +164,7 @@ ColumnLayout {
                     }
                     // 扫描目录列表：rootPaths 是 QStringList，QML 里即字符串数组，
                     // 直接作 model；数组项没有 role，delegate 用 modelData 取值。
-                    model: imageWallpaper ? imageWallpaper.rootPaths : null
+                    model: htmlWallpaper ? htmlWallpaper.rootPaths : null
                     delegate: Kirigami.SubtitleDelegate {
                         id: baseListItem
                         // 字符串数组 model：modelData 直接是路径字符串
@@ -249,7 +249,7 @@ ColumnLayout {
             Component.onCompleted: () => {
                 this.setSource("ThumbnailsComponent.qml",
                                {"screenSize": slideshowComponent.screenSize,
-                                "imageWallpaper": slideshowComponent.imageWallpaper});
+                                "htmlWallpaper": slideshowComponent.htmlWallpaper});
             }
         }
 
@@ -262,11 +262,11 @@ ColumnLayout {
             Layout.fillHeight: true
             Layout.preferredWidth: Kirigami.Units.gridUnit * 24
             Layout.maximumWidth: Kirigami.Units.gridUnit * 34
-            imageWallpaper: slideshowComponent.imageWallpaper
+            htmlWallpaper: slideshowComponent.htmlWallpaper
             // 参数被改动 → 序列化写入配置（运行时混合注入 / 重启后恢复）
             onPropertyChanged: {
-                if (slideshowComponent.imageWallpaper) {
-                    cfg_WallpaperProperties = slideshowComponent.imageWallpaper.buildPropertiesJson();
+                if (slideshowComponent.htmlWallpaper) {
+                    cfg_WallpaperProperties = slideshowComponent.htmlWallpaper.buildPropertiesJson();
                 }
             }
         }

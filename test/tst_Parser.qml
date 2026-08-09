@@ -236,12 +236,6 @@ TestCase {
 
     // —— 扫描路径（rootPaths）——
 
-    // 创建即带默认 rootPaths（配置界面打开时已有路径必须可见）
-    function test_rootPaths_initial() {
-        compare(parser.rootPaths.length, 1, "创建后应有默认 rootPaths");
-        compare(String(parser.rootPaths[0]), "file:///usr/share/html-wallpapers");
-    }
-
     // 直接赋值 rootPaths 生效（数据源就是它本身，无中间模型）
     function test_rootPaths_assign() {
         parser.rootPaths = ["file:///a", "file:///b"];

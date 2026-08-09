@@ -49,7 +49,7 @@ TestCase {
     }
 
     function init() {
-        // C++ 后端模块类型；PropertyPanel 通过 imageWallpaper 属性注入
+        // C++ 后端模块类型；PropertyPanel 通过 htmlWallpaper 属性注入
         parser = Qt.createQmlObject("import com.github.moon_haze.htmlwallpaper; HTMLBackend {}", testCase);
         verify(parser !== null, "HTMLBackend 实例化失败");
 
@@ -75,7 +75,7 @@ TestCase {
 
     // 解析 fetch fixture 并挂到面板（等待异步解析完成后面板自动重建）
     function loadFetch() {
-        panel.imageWallpaper = parser;
+        panel.htmlWallpaper = parser;
         parsedSpy.target = parser;
         parser.parseWallpaper(fixtureDir);
         parsedSpy.wait(5000);

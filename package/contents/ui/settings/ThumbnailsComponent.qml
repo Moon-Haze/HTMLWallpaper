@@ -15,8 +15,8 @@ import org.kde.kirigami as Kirigami
 /**
  * HTML 壁纸缩略图网格（com.github.moon_haze.htmlwallpaper 模式中栏）。
  *
- * 展示 imageWallpaper.wallpapers（C++ WallpaperListModel），每项带勾选框，
- * 勾选集合决定轮播内容。工具栏提供"全选 / 全不选"操作。
+ * 展示 htmlWallpaper.wallpapers（C++ WallpaperListModel），每项带单选按钮，
+ * 唯一勾选项为当前轮播壁纸（互斥选择，见 setExclusiveChecked）。
  */
 Item {
     id: thumbnailsComponent
@@ -26,10 +26,10 @@ Item {
     property alias view: wallpapersGrid.view
     property var screenSize: Qt.size(Screen.width, Screen.height)
     // 注入的解析器实例（由 SlideshowComponent 传入）
-    property QtObject imageWallpaper: null
+    property QtObject htmlWallpaper: null
 
     // 供网格使用的数据模型：解析器扫描到的壁纸列表（含勾选状态）
-    readonly property QtObject imageModel: imageWallpaper ? imageWallpaper.wallpapers : null
+    readonly property QtObject imageModel: htmlWallpaper ? htmlWallpaper.wallpapers : null
 
     // 监听"添加壁纸完成"信号：滚动回顶部以展示新加入的壁纸
     Connections {
@@ -56,29 +56,23 @@ Item {
             Layout.fillWidth: true
             text: i18nd("plasma_wallpaper_org.kde.image", "Images")
             actions: [
-                // "全选"：批量勾选所有幻灯片
+                // "应用"按钮：把当前唯一勾选项应用为轮播壁纸（写 cfg_DisplayPage + 解析参数）
                 Kirigami.Action {
-                    icon.name: "edit-select-all-symbolic"
-                    shortcut: StandardKey.SelectAll
-                    text: i18ndc("plasma_wallpaper_org.kde.image", "@action:button the things being selected are wallpapers", "Select All")
-                    Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Select All Slides")
+                    icon.name: "applyWallpaper"
+                    text: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Apply")
+                    Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Apply Selected Wallpaper")
                     displayHint: Kirigami.DisplayHint.KeepVisible
                     onTriggered: {
+                        // 找到当前唯一勾选项；用户取消了全部勾选时安全跳过
                         for (let i = 0; i < thumbnailsComponent.imageModel.count; i++) {
-                            thumbnailsComponent.imageModel.setProperty(i, "checked", true);
-                        }
-                    }
-                },
-                // "全不选"：取消勾选全部幻灯片
-                Kirigami.Action {
-                    icon.name: "edit-select-none-symbolic"
-                    shortcut: StandardKey.Deselect
-                    text: i18ndc("plasma_wallpaper_org.kde.image", "@action:button the things being unselected are wallpapers", "Select None")
-                    Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Unselect All Slides")
-                    displayHint: Kirigami.DisplayHint.KeepVisible
-                    onTriggered: {
-                        for (let i = 0; i < thumbnailsComponent.imageModel.count; i++) {
-                            thumbnailsComponent.imageModel.setProperty(i, "checked", false);
+                            const item = thumbnailsComponent.imageModel.get(i);
+                            if (item.checked) {
+                                if (thumbnailsComponent.htmlWallpaper && item.path) {
+                                    thumbnailsComponent.htmlWallpaper.parseWallpaper(item.path);
+                                    root.cfg_DisplayPage = item.source; // source == entry
+                                }
+                                break;
+                            }
                         }
                     }
                 }
@@ -123,7 +117,7 @@ Item {
 
                 // 网格项使用 WallpaperDelegate，并传入配色、预览采样尺寸与解析器实例
                 view.delegate: WallpaperDelegate {
-                    imageWallpaper: thumbnailsComponent.imageWallpaper
+                    htmlWallpaper: thumbnailsComponent.htmlWallpaper
                     // 计算缩略图采样尺寸：太小会糊，按屏幕 1/8 起，下限一档
                     previewSize: {
                         // Set minimum image sample size, otherwise it's very blurry

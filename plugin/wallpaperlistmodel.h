@@ -61,6 +61,13 @@ public:
     /** 兼容原 ListModel：写回单个属性（当前支持 "checked"）。 */
     Q_INVOKABLE void setProperty(int i, const QString &property, const QVariant &value);
 
+    /**
+     * 单选互斥写回：勾选本项（checked=true）时自动取消其余所有项，
+     * 保证至多一项被勾选；取消本项（checked=false）时仅取消本项，允许全不选。
+     * index 越界直接返回。成功后发 dataChanged 刷新全表。
+     */
+    Q_INVOKABLE void setExclusiveChecked(int idx, bool checked);
+
 Q_SIGNALS:
     void countChanged();
 

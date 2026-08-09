@@ -34,33 +34,33 @@ import org.kde.kquickcontrols as KQuickControls
  * 更新；用户改动值 → 重算所有 condition 的可见性 → 发 propertyChanged()，
  * 外层监听写 cfg_WallpaperProperties。
  *
- * 接口：设置 imageWallpaper 属性（可为 null，面板显示空态）。选中新壁纸时由
- * imageWallpaper.currentProperties 的 changed 信号驱动重建。
+ * 接口：设置 htmlWallpaper 属性（可为 null，面板显示空态）。选中新壁纸时由
+ * htmlWallpaper.currentProperties 的 changed 信号驱动重建。
  */
 Item {
     id: propertyPanel
 
     // 注入的解析器实例（提供 evaluateCondition / propertyGroups / currentProperties）
-    property QtObject imageWallpaper: null
+    property QtObject htmlWallpaper: null
 
     // 便捷只读视图（可直接用于显示，无需额外绑定）
-    readonly property var currentWallpaper: imageWallpaper ? imageWallpaper.currentWallpaper : null
-    readonly property var properties: imageWallpaper ? imageWallpaper.currentProperties : []
+    readonly property var currentWallpaper: htmlWallpaper ? htmlWallpaper.currentWallpaper : null
+    readonly property var properties: htmlWallpaper ? htmlWallpaper.currentProperties : []
 
-    // 参数被用户修改（值已同步回 imageWallpaper.currentProperties 的对应项）
+    // 参数被用户修改（值已同步回 htmlWallpaper.currentProperties 的对应项）
     signal propertyChanged()
 
     // —— 可观察属性镜像：JS 数组元素 → QtObject（元素可观察）——
-    // 每个 QtObject 字段对应 imageWallpaper.currentProperties 的一项，
+    // 每个 QtObject 字段对应 htmlWallpaper.currentProperties 的一项，
     // 另加 visibleByCondition（condition 求值结果，控制控件显隐）。
     property var _obsItems: []
     // 分组渲染结构：[{ group, title, items:[QtObject...] }]
     property var _groups: []
 
-    // imageWallpaper 赋值（含初始）即重建；后续 currentProperties 变化由 Connections 驱动
-    onImageWallpaperChanged: { _rebuildObservable(); }
+    // htmlWallpaper 赋值（含初始）即重建；后续 currentProperties 变化由 Connections 驱动
+    onHtmlWallpaperChanged: { _rebuildObservable(); }
     Connections {
-        target: imageWallpaper
+        target: htmlWallpaper
         function onCurrentPropertiesChanged() { _rebuildObservable(); }
     }
 
@@ -78,17 +78,17 @@ Item {
         }
     }
 
-    // 把 imageWallpaper.currentProperties 整体重建为可观察 QtObject 数组 + 分组
+    // 把 htmlWallpaper.currentProperties 整体重建为可观察 QtObject 数组 + 分组
     function _rebuildObservable() {
         for (let i = 0; i < _obsItems.length; i++) {
             _obsItems[i].destroy();
         }
         _obsItems = [];
-        if (!imageWallpaper) {
+        if (!htmlWallpaper) {
             _groups = [];
             return;
         }
-        const props = imageWallpaper.currentProperties || [];
+        const props = htmlWallpaper.currentProperties || [];
         for (let i = 0; i < props.length; i++) {
             const p = props[i];
             // 每个属性一个 QtObject，字段 property 化（改动触发绑定更新）
@@ -129,9 +129,9 @@ Item {
         _recomputeVisibility();
     }
 
-    // 把 imageWallpaper.propertyGroups() 的组骨架映射到可观察 QtObject（按 key 匹配）
+    // 把 htmlWallpaper.propertyGroups() 的组骨架映射到可观察 QtObject（按 key 匹配）
     function _buildGroups() {
-        const rawGroups = imageWallpaper ? imageWallpaper.propertyGroups() : [];
+        const rawGroups = htmlWallpaper ? htmlWallpaper.propertyGroups() : [];
         const groups = [];
         for (let i = 0; i < rawGroups.length; i++) {
             const rg = rawGroups[i];
@@ -152,7 +152,7 @@ Item {
 
     // 重算所有带 condition 的属性的可见性（值变化时调用）
     function _recomputeVisibility() {
-        if (!imageWallpaper) {
+        if (!htmlWallpaper) {
             return;
         }
         const propsMap = {};
@@ -161,19 +161,19 @@ Item {
         }
         for (let i = 0; i < _obsItems.length; i++) {
             const item = _obsItems[i];
-            item.visibleByCondition = imageWallpaper.evaluateCondition(item.condition, propsMap);
+            item.visibleByCondition = htmlWallpaper.evaluateCondition(item.condition, propsMap);
         }
     }
 
-    // 任一控件的值被改动：把改动同步回 imageWallpaper.currentProperties（JS 数组元素
+    // 任一控件的值被改动：把改动同步回 htmlWallpaper.currentProperties（JS 数组元素
     // 不可观察，只能手动写回）、重算可见性、通知外层写配置
     function _onValueChanged() {
-        if (imageWallpaper && imageWallpaper.currentProperties) {
+        if (htmlWallpaper && htmlWallpaper.currentProperties) {
             for (let i = 0; i < _obsItems.length; i++) {
                 const item = _obsItems[i];
-                for (let j = 0; j < imageWallpaper.currentProperties.length; j++) {
-                    if (imageWallpaper.currentProperties[j].key === item.key) {
-                        imageWallpaper.currentProperties[j].propValue = item.propValue;
+                for (let j = 0; j < htmlWallpaper.currentProperties.length; j++) {
+                    if (htmlWallpaper.currentProperties[j].key === item.key) {
+                        htmlWallpaper.currentProperties[j].propValue = item.propValue;
                         break;
                     }
                 }
@@ -264,13 +264,13 @@ Item {
             }
             KQuickControls.ColorButton {
                 id: colorButton
-                color: modelData && modelData.type === "color" && panel && panel.imageWallpaper
-                       ? panel.imageWallpaper.colorToHex(modelData.propValue) : "#000000"
+                color: modelData && modelData.type === "color" && panel && panel.htmlWallpaper
+                       ? panel.htmlWallpaper.colorToHex(modelData.propValue) : "#000000"
                 onColorChanged: {
-                    if (!modelData || !panel || !panel.imageWallpaper) {
+                    if (!modelData || !panel || !panel.htmlWallpaper) {
                         return;
                     }
-                    const hex = panel.imageWallpaper.colorToHex(modelData.propValue);
+                    const hex = panel.htmlWallpaper.colorToHex(modelData.propValue);
                     // 仅当颜色确实被用户改动时写回（程序同步会命中相等分支，避免循环）
                     if (colorButton.color.toString().toUpperCase() !== hex.toUpperCase()) {
                         modelData.propValue = panel._hexToRgb(colorButton.color);
@@ -404,13 +404,13 @@ Item {
             FileDialog {
                 id: fileDialog
                 title: i18nd("plasma_wallpaper_com.github.moon_haze.htmlwallpaper", "Choose file")
-                currentFolder: panel && panel.imageWallpaper && panel.imageWallpaper.currentWallpaper
-                               ? panel.imageWallpaper.currentWallpaper.path : ""
+                currentFolder: panel && panel.htmlWallpaper && panel.htmlWallpaper.currentWallpaper
+                               ? panel.htmlWallpaper.currentWallpaper.path : ""
                 onAccepted: {
-                    if (!modelData || !panel || !panel.imageWallpaper) {
+                    if (!modelData || !panel || !panel.htmlWallpaper) {
                         return;
                     }
-                    const base = String(panel.imageWallpaper.currentWallpaper.path);
+                    const base = String(panel.htmlWallpaper.currentWallpaper.path);
                     let rel = String(fileDialog.selectedFile);
                     // 存相对壁纸目录的路径（引用可随目录移动）
                     if (rel.indexOf(base) === 0) {
