@@ -75,12 +75,16 @@ ApplicationWindow {
     
 
 
-    // dev 诊断：确认窗口尺寸与 config.qml 加载结果
+    // dev 诊断：确认窗口尺寸与 config.qml 加载结果。
+    // 用 Qt.callLater 延迟到本轮事件循环末尾再打印——直接在 onCompleted 打印时
+    // Loader 可能尚未完成 setSource（status 误报 0/Null），延迟后才是真实结果。
     // （自截图由 main.cpp --screenshot 的 grabWindow 负责；QML grabToImage
     // 对 WebEngine 无效且报“item has no QML engine”，不再在 QML 层抓图）
     Component.onCompleted: {
-        console.log("[dev] DevShell onCompleted: win=" + win.width + "x" + win.height
-            + ", loader.status=" + configLoader.status
-            + ", loader.item=" + configLoader.item);
+        Qt.callLater(() => {
+            console.log("[dev] DevShell loaded: win=" + win.width + "x" + win.height
+                + ", loader.status=" + configLoader.status
+                + ", loader.item=" + configLoader.item);
+        });
     }
 }

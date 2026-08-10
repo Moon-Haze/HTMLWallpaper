@@ -20,18 +20,23 @@ import org.kde.kirigami as Kirigami
  */
 Item {
     id: thumbnailsComponent
-    anchors.fill: parent
+    // 尺寸由外层布局（MainView 的 RowLayout）通过 Layout.fill* 管理，
+    // 不再用 anchors.fill——在布局管理的子项上用 anchors 会触发
+    // "Detected anchors on an item that is managed by a layout" 警告。
+    // 内部 ColumnLayout 仍以 anchors.fill: parent 填满本组件。
 
     // 暴露底层 GridView，供外部滚动到指定项
     property alias view: wallpapersGrid.view
     property var screenSize: Qt.size(Screen.width, Screen.height)
-    // 注入的解析器实例（由 ScanPathsPanel 传入）
+    // 注入的解析器实例（由 MainView 传入）
     property QtObject htmlWallpaper: null
 
     // 供网格使用的数据模型：解析器扫描到的壁纸列表（含勾选状态）
     readonly property QtObject imageModel: htmlWallpaper ? htmlWallpaper.wallpapers : null
 
-    // 监听"添加壁纸完成"信号：滚动回顶部以展示新加入的壁纸
+    // 监听"添加壁纸完成"信号：滚动回顶部以展示新加入的壁纸。
+    // 信号源是 MainView 代理的 config.wallpaperBrowseCompleted（经作用域链
+    // 解析到 MainView 的 root，见 MainView.qml 的 Connections 转发）。
     Connections {
         target: root
         function onWallpaperBrowseCompleted() {

@@ -30,8 +30,9 @@ TestCase {
     property var i18nd: function (domain, text) { return text; }
     property var i18ndc: function (domain, context, text) { return text; }
 
-    // root mock：ThumbnailsView 经作用域链把 root 解析到本 TestCase，
-    // cfg_DisplayPage 作为声明属性可被 Qt.binding 追踪
+    // root mock：ThumbnailsPanel 经作用域链把 root 解析到本 TestCase，
+    // cfg_DisplayPage 作为声明属性可被 Qt.binding 追踪；wallpaperBrowseCompleted
+    // 信号供 ThumbnailsPanel 的 Connections 匹配（MainView 代理信号的同名信号）。
     property string cfg_DisplayPage: "a.html"
     signal wallpaperBrowseCompleted()
     property var root: testCase
@@ -55,10 +56,10 @@ TestCase {
             testCase);
         verify(htmlWallpaper !== null, "htmlWallpaper mock 实例化失败");
 
-        let c = Qt.createComponent("../package/contents/ui/settings/ThumbnailsView.qml");
-        verify(c.status === Component.Ready, "ThumbnailsView 加载失败: " + c.errorString());
+        let c = Qt.createComponent("../package/contents/ui/settings/ThumbnailsPanel.qml");
+        verify(c.status === Component.Ready, "ThumbnailsPanel 加载失败: " + c.errorString());
         comp = c.createObject(testCase, { htmlWallpaper: htmlWallpaper });
-        verify(comp !== null, "ThumbnailsView 实例化失败");
+        verify(comp !== null, "ThumbnailsPanel 实例化失败");
         c.destroy();
     }
 

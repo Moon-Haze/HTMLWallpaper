@@ -31,7 +31,6 @@ ColumnLayout {
     property var configDialog
     property var wallpaperConfiguration: wallpaper.configuration
     property var parentLayout
-    property var screenSize: Qt.size(Screen.width, Screen.height)
     
     property alias cfg_ScanPaths: htmlWallpaper.scanPaths
     property string cfg_DisplayPage                  // 当前 HTML 壁纸入口页面（DisplayPage 配置）
@@ -43,16 +42,6 @@ ColumnLayout {
     signal configurationChanged()
     // 用户在文件夹对话框中添加完文件夹后发出
     signal wallpaperBrowseCompleted();
-
-    // 屏幕尺寸变化时同步给下方缩略图面板
-    onScreenSizeChanged: function() {
-        if (thumbnailsLoader.item) {
-            thumbnailsLoader.item.screenSize = root.screenSize;
-        }
-    }
-    onConfigurationChanged: function() {
-        console.log("Configuration changed, notify external");
-    }
     // 保存配置：清除内部预览标记
     function saveConfig() {
         wallpaperConfiguration.PreviewImage = "null"; // internal, no need to save to file
@@ -78,7 +67,6 @@ ColumnLayout {
         // 否则打开配置面板时中栏网格为空
         Component.onCompleted: htmlWallpaper.scan()
     }
-
 
     // 增删扫描目录：只改 cfg_ScanPaths（持久化 + 触发绑定链），
     // 由 scanPaths 绑定自动同步 htmlWallpaper。
@@ -122,11 +110,14 @@ ColumnLayout {
 
             function loadWallpaper () {
                 let props = {
-                    screenSize: root.screenSize,
+                    // configApi：config 根对象。MainView 及子组件（ScanPathsPanel /
+                    // ThumbnailsPanel / WallpaperDelegate）经它访问 cfg_*、增删目录
+                    // 方法、wallpaperBrowseCompleted 信号，契约与重构前三栏内嵌时一致。
+                    configApi: root,
                     configuration: root.wallpaperConfiguration,
                     htmlWallpaper: htmlWallpaper
                 };
-                thumbnailsLoader.setSource("settings/ScanPathsPanel.qml", props);
+                thumbnailsLoader.setSource("settings/MainView.qml", props);
             }
         }
 

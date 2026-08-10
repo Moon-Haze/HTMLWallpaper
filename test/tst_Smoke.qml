@@ -11,8 +11,8 @@ import QtTest
 /**
  * 高依赖组件的冒烟测试。
  *
- * config.qml / ThumbnailsView / WallpaperDelegate 依赖 KCM 框架与
- * plasmashell 注入的上下文（wallpaperConfiguration、imageModel 等），
+ * config.qml / MainView / WallpaperDelegate 依赖 KCM 框架与
+ * plasmashell 注入的上下文（ imageModel 等），
  * 无法在测试环境轻量实例化，故 smoke 验证到"QML 可编译、所有 import 模块
  * 可解析"（Component.Ready）。
  *
@@ -68,7 +68,9 @@ TestCase {
     }
 
     function test_thumbnails_compiles() {
-        verify(compiles("settings/ThumbnailsView.qml"), "ThumbnailsView 应可编译");
+        // ThumbnailsView 已拆分为 MainView（三栏容器）+ ThumbnailsPanel（中栏网格）
+        verify(compiles("settings/MainView.qml"), "MainView 应可编译");
+        verify(compiles("settings/ThumbnailsPanel.qml"), "ThumbnailsPanel 应可编译");
     }
 
     function test_wallpaperDelegate_compiles() {
