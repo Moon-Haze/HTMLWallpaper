@@ -21,18 +21,10 @@
       <label>Current HTML wallpaper properties (JSON)</label>
       <default>{}</default>
     </entry>
-    <!-- slideshow -->
-    <entry name="SlidePaths" type="StringList">
-      <label>Paths used for the slideshow</label>
+    <!-- 壁纸库扫描目录 -->
+    <entry name="ScanPaths" type="StringList">
+      <label>Directories to scan for HTML wallpapers</label>
       <default>/usr/share/html-wallpapers</default>
-    </entry>
-    <entry name="SlideshowFoldersFirst" type="bool">
-      <label>Processing folders first for the slideshow</label>
-      <default>false</default>
-    </entry>
-    <entry name="ForceImageAnimation" type="bool">
-      <label>Force animated images to play</label>
-      <default>false</default>
     </entry>
   </group>
 </kcfg>

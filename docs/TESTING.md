@@ -55,7 +55,7 @@ plasmashell --replace &
 | HTML 渲染铺满桌面   | `package/contents/ui/main.qml:29`（`WebEngineView`） | 页面是否铺满、有无黑底/白屏闪烁（`backgroundColor` 在 `main.qml:39`） |
 | 配置读取            | `main.qml:35`（`url: configuration.DisplayPage`）    | 改 `DisplayPage` 后页面是否跟随                                       |
 | 拖放 .html 设为壁纸 | `main.qml:23`（`onOpenUrlRequested`）                | 拖本地 html 到桌面是否生效                                            |
-| 配置面板            | settings/SlideshowComponent.qml 等                   | 三栏面板（扫描目录/壁纸网格/参数编辑）是否正常显示                    |
+| 配置面板            | settings/SlideshowPanel.qml 等                       | 三栏面板（扫描目录/壁纸网格/参数编辑）是否正常显示                    |
 
 ---
 
@@ -112,7 +112,7 @@ kquitapp6 plasmashell; plasmashell & disown
 ### 先说限制（重要）
 
 - `main.qml` 的根 `WallpaperItem` 是 **plasmashell 进程内注册的类型**，`qml6` 直接加载会报 `WallpaperItem is not a type`，**不能**用它做组件预览。
-- 可独立预览且依赖少的组件：`settings/ThumbnailsComponent.qml`、`settings/SlideshowComponent.qml`、`settings/WallpaperDelegate.qml`、`settings/PropertyPanel.qml`、`settings/AddFileDialog.qml`。
+- 可独立预览且依赖少的组件：`settings/ThumbnailsView.qml`、`settings/SlideshowPanel.qml`、`settings/WallpaperDelegate.qml`、`settings/PropertyPanel.qml`、`settings/AddFolderDialog.qml`。
 
 ### 测试壳（mock wallpaperInterface）
 
@@ -134,9 +134,9 @@ Window {
 
     Loader {
         anchors.fill: parent
-        source: "../package/contents/ui/settings/ThumbnailsComponent.qml"
+        source: "../package/contents/ui/settings/ThumbnailsView.qml"
         onLoaded: {
-            // 给 imageWallpaper 喂 mock 解析器（提供 wallpapers/rootPaths 等）
+            // 给 imageWallpaper 喂 mock 解析器（提供 wallpapers/scanPaths 等）
             // item.imageWallpaper = mockBackend
         }
     }

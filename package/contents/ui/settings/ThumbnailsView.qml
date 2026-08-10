@@ -25,7 +25,7 @@ Item {
     // 暴露底层 GridView，供外部滚动到指定项
     property alias view: wallpapersGrid.view
     property var screenSize: Qt.size(Screen.width, Screen.height)
-    // 注入的解析器实例（由 SlideshowComponent 传入）
+    // 注入的解析器实例（由 ScanPathsPanel 传入）
     property QtObject htmlWallpaper: null
 
     // 供网格使用的数据模型：解析器扫描到的壁纸列表（含勾选状态）

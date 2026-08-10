@@ -67,9 +67,9 @@ ApplicationWindow {
         // 以 KCM 同款方式注入 cfg_* 初始值（main.xml 默认值）
         Component.onCompleted: configLoader.setSource(
             "../../package/contents/ui/config.qml", {
-                cfg_SlidePaths: ["/usr/share/html-wallpapers"], cfg_SlidePathsDefault: [],
-                cfg_DisplayPage: "", cfg_DisplayPageDefault: "https://kde.org/",
-                cfg_WallpaperProperties: "{}", cfg_WallpaperPropertiesDefault: "{}"
+                cfg_ScanPaths: ["/usr/share/html-wallpapers"],
+                cfg_DisplayPage: "https://kde.org/",
+                cfg_WallpaperProperties: "{}"
             })
     }
     

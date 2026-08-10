@@ -30,7 +30,7 @@ TestCase {
     property var i18nd: function (domain, text) { return text; }
     property var i18ndc: function (domain, context, text) { return text; }
 
-    // root mock：ThumbnailsComponent 经作用域链把 root 解析到本 TestCase，
+    // root mock：ThumbnailsView 经作用域链把 root 解析到本 TestCase，
     // cfg_DisplayPage 作为声明属性可被 Qt.binding 追踪
     property string cfg_DisplayPage: "a.html"
     signal wallpaperBrowseCompleted()
@@ -55,10 +55,10 @@ TestCase {
             testCase);
         verify(htmlWallpaper !== null, "htmlWallpaper mock 实例化失败");
 
-        let c = Qt.createComponent("../package/contents/ui/settings/ThumbnailsComponent.qml");
-        verify(c.status === Component.Ready, "ThumbnailsComponent 加载失败: " + c.errorString());
+        let c = Qt.createComponent("../package/contents/ui/settings/ThumbnailsView.qml");
+        verify(c.status === Component.Ready, "ThumbnailsView 加载失败: " + c.errorString());
         comp = c.createObject(testCase, { htmlWallpaper: htmlWallpaper });
-        verify(comp !== null, "ThumbnailsComponent 实例化失败");
+        verify(comp !== null, "ThumbnailsView 实例化失败");
         c.destroy();
     }
 

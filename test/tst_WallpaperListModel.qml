@@ -46,7 +46,7 @@ TestCase {
 
     // 扫描 fixture 并等待 scanFinished,返回 wallpapers 模型
     function scanWallpapers() {
-        htmlWallpaper.rootPaths = [fixtureDir];
+        htmlWallpaper.scanPaths = [fixtureDir];
         htmlWallpaper.scan();
         scanSpy.wait(5000);
         verify(scanSpy.count > 0, "scanFinished 未在 5s 内发出");

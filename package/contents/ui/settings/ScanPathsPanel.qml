@@ -22,16 +22,16 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
  * 上半部分：轮播排序方式（随机 / 按名称 / 按修改时间）、按文件夹分组；
  * 主体三栏布局：
  *   左栏：扫描目录（文件夹）列表，可增删、打开目录；
- *   中栏：ThumbnailsComponent 展示目录下的 HTML 壁纸网格（点选即应用）；
+ *   中栏：ThumbnailsView 展示目录下的 HTML 壁纸网格（点选即应用）；
  *   右栏：PropertyPanel 编辑当前壁纸的协议参数（color/slider/combo/bool/…）。
  *
  * 数据源是 config.qml 注入的 HTMLBackend（C++）单实例：
- *   目录列表 ← htmlWallpaper.rootPaths；壁纸网格 ← htmlWallpaper.wallpapers；
+ *   目录列表 ← htmlWallpaper.scanPaths；壁纸网格 ← htmlWallpaper.wallpapers；
  *   参数面板 ← 已随 HTMLBackend 解耦重构停用（见下方右栏 PropertyPanel 注释）；
  *   可配置属性表现在经 WallpaperItem::properties（WallpaperPropertyModel ListModel）
  *   的 get(i) / byKey(key) 暴露，不再有 currentWallpaper.general.properties。
- * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_SlidePaths 持久化，
- * 由 rootPaths 绑定同步 htmlWallpaper → 重扫）。参数"可调不持久"：改动只更新
+ * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_ScanPaths 持久化，
+ * 由 scanPaths 绑定同步 htmlWallpaper → 重扫）。参数"可调不持久"：改动只更新
  * 面板会话内镜像，不写 cfg_WallpaperProperties、不应用到壁纸。
  *
  * For proper alignment, an ancestor **MUST** have id "appearanceRoot" and property "parentLayout"
@@ -65,7 +65,7 @@ RowLayout {
                 color: Kirigami.Theme.backgroundColor
             }
 
-            // 扫描目录列表：数据源是 htmlWallpaper.rootPaths（跟随 cfg_SlidePaths）
+            // 扫描目录列表：数据源是 htmlWallpaper.scanPaths（跟随 cfg_ScanPaths）
             ListView {
                 id: slidePathsView
                 headerPositioning: ListView.OverlayHeader
@@ -82,9 +82,9 @@ RowLayout {
                         }
                     ]
                 }
-                // 扫描目录列表：rootPaths 是 QStringList，QML 里即字符串数组，
+                // 扫描目录列表：scanPaths 是 QStringList，QML 里即字符串数组，
                 // 直接作 model；数组项没有 role，delegate 用 modelData 取值。
-                model: htmlWallpaper ? htmlWallpaper.rootPaths : null
+                model: htmlWallpaper ? htmlWallpaper.scanPaths : null
                 delegate: Kirigami.SubtitleDelegate {
                     id: baseListItem
                     // 字符串数组 model：modelData 直接是路径字符串
@@ -165,9 +165,9 @@ RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        // 动态加载 ThumbnailsComponent，传入屏幕尺寸 + 解析器实例
+        // 动态加载 ThumbnailsView，传入屏幕尺寸 + 解析器实例
         Component.onCompleted: () => {
-            this.setSource("ThumbnailsComponent.qml",
+            this.setSource("ThumbnailsView.qml",
                             {"screenSize": slideshowComponent.screenSize,
                             "htmlWallpaper": slideshowComponent.htmlWallpaper});
         }

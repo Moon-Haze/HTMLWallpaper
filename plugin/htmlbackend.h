@@ -23,10 +23,10 @@ class QFutureWatcher;
  * @brief 解析"html-wallpapers"格式 HTML 壁纸的 C++ 后端（QML 门面）。
  *
  * 等价替代原 QML 的 HtmlWallpaperParser.qml（扫描 project.json、提供壁纸
- * 列表模型），供配置界面（config.qml → SlideshowComponent →
- * ThumbnailsComponent / WallpaperDelegate）消费。扫描/解析逻辑已解耦到
+ * 列表模型），供配置界面（config.qml → ScanPathsPanel →
+ * ThumbnailsView / WallpaperDelegate）消费。扫描/解析逻辑已解耦到
  * 数据层（WallpaperProject / WallpaperProperty，后台线程执行）；本类只
- * 负责 rootPaths 管理等属性 + scan() 异步调度 + 结果聚合。
+ * 负责 scanPaths 管理等属性 + scan() 异步调度 + 结果聚合。
  *
  * 目录约定（Wallpaper Engine 风格）：
  *
@@ -39,8 +39,8 @@ class QFutureWatcher;
  *
  *     import com.github.moon_haze.htmlwallpaper
  *     HTMLBackend { id: parser }
- *     parser.scan();  // 扫描 rootPaths → wallpapers 模型（delegate 走 roles，
- *                     // ThumbnailsComponent 走 get(i).source，PropertyPanel 未来
+ *     parser.scan();  // 扫描 scanPaths → wallpapers 模型（delegate 走 roles，
+ *                     // ThumbnailsView 走 get(i).source，PropertyPanel 未来
  *                     // 走 get(i).properties.get(j)/byKey）
  */
 class HTMLBackend : public QObject
@@ -50,11 +50,11 @@ class HTMLBackend : public QObject
     QML_NAMED_ELEMENT(HTMLBackend)
 
     /**
-     * 待扫描的壁纸根目录（可多个）。默认匹配 main.xml 中 SlidePaths 的默认值。
+     * 待扫描的壁纸根目录（可多个）。默认匹配 main.xml 中 ScanPaths 的默认值。
      * QML 里是字符串数组，可直接作 ListView 的 model（delegate 用 modelData）。
-     * 修改时不自动重扫，由 QML 层 onRootPathsChanged 触发 scan。
+     * 修改时不自动重扫，由 QML 层 onScanPathsChanged 触发 scan。
      */
-    Q_PROPERTY(QStringList rootPaths READ rootPaths WRITE setRootPaths NOTIFY rootPathsChanged)
+    Q_PROPERTY(QStringList scanPaths READ scanPaths WRITE setScanPaths NOTIFY scanPathsChanged)
     /**
      * 是否按类型过滤扫描结果。true 时只收录 HTML 类壁纸（web/color/group 等），
      * 明确非 HTML 的（video/scene/application/audio）过滤掉；type 缺失时按 HTML 处理。
@@ -70,8 +70,8 @@ class HTMLBackend : public QObject
 public:
     explicit HTMLBackend(QObject *parent = nullptr);
 
-    QStringList rootPaths() const;
-    void setRootPaths(const QStringList &paths);
+    QStringList scanPaths() const;
+    void setScanPaths(const QStringList &paths);
     bool requireWebType() const;
     void setRequireWebType(bool requireWebType);
     QStringList nonHtmlTypes() const;
@@ -80,7 +80,7 @@ public:
     WallpaperListModel *wallpapers() const;
 
     // —— 扫描入口 ——
-    /** 顺序扫描 rootPaths，把各根下的合法壁纸填入 wallpapers；完成后发 scanFinished。 */
+    /** 顺序扫描 scanPaths，把各根下的合法壁纸填入 wallpapers；完成后发 scanFinished。 */
     Q_INVOKABLE void scan();
     /** 增加一个扫描根目录；重复路径忽略，返回是否新增成功。 */
     Q_INVOKABLE bool addScanPath(const QString &path);
@@ -92,7 +92,7 @@ Q_SIGNALS:
     void scanFinished();
     /** 某个根目录无法读取时发出（path：根目录 url，error：底层错误字符串）。 */
     void scanFailed(const QString &path, const QString &error);
-    void rootPathsChanged();
+    void scanPathsChanged();
     void requireWebTypeChanged();
     void nonHtmlTypesChanged();
     void scanInProgressChanged();
@@ -100,7 +100,7 @@ Q_SIGNALS:
 private:
     void setScanInProgress(bool inProgress);
 
-    QStringList m_rootPaths;
+    QStringList m_scanPaths;
     QStringList m_nonHtmlTypes{QStringLiteral("video"), QStringLiteral("scene"), QStringLiteral("application"), QStringLiteral("audio")};
     bool m_requireWebType = true;
     bool m_scanning = false;

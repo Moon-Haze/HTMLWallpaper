@@ -9,7 +9,7 @@
 #include <QColor>
 #include <QStringList>
 
-DevConfigMap::DevConfigMap(QObject* parent)
+DevConfigMap::DevConfigMap(QObject *parent)
     : QObject(parent)
 {
     // 预注册动态属性：QML 点访问（cfg.PreviewImage）与赋值都要求属性已存在，
@@ -21,24 +21,22 @@ DevConfigMap::DevConfigMap(QObject* parent)
     setProperty("InsecureHTTPS", false);
     setProperty("WallpaperProperties", QStringLiteral("{}"));
     setProperty("FillMode", 2); // Image.Stretch
-    setProperty("SlidePaths", QStringList { });
+    setProperty("ScanPaths", QStringList{});
     setProperty("SlideInterval", 900);
-    setProperty("UncheckedSlides", QStringList { });
+    setProperty("UncheckedSlides", QStringList{});
     setProperty("SlideshowMode", 0);
-    setProperty("SlideshowFoldersFirst", false);
     setProperty("DynamicMode", 0u);
     setProperty("DarkLightScheduleState", QStringLiteral("light"));
-    setProperty("ForceImageAnimation", false);
     // 内部预览标记：config.qml 会读写（"null" 表示未指定）
     setProperty("PreviewImage", QStringLiteral("null"));
 }
 
-void DevConfigMap::setValue(const QString& key, const QVariant& value)
+void DevConfigMap::setValue(const QString &key, const QVariant &value)
 {
     setProperty(key.toUtf8().constData(), value);
 }
 
-QVariant DevConfigMap::value(const QString& key) const
+QVariant DevConfigMap::value(const QString &key) const
 {
     return property(key.toUtf8().constData());
 }

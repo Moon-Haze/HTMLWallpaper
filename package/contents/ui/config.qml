@@ -14,7 +14,7 @@ import com.github.moon_haze.htmlwallpaper
  * 壁纸"配置"页主界面（在系统设置 / 桌面壁纸右键菜单中打开）。
  *
  * 纯 HTML 壁纸模式（com.github.moon_haze.htmlwallpaper）：主体为
- * SlideshowComponent 三栏面板（扫描目录 / 壁纸网格 / 参数编辑），
+ * ScanPathsPanel 三栏面板（扫描目录 / 壁纸网格 / 参数编辑），
  * 下方 DropArea 支持把文件夹拖进配置窗口添加扫描目录。
  * 所有 cfg_* 属性与 KConfig 绑定（由 KCM 框架自动读写配置项）。
  *
@@ -32,13 +32,10 @@ ColumnLayout {
     property var wallpaperConfiguration: wallpaper.configuration
     property var parentLayout
     property var screenSize: Qt.size(Screen.width, Screen.height)
-
-    property list<string> cfg_SlidePaths             // 扫描文件夹路径列表
-    property list<string> cfg_SlidePathsDefault
+    
+    property alias cfg_ScanPaths: htmlWallpaper.scanPaths
     property string cfg_DisplayPage                  // 当前 HTML 壁纸入口页面（DisplayPage 配置）
-    property string cfg_DisplayPageDefault
     property string cfg_WallpaperProperties        // 当前 HTML 壁纸参数 JSON（运行时注入/重启恢复）
-    property string cfg_WallpaperPropertiesDefault
 
     spacing: 0
 
@@ -63,42 +60,41 @@ ColumnLayout {
 
     // 弹出"添加文件夹"对话框（组件用完即销毁）
     function openChooserDialog() {
-        const dialogComponent = Qt.createComponent("settings/AddFileDialog.qml");
+        const dialogComponent = Qt.createComponent("settings/AddFolderDialog.qml");
         dialogComponent.createObject(root);
         dialogComponent.destroy();
     }
 
     // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下的 project.json，提供壁纸
-    // 列表 / 参数表 / 预览。rootPaths 跟随 cfg_SlidePaths（扫描目录 = 轮播目录），
-    // 变化时触发重扫；rootPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
+    // 列表 / 参数表 / 预览。scanPaths 跟随 cfg_ScanPaths（扫描目录），
+    // 变化时触发重扫；scanPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
     HTMLBackend {
         id: htmlWallpaper
-        rootPaths: root.cfg_SlidePaths
-        // 路径变化时重扫（数据源即 rootPaths，无需中间模型同步）
-        onRootPathsChanged: htmlWallpaper.scan()
+        // 路径变化时重扫（数据源即 scanPaths，无需中间模型同步）
+        onScanPathsChanged: htmlWallpaper.scan()
         // 扫描完成 → 按 cfg_DisplayPage 匹配勾选当前壁纸（无匹配回退第一项）
         // onScanFinished: root.syncCheckedFromDisplayPage()
-        // 初始化：rootPaths 绑定赋初值不触发 onRootPathsChanged，补一次初始扫描，
+        // 初始化：scanPaths 绑定赋初值不触发 onScanPathsChanged，补一次初始扫描，
         // 否则打开配置面板时中栏网格为空
         Component.onCompleted: htmlWallpaper.scan()
     }
 
 
-    // 增删扫描目录：只改 cfg_SlidePaths（持久化 + 触发绑定链），
-    // 由 rootPaths 绑定自动同步 htmlWallpaper。
+    // 增删扫描目录：只改 cfg_ScanPaths（持久化 + 触发绑定链），
+    // 由 scanPaths 绑定自动同步 htmlWallpaper。
     function addScanPath(path: url): void {
         const p = String(path);
-        if (cfg_SlidePaths.indexOf(p) >= 0) {
+        if (cfg_ScanPaths.indexOf(p) >= 0) {
             return;
         }
-        const list = cfg_SlidePaths.slice();
+        const list = cfg_ScanPaths.slice();
         list.push(p);
-        cfg_SlidePaths = list;
+        cfg_ScanPaths = list;
     }
     function removeScanPath(path: url): void {
         const p = String(path);
-        const list = cfg_SlidePaths.filter(x => String(x) !== p);
-        cfg_SlidePaths = list;
+        const list = cfg_ScanPaths.filter(x => String(x) !== p);
+        cfg_ScanPaths = list;
     }
 
     // —— 主内容区：接受拖放，加载 HTML 壁纸面板 ——
@@ -130,7 +126,7 @@ ColumnLayout {
                     configuration: root.wallpaperConfiguration,
                     htmlWallpaper: htmlWallpaper
                 };
-                thumbnailsLoader.setSource("settings/SlideshowComponent.qml", props);
+                thumbnailsLoader.setSource("settings/ScanPathsPanel.qml", props);
             }
         }
 

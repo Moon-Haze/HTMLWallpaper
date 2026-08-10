@@ -16,7 +16,7 @@ import org.kde.kquickcontrols as KQuickControls
 /**
  * 壁纸参数设置面板（HTMLWallpaper 模式右栏）。
  *
- * ⚠️ 已停用：本组件当前被 SlideshowComponent.qml 注释屏蔽，不参与生产。
+ * ⚠️ 已停用：本组件当前被 ScanPathsPanel.qml 注释屏蔽，不参与生产。
  * 其依赖的 HTMLBackend C++ API 已随解耦重构删除——currentWallpaper /
  * evaluateCondition / colorToHex / wallpaperParsed 信号均已不存在，
  * 下面的代码引用（currentWallpaper / general.properties）只对旧版有效。

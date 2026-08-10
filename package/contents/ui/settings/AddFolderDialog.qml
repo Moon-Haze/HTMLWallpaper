@@ -14,7 +14,7 @@ import QtQuick.Dialogs as QtDialogs
  *
  * 纯 HTML 模式（com.github.moon_haze.htmlwallpaper）：只加载文件夹选择
  * 对话框（FolderDialog），把选中的文件夹加入扫描目录——走 config.qml 的
- * addScanPath（持久化到 cfg_SlidePaths，由 rootPaths 绑定同步解析器）。
+ * addScanPath（持久化到 cfg_ScanPaths，由 scanPaths 绑定同步解析器）。
  */
 Loader {
     id: dialogLoader

@@ -17,7 +17,7 @@ class WallpaperItem;
  * @brief 扫描结果壁纸列表模型（HTMLBackend::wallpapers，列表层）。
  *
  * 以 QAbstractListModel 实现原 QML ListModel 的公开 API 子集：
- * count / get(i) 与 data()。roles 对齐 WallpaperDelegate / ThumbnailsComponent
+ * count / get(i) 与 data()。roles 对齐 WallpaperDelegate / ThumbnailsView
  * 使用的字段：name / title / description / tags / type / visibility / workshopid /
  * path / preview / file / ...（file 是 project.json 的 file 字段，经
  * WallpaperProject 探测兜底）。另含 project.json 扩展元数据 role：

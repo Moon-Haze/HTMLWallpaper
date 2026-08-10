@@ -13,7 +13,7 @@ import com.github.moon_haze.htmlwallpaper
  * HTMLBackend（C++）单元测试。
  *
  * 覆盖异步扫描流程（QtConcurrent worker 枚举目录 + QFile 读 project.json）
- * 与 rootPaths 路径管理。fixtures 位于 tests/data/wallpapers/
+ * 与 scanPaths 路径管理。fixtures 位于 tests/data/wallpapers/
  * （aurora / matrix / nova / fetch / missing-entry / paramfallback 被收录；
  *   neon 无 project.json、offline 非 web 被过滤）。
  */
@@ -45,35 +45,35 @@ TestCase {
         }
     }
 
-    // —— 扫描路径（rootPaths）——
+    // —— 扫描路径（scanPaths）——
 
-    // 直接赋值 rootPaths 生效（数据源就是它本身，无中间模型）
-    function test_rootPaths_assign() {
-        parser.rootPaths = ["file:///a", "file:///b"];
-        compare(parser.rootPaths.length, 2);
-        compare(String(parser.rootPaths[0]), "file:///a");
-        compare(String(parser.rootPaths[1]), "file:///b");
+    // 直接赋值 scanPaths 生效（数据源就是它本身，无中间模型）
+    function test_scanPaths_assign() {
+        parser.scanPaths = ["file:///a", "file:///b"];
+        compare(parser.scanPaths.length, 2);
+        compare(String(parser.scanPaths[0]), "file:///a");
+        compare(String(parser.scanPaths[1]), "file:///b");
     }
 
-    function test_rootPaths_addRemove() {
-        // rootPaths 默认带一个扫描路径，先清空从无开始
-        parser.rootPaths = [];
-        compare(parser.rootPaths.length, 0, "初始无扫描路径");
+    function test_scanPaths_addRemove() {
+        // scanPaths 默认带一个扫描路径，先清空从无开始
+        parser.scanPaths = [];
+        compare(parser.scanPaths.length, 0, "初始无扫描路径");
 
         parser.addScanPath("file:///a");
         parser.addScanPath("file:///b/");
-        compare(parser.rootPaths.length, 2);
-        compare(String(parser.rootPaths[0]), "file:///a");
-        compare(String(parser.rootPaths[1]), "file:///b/");
+        compare(parser.scanPaths.length, 2);
+        compare(String(parser.scanPaths[0]), "file:///a");
+        compare(String(parser.scanPaths[1]), "file:///b/");
 
         // 重复路径去重
         parser.addScanPath("file:///a");
-        compare(parser.rootPaths.length, 2, "重复路径应被拒绝");
+        compare(parser.scanPaths.length, 2, "重复路径应被拒绝");
 
         // 删除
         parser.removeScanPath("file:///a");
-        compare(parser.rootPaths.length, 1);
-        compare(String(parser.rootPaths[0]), "file:///b/");
+        compare(parser.scanPaths.length, 1);
+        compare(String(parser.scanPaths[0]), "file:///b/");
     }
 
 
@@ -81,7 +81,7 @@ TestCase {
 
     function test_scanCollectsWebWallpapers() {
         scanSpy.target = parser;
-        parser.rootPaths = [fixtureDir];
+        parser.scanPaths = [fixtureDir];
         parser.scan();
         // 注意：SignalSpy.wait() 超时会自动 FAIL 并终止测试，成功时返回 undefined，
         // 不能用 verify(wait(...))；wait 只作事件循环驱动，结果看 count

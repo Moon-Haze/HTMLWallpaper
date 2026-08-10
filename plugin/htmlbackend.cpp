@@ -60,23 +60,23 @@ HTMLBackend::HTMLBackend(QObject *parent)
 {
 }
 
-QStringList HTMLBackend::rootPaths() const
+QStringList HTMLBackend::scanPaths() const
 {
-    return m_rootPaths;
+    return m_scanPaths;
 }
 
-void HTMLBackend::setRootPaths(const QStringList &paths)
+void HTMLBackend::setScanPaths(const QStringList &paths)
 {
     QStringList normalized;
     normalized.reserve(paths.size());
     for (const QString &p : paths) {
         normalized.append(WallpaperProjectJson::toUrl(p));
     }
-    if (m_rootPaths == normalized) {
+    if (m_scanPaths == normalized) {
         return;
     }
-    m_rootPaths = normalized;
-    Q_EMIT rootPathsChanged();
+    m_scanPaths = normalized;
+    Q_EMIT scanPathsChanged();
 }
 
 bool HTMLBackend::requireWebType() const
@@ -129,22 +129,22 @@ WallpaperListModel *HTMLBackend::wallpapers() const
 bool HTMLBackend::addScanPath(const QString &path)
 {
     const QString p = WallpaperProjectJson::toUrl(path);
-    if (m_rootPaths.contains(p)) {
+    if (m_scanPaths.contains(p)) {
         return false;
     }
-    m_rootPaths.append(p);
-    Q_EMIT rootPathsChanged();
+    m_scanPaths.append(p);
+    Q_EMIT scanPathsChanged();
     return true;
 }
 
 void HTMLBackend::removeScanPath(const QString &path)
 {
     const QString p = WallpaperProjectJson::toUrl(path);
-    if (!m_rootPaths.contains(p)) {
+    if (!m_scanPaths.contains(p)) {
         return;
     }
-    m_rootPaths.removeAll(p);
-    Q_EMIT rootPathsChanged();
+    m_scanPaths.removeAll(p);
+    Q_EMIT scanPathsChanged();
 }
 
 void HTMLBackend::scan()
@@ -156,7 +156,7 @@ void HTMLBackend::scan()
     m_wallpapers->clear();
 
     // 快照传给后台线程：worker 只读这些值拷贝，绝不触碰任何 QObject 成员。
-    const QStringList roots = m_rootPaths;
+    const QStringList roots = m_scanPaths;
     const bool requireWebType = m_requireWebType;
     const QStringList nonHtmlTypes = m_nonHtmlTypes;
 

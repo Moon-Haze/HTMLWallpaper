@@ -11,12 +11,12 @@ import QtTest
 /**
  * 高依赖组件的冒烟测试。
  *
- * config.qml / ThumbnailsComponent / WallpaperDelegate 依赖 KCM 框架与
+ * config.qml / ThumbnailsView / WallpaperDelegate 依赖 KCM 框架与
  * plasmashell 注入的上下文（wallpaperConfiguration、imageModel 等），
  * 无法在测试环境轻量实例化，故 smoke 验证到"QML 可编译、所有 import 模块
  * 可解析"（Component.Ready）。
  *
- * AddFileDialog 自包含（Loader + 系统文件夹对话框），只需 mock config 层
+ * AddFolderDialog 自包含（Loader + 系统文件夹对话框），只需 mock config 层
  * 上下文，故做完整实例化测试：验证它始终加载 FolderDialog（纯 HTML 模式），
  * 且确认后把选中文件夹交给 config 的 addScanPath。
  *
@@ -33,7 +33,7 @@ TestCase {
     property var i18nd: function (domain, text) { return text; }
     property var i18ndc: function (domain, context, text) { return text; }
 
-    // AddFileDialog 上下文 mock：其 onAccepted 调用 config 层（动态作用域里
+    // AddFolderDialog 上下文 mock：其 onAccepted 调用 config 层（动态作用域里
     // 的 root 即本 TestCase）的 addScanPath / wallpaperBrowseCompleted / 配置刷新。
     property var root: ({
         addScanPath: function (path) { testCase.addedPaths.push(String(path)); },
@@ -68,7 +68,7 @@ TestCase {
     }
 
     function test_thumbnails_compiles() {
-        verify(compiles("settings/ThumbnailsComponent.qml"), "ThumbnailsComponent 应可编译");
+        verify(compiles("settings/ThumbnailsView.qml"), "ThumbnailsView 应可编译");
     }
 
     function test_wallpaperDelegate_compiles() {
@@ -76,7 +76,7 @@ TestCase {
     }
 
     function test_slideshowComponent_compiles() {
-        verify(compiles("settings/SlideshowComponent.qml"), "SlideshowComponent 应可编译");
+        verify(compiles("settings/ScanPathsPanel.qml"), "ScanPathsPanel 应可编译");
     }
 
     function test_propertyPanel_compiles() {
@@ -91,12 +91,12 @@ TestCase {
         parser.destroy();
     }
 
-    function test_addFileDialog_compiles() {
-        verify(compiles("settings/AddFileDialog.qml"), "AddFileDialog 应可编译");
+    function test_addFolderDialog_compiles() {
+        verify(compiles("settings/AddFolderDialog.qml"), "AddFolderDialog 应可编译");
     }
 
-    // —— 字符串数组 model 的 delegate 语义（rootPaths 作 model 用 modelData 防回归）——
-    // rootPaths 是 QStringList，QML 里即字符串数组；字符串数组作 model 时
+    // —— 字符串数组 model 的 delegate 语义（scanPaths 作 model 用 modelData 防回归）——
+    // scanPaths 是 QStringList，QML 里即字符串数组；字符串数组作 model 时
     // modelData 直接是元素值（没有 path role，model.path 是 undefined）。
     // 此测试固化该语义，防止将来误用 model.path 导致 delegate 拿不到路径。
     function test_stringArrayModel_usesModelData() {
@@ -125,11 +125,11 @@ TestCase {
         container.destroy();
     }
 
-    // —— AddFileDialog 实例化 smoke ——
+    // —— AddFolderDialog 实例化 smoke ——
 
-    function test_addFileDialog_loadsFolderDialog() {
-        let d = Qt.createComponent("../package/contents/ui/settings/AddFileDialog.qml").createObject(testCase);
-        verify(d !== null, "AddFileDialog 实例化失败");
+    function test_addFolderDialog_loadsFolderDialog() {
+        let d = Qt.createComponent("../package/contents/ui/settings/AddFolderDialog.qml").createObject(testCase);
+        verify(d !== null, "AddFolderDialog 实例化失败");
         verify(waitForCondition(() => d.status === Loader.Ready, 3000),
                "文件夹对话框未在 3s 内加载，status=" + d.status);
         verify(d.item instanceof FolderDialog, "纯 HTML 模式应加载 FolderDialog");
@@ -137,10 +137,10 @@ TestCase {
     }
 
     // 模拟用户确认：onAccepted 应把选中文件夹交给 config 的 addScanPath
-    function test_addFileDialog_accepted_addsScanPath() {
+    function test_addFolderDialog_accepted_addsScanPath() {
         addedPaths = [];
-        let d = Qt.createComponent("../package/contents/ui/settings/AddFileDialog.qml").createObject(testCase);
-        verify(d !== null, "AddFileDialog 实例化失败");
+        let d = Qt.createComponent("../package/contents/ui/settings/AddFolderDialog.qml").createObject(testCase);
+        verify(d !== null, "AddFolderDialog 实例化失败");
         verify(waitForCondition(() => d.status === Loader.Ready && d.item, 3000),
                "FolderDialog 未加载");
         // 手动触发对话框的 accepted 信号（Connections.onAccepted 里会销毁 Loader）

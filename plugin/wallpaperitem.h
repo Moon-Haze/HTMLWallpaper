@@ -18,7 +18,7 @@
  * 数据成员是 WallpaperProject 值类型（后台线程解析的产物），全部 Q_PROPERTY
  * 委托到它；属性表经 WallpaperPropertyModel 接口层暴露（构造时物化）。
  * source/display 是 file/title 的兼容别名（对齐 slideFilterModel 与
- * ThumbnailsComponent 的 get(i).source）。
+ * ThumbnailsView 的 get(i).source）。
  * monetization / contentrating / ratingsex / ratingviolence / version /
  * workshopurl / supportsAudio 为 html-wallpapers 各壁纸 project.json 中的
  * 扩展元数据（部分壁纸缺失，缺省为 false / 空串 / 0）。

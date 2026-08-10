@@ -15,7 +15,7 @@
 #include "wallpaperproperty.h"
 
 // 路径/URL/类型工具：同时被 WallpaperProject 内部与 htmlbackend.cpp 的
-// rootPaths 归一化、scanWallpapers 后台 worker 复用，故导出为命名空间函数。
+// scanPaths 归一化、scanWallpapers 后台 worker 复用，故导出为命名空间函数。
 namespace WallpaperProjectJson
 {
 /** 归一化为带 scheme 的 URL：裸路径（"/usr/share/..."）补 file:// 前缀。 */
