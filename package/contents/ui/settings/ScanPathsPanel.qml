@@ -38,9 +38,9 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
  */
 // —— 左栏：扫描目录（文件夹）列表 ——
 ColumnLayout {
-    
+    id: root
+
     property alias scanPaths: scanPathsView.model
-    
 
     Kirigami.Separator {
         Layout.fillWidth: true
@@ -71,7 +71,24 @@ ColumnLayout {
                         icon.name: "list-add-symbolic"
                         text: i18ndc("plasma_wallpaper_org.kde.image", "@action button the thing being added is a folder", "Add…")
                         Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Add Folder…")
-                        onTriggered: root.openChooserDialog()
+                        onTriggered:{
+                            const dialogComponent = Qt.createComponent("AddFolderDialog.qml");
+                            // 只注入对话框所需的最小依赖：两个回调，不暴露 config 根对象。
+                            // addScanPath 实现在 config.qml（改 cfg_ScanPaths 才持久化）；
+                            // 完成后这里通知 config 层刷新缩略图 / 标记配置变更
+                            dialogComponent.createObject(root, {
+                                addScanPath: (path) => {
+                                    if (root.configApi) root.configApi.addScanPath(path);
+                                },
+                                onAdded: () => {
+                                    if (root.configApi) {
+                                        root.configApi.wallpaperBrowseCompleted();
+                                        root.configApi.configurationChanged();
+                                    }
+                                }
+                            });
+                            dialogComponent.destroy();
+                        }
                     }
                 ]
             }
@@ -110,13 +127,17 @@ ColumnLayout {
                         subtitle: baseListItem.subtitle
                     }
 
-                    // 从扫描列表移除该文件夹
+                    // 从扫描列表移除该文件夹：走 config 层 removeScanPath（持久化
+                    // cfg_ScanPaths），由 scanPaths 绑定同步 ListView 与解析器重扫
                     QQC2.ToolButton {
                         icon.name: "edit-delete-remove-symbolic"
                         text: i18nd("plasma_wallpaper_org.kde.image", "Remove Folder")
                         display: QQC2.Button.IconOnly
-                        onClicked: root.removeScanPath(baseListItem.modelData)
-
+                        onClicked: {
+                            if (root.configApi) {
+                                root.configApi.removeScanPath(baseListItem.modelData);
+                            }
+                        }
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text
                         QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
