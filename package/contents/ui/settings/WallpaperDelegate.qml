@@ -31,7 +31,6 @@ KCM.GridDelegate {
 
     // 标记为"待删除"的项半透明显示（HTML 模式模型无此 role，恒为不透明）
     opacity: model.pendingDeletion ? 0.5 : 1
-    scale: index, 1 
 
     text: model.title
 
@@ -40,22 +39,29 @@ KCM.GridDelegate {
         id: backgroundRect
         anchors.fill: parent
 
-        // 预览图未就绪时显示占位图标
+        // 预览图未就绪时显示占位图标；失败态切"缺图"图标，避免误读为加载中
         Kirigami.Icon {
             anchors.centerIn: parent
             width: Kirigami.Units.iconSizes.large
             height: width
-            source: "view-preview"
-            visible: previewImage.status != Image.Ready
+            source: previewImage.status === Image.Error ? "image-missing" : "view-preview"
+            visible: previewImage.status !== Image.Ready
         }
 
         Image {
             id: previewImage
             anchors.fill: parent
+            // 等比缩放后居中裁剪，填满缩略图而不错乱比例（类似 CSS object-fit: cover）
+            fillMode: Image.PreserveAspectCrop
             asynchronous: true
             retainWhileLoading: true
             cache: false
             source: model.preview
+            // 加载完成淡入，避免占位图标硬切
+            opacity: status === Image.Ready ? 1 : 0
+            Behavior on opacity {
+                NumberAnimation { duration: Kirigami.Units.shortDuration }
+            }
         }
 
         Behavior on color {
