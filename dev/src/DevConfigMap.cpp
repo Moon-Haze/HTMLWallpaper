@@ -16,7 +16,7 @@ DevConfigMap::DevConfigMap(QObject *parent)
     // 否则运行时报 "Cannot assign to non-existent property"。
     // 键与 package/contents/config/main.xml 一致，大写开头（动态属性允许，
     // 静态属性不允许）。
-    setProperty("DisplayPage", QString());
+    setProperty("SelectWallpaper", QString());
     setProperty("ZoomFactor", 1.0);
     setProperty("InsecureHTTPS", false);
     setProperty("WallpaperProperties", QStringLiteral("{}"));

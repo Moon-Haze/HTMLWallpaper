@@ -8,17 +8,17 @@ import QtQuick
 import QtTest
 
 /**
- * 缩略图高亮联动行为测试（currentIndex 绑定 cfg_DisplayPage）。
+ * 缩略图高亮联动行为测试（currentIndex 绑定 cfg_SelectWallpaper）。
  *
  * 验证"配置驱动高亮"的持久绑定语义（见 docs/superpowers/specs/2026-08-09-
  * highlight-binding-design.md）：
  *   - currentIndex 由 resetCurrentIndex() 建立的 Qt.binding 驱动，跟随
- *     root.cfg_DisplayPage 变化（打开面板/改配置 → 高亮跟随当前应用壁纸）；
+ *     root.cfg_SelectWallpaper 变化（打开面板/改配置 → 高亮跟随当前应用壁纸）；
  *   - 无匹配项回退第一格（索引 0）；
- *   - 扫描完成（scanFinished）后重建绑定，重扫后高亮仍跟随 cfg_DisplayPage。
+ *   - 扫描完成（scanFinished）后重建绑定，重扫后高亮仍跟随 cfg_SelectWallpaper。
  *
  * 环境注意：KDeclarative 国际化函数用同名 property 注入 mock；root 经动态
- * 作用域链解析到本 TestCase（其 cfg_DisplayPage 是声明属性，可被绑定追踪）。
+ * 作用域链解析到本 TestCase（其 cfg_SelectWallpaper 是声明属性，可被绑定追踪）。
  */
 TestCase {
     id: testCase
@@ -31,9 +31,9 @@ TestCase {
     property var i18ndc: function (domain, context, text) { return text; }
 
     // root mock：ThumbnailsPanel 经作用域链把 root 解析到本 TestCase，
-    // cfg_DisplayPage 作为声明属性可被 Qt.binding 追踪；wallpaperBrowseCompleted
+    // cfg_SelectWallpaper 作为声明属性可被 Qt.binding 追踪；wallpaperBrowseCompleted
     // 信号供 ThumbnailsPanel 的 Connections 匹配（MainView 代理信号的同名信号）。
-    property string cfg_DisplayPage: "a.html"
+    property string cfg_SelectWallpaper: "a.html"
     signal wallpaperBrowseCompleted()
     property var root: testCase
 
@@ -83,32 +83,32 @@ TestCase {
         return cond();
     }
 
-    // 打开面板时高亮 = cfg_DisplayPage 对应项；改动配置时高亮跟随
-    function test_currentIndex_followsDisplayPage() {
-        // 初始 cfg_DisplayPage = "a.html" → 索引 0
+    // 打开面板时高亮 = cfg_SelectWallpaper 对应项；改动配置时高亮跟随
+    function test_currentIndex_followsSelectWallpaper() {
+        // 初始 cfg_SelectWallpaper = "a.html" → 索引 0
         verify(waitForCondition(() => comp.view.currentIndex === 0, 2000),
                "初始 currentIndex 应为 0，实际 " + comp.view.currentIndex);
 
         // 改配置 → 高亮自动跟随（绑定驱动）
-        cfg_DisplayPage = "b.html";
+        cfg_SelectWallpaper = "b.html";
         verify(waitForCondition(() => comp.view.currentIndex === 1, 2000),
-               "currentIndex 应跟随 cfg_DisplayPage 到 1，实际 " + comp.view.currentIndex);
+               "currentIndex 应跟随 cfg_SelectWallpaper 到 1，实际 " + comp.view.currentIndex);
 
-        cfg_DisplayPage = "c.html";
+        cfg_SelectWallpaper = "c.html";
         verify(waitForCondition(() => comp.view.currentIndex === 2, 2000),
-               "currentIndex 应跟随 cfg_DisplayPage 到 2，实际 " + comp.view.currentIndex);
+               "currentIndex 应跟随 cfg_SelectWallpaper 到 2，实际 " + comp.view.currentIndex);
     }
 
     // 无匹配项回退第一格（与 checked 回退行为一致）
-    function test_unmatchedDisplayPage_fallsBackToZero() {
-        cfg_DisplayPage = "zzz.html";
+    function test_unmatchedSelectWallpaper_fallsBackToZero() {
+        cfg_SelectWallpaper = "zzz.html";
         verify(waitForCondition(() => comp.view.currentIndex === 0, 2000),
                "无匹配应回退 0，实际 " + comp.view.currentIndex);
     }
 
-    // 扫描完成重建绑定：重扫后高亮仍跟随 cfg_DisplayPage
+    // 扫描完成重建绑定：重扫后高亮仍跟随 cfg_SelectWallpaper
     function test_scanFinished_rebuildsBinding() {
-        cfg_DisplayPage = "b.html";
+        cfg_SelectWallpaper = "b.html";
         verify(waitForCondition(() => comp.view.currentIndex === 1, 2000),
                "初始 b.html 应在索引 1，实际 " + comp.view.currentIndex);
 

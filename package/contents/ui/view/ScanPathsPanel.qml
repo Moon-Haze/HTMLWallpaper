@@ -78,7 +78,13 @@ ColumnLayout {
                             // 完成后这里通知 config 层刷新缩略图 / 标记配置变更
                             dialogComponent.createObject(root, {
                                 addScanPath: (path) => {
-                                    if (root.configApi) root.configApi.addScanPath(path);
+                                    const p = String(path);
+                                    if (scanPaths.indexOf(p) >= 0) {
+                                        return;
+                                    }
+                                    const list = scanPaths.slice();
+                                    list.push(p);
+                                    scanPaths = list;
                                 },
                                 onAdded: () => {
                                     if (root.configApi) {
@@ -134,9 +140,10 @@ ColumnLayout {
                         text: i18nd("plasma_wallpaper_org.kde.image", "Remove Folder")
                         display: QQC2.Button.IconOnly
                         onClicked: {
-                            if (root.configApi) {
-                                root.configApi.removeScanPath(baseListItem.modelData);
-                            }
+                                                   
+                            const p = String(baseListItem.modelData);
+                            const list = scanPaths.filter(x => String(x) !== p);
+                            scanPaths = list;
                         }
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text

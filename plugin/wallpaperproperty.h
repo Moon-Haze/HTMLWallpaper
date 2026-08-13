@@ -31,19 +31,19 @@ public:
     WallpaperProperty() = default;
     WallpaperProperty(const QString &key, const QVariantMap &raw);
 
-    QString key() const { return m_key; }
-    QString type() const { return m_type; }
-    QString text() const { return m_text; }
-    QVariant value() const { return m_value; }
-    QVariant min() const { return m_min; }
-    QVariant max() const { return m_max; }
-    QVariant step() const { return m_step; }
-    QVariant fraction() const { return m_fraction; }
-    QVariant precision() const { return m_precision; }
-    QVariantList options() const { return m_options; }
-    QString condition() const { return m_condition; }
-    QString group() const { return m_group; }
-    int order() const { return m_order; }
+    QString key() const;
+    QString type() const;
+    QString text() const;
+    QVariant value() const;
+    QVariant min() const;
+    QVariant max() const;
+    QVariant step() const;
+    QVariant fraction() const;
+    QVariant precision() const;
+    QVariantList options() const;
+    QString condition() const;
+    QString group() const;
+    int order() const;
 
 private:
     QString m_key;

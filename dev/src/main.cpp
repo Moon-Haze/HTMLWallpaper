@@ -35,7 +35,7 @@
 // fileReader QML XHR hack（HtmlWallpaperParser 时代 dev 环境 XHR 的 file://
 // 回调不触发才需要注入同步读取器）。
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     // WebEngine 沙箱在部分环境（容器 / 无 user namespaces）会启动失败；
     // dev 工具直接关闭，避免启动即崩。
@@ -59,16 +59,14 @@ int main(int argc, char* argv[])
     // 构建产物在 build/bin/<URI>）；显式加 import 路径，与系统 Qt QML 路径并存
     engine.addImportPath(QStringLiteral(HTMLWALLPAPER_IMPORT_DIR));
     // mock wallpaper.configuration（KConfigPropertyMap）：C++ 动态属性提供
-    // 大写 key（DisplayPage/PreviewImage/…），纯 QML QtObject 做不到。
-    engine.rootContext()->setContextProperty(QStringLiteral("devConfigMap"),
-        new DevConfigMap(&engine));
+    // 大写 key（SelectWallpaper/PreviewImage/…），纯 QML QtObject 做不到。
+    engine.rootContext()->setContextProperty(QStringLiteral("devConfigMap"), new DevConfigMap(&engine));
     // 加载失败时打印每个 QML 错误（默认只打一行到 stderr，信息不足）
-    QObject::connect(&engine, &QQmlApplicationEngine::warnings,
-        [](const QList<QQmlError>& warnings) {
-            for (const QQmlError& e : warnings) {
-                qWarning().noquote() << "[dev] QML 警告:" << e.toString();
-            }
-        });
+    QObject::connect(&engine, &QQmlApplicationEngine::warnings, [](const QList<QQmlError> &warnings) {
+        for (const QQmlError &e : warnings) {
+            qWarning().noquote() << "[dev] QML 警告:" << e.toString();
+        }
+    });
     engine.load(QUrl::fromLocalFile(QStringLiteral(DEV_QML_DIR "/DevShell.qml")));
     if (engine.rootObjects().isEmpty()) {
         qWarning().noquote() << "[dev] DevShell.qml 加载失败";
@@ -78,11 +76,10 @@ int main(int argc, char* argv[])
 
     if (!shotPath.isEmpty()) {
         QTimer::singleShot(5000, [&]() {
-            if (auto* w = qobject_cast<QQuickWindow*>(engine.rootObjects().first())) {
+            if (auto *w = qobject_cast<QQuickWindow *>(engine.rootObjects().first())) {
                 const QImage img = w->grabWindow();
                 const bool ok = img.save(shotPath);
-                qWarning().noquote() << "[dev] 截图保存:" << shotPath << ok
-                                     << img.size().width() << "x" << img.size().height();
+                qWarning().noquote() << "[dev] 截图保存:" << shotPath << ok << img.size().width() << "x" << img.size().height();
             } else {
                 qWarning().noquote() << "[dev] 未找到窗口对象，无法截图";
             }

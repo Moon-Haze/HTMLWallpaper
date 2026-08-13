@@ -13,3 +13,17 @@ WallpaperItem::WallpaperItem(const WallpaperProject &project, QObject *parent)
 {
     m_properties.setEntries(m_project.properties());
 }
+
+WallpaperItem::WallpaperItem(const WallpaperItem &item, QObject *parent)
+    : WallpaperItem(item.m_project, parent)
+{
+}
+
+WallpaperItem &WallpaperItem::operator=(const WallpaperItem &item)
+{
+    if (this != &item) {
+        m_project = item.m_project;
+        m_properties.setEntries(m_project.properties());
+    }
+    return *this;
+}

@@ -10,6 +10,7 @@
 #include <QStringList>
 
 #include <QtQml/qqml.h>
+#include <qcontainerfwd.h>
 
 #include "wallpaperlistmodel.h"
 #include "wallpaperproject.h" // ScanResult / WallpaperProjectJson
@@ -49,6 +50,7 @@ class HTMLBackend : public QObject
     QML_ELEMENT
     QML_NAMED_ELEMENT(HTMLBackend)
 
+    Q_PROPERTY(QString selectWallpaper READ selectWallpaper WRITE setSelectWallpaper NOTIFY selectWallpaperChanged)
     /**
      * 待扫描的壁纸根目录（可多个）。默认匹配 main.xml 中 ScanPaths 的默认值。
      * QML 里是字符串数组，可直接作 ListView 的 model（delegate 用 modelData）。
@@ -69,7 +71,8 @@ class HTMLBackend : public QObject
 
 public:
     explicit HTMLBackend(QObject *parent = nullptr);
-
+    QString selectWallpaper() const;
+    void setSelectWallpaper(const QString &wallpaper);
     QStringList scanPaths() const;
     void setScanPaths(const QStringList &paths);
     bool requireWebType() const;
@@ -88,6 +91,7 @@ public:
     Q_INVOKABLE void removeScanPath(const QString &path);
 
 Q_SIGNALS:
+    void selectWallpaperChanged();
     /** 扫描全部完成（可能部分子目录解析失败，已在日志警告）。 */
     void scanFinished();
     /** 某个根目录无法读取时发出（path：根目录 url，error：底层错误字符串）。 */
@@ -100,6 +104,7 @@ Q_SIGNALS:
 private:
     void setScanInProgress(bool inProgress);
 
+    QString m_selectWallpaper;
     QStringList m_scanPaths;
     QStringList m_nonHtmlTypes{QStringLiteral("video"), QStringLiteral("scene"), QStringLiteral("application"), QStringLiteral("audio")};
     bool m_requireWebType = true;

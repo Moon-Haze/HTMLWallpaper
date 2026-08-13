@@ -243,3 +243,93 @@ WallpaperProject::WallpaperProject(const QString &dirUrl)
 
     m_valid = true;
 }
+
+bool WallpaperProject::isValid() const
+{
+    return m_valid;
+}
+
+QString WallpaperProject::name() const
+{
+    return m_name;
+}
+QString WallpaperProject::title() const
+{
+    return m_title;
+}
+QString WallpaperProject::description() const
+{
+    return m_description;
+}
+QString WallpaperProject::tags() const
+{
+    return m_tags;
+}
+QString WallpaperProject::type() const
+{
+    return m_type;
+}
+QString WallpaperProject::visibility() const
+{
+    return m_visibility;
+}
+QString WallpaperProject::workshopid() const
+{
+    return m_workshopid;
+}
+QString WallpaperProject::path() const
+{
+    return m_path;
+}
+QString WallpaperProject::file() const
+{
+    return m_file;
+}
+QString WallpaperProject::source() const
+{
+    return m_file;
+} // entry 别名
+QString WallpaperProject::display() const
+{
+    return m_title;
+} // title 别名
+QString WallpaperProject::preview() const
+{
+    return m_preview;
+}
+bool WallpaperProject::monetization() const
+{
+    return m_monetization;
+}
+QString WallpaperProject::contentrating() const
+{
+    return m_contentrating;
+}
+QString WallpaperProject::ratingsex() const
+{
+    return m_ratingsex;
+}
+QString WallpaperProject::ratingviolence() const
+{
+    return m_ratingviolence;
+}
+int WallpaperProject::version() const
+{
+    return m_version;
+}
+QString WallpaperProject::workshopurl() const
+{
+    return m_workshopurl;
+}
+const QList<WallpaperProperty> &WallpaperProject::properties() const
+{
+    return m_properties;
+}
+bool WallpaperProject::supportsaudioprocessing() const
+{
+    return m_supportsaudioprocessing;
+}
+bool WallpaperProject::supportsAudio() const
+{
+    return m_supportsAudio;
+}

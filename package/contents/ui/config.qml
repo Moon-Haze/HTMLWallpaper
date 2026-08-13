@@ -13,7 +13,7 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 
 import com.github.moon_haze.htmlwallpaper
-import "settings" as Settings
+import "view" as View
 /**
  * 壁纸"配置"页主界面（在系统设置 / 桌面壁纸右键菜单中打开）。
  *
@@ -29,11 +29,24 @@ ColumnLayout {
     // property alias wallpaper: mainView.wallpaper
     property alias cfg_ScanPaths: htmlWallpaper.scanPaths
 
-    property string cfg_DisplayPage                  // 当前 HTML 壁纸入口页面（DisplayPage 配置）
+    property alias cfg_SelectWallpaper: htmlWallpaper.selectWallpaper
+
     property string cfg_WallpaperProperties        // 当前 HTML 壁纸参数 JSON（运行时注入/重启恢复）
 
     spacing: 0
-
+    // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下的 project.json，提供壁纸
+    // 列表 / 参数表 / 预览。scanPaths 跟随 cfg_ScanPaths（扫描目录），
+    // 变化时触发重扫；scanPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
+    HTMLBackend {
+        id: htmlWallpaper
+        // 路径变化时重扫（数据源即 scanPaths，无需中间模型同步）
+        onScanPathsChanged: htmlWallpaper.scan()
+        // 扫描完成 → 按 cfg_SelectWallpaper 匹配勾选当前壁纸（无匹配回退第一项）
+        // onScanFinished: root.syncCheckedFromSelectWallpaper()
+        // 初始化：scanPaths 绑定赋初值不触发 onScanPathsChanged，补一次初始扫描，
+        // 否则打开配置面板时中栏网格为空
+        Component.onCompleted: htmlWallpaper.scan()
+    }
     // —— 主内容区：接受拖放，加载 HTML 壁纸面板 ——
     DropArea {
         Layout.fillWidth: true
@@ -61,25 +74,13 @@ ColumnLayout {
             signal wallpaperBrowseCompleted()
 
             spacing: 0
-            // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下的 project.json，提供壁纸
-            // 列表 / 参数表 / 预览。scanPaths 跟随 cfg_ScanPaths（扫描目录），
-            // 变化时触发重扫；scanPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
-            HTMLBackend {
-                id: htmlWallpaper
-                // 路径变化时重扫（数据源即 scanPaths，无需中间模型同步）
-                onScanPathsChanged: htmlWallpaper.scan()
-                // 扫描完成 → 按 cfg_DisplayPage 匹配勾选当前壁纸（无匹配回退第一项）
-                // onScanFinished: root.syncCheckedFromDisplayPage()
-                // 初始化：scanPaths 绑定赋初值不触发 onScanPathsChanged，补一次初始扫描，
-                // 否则打开配置面板时中栏网格为空
-                Component.onCompleted: htmlWallpaper.scan()
-            }
+            
             // —— 左栏：扫描目录（文件夹）列表 ——
-            Settings.ScanPathsPanel {
+            View.ScanPathsPanel {
                 id: scanPathsView
                 spacing: 0
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 16
-                scanPaths: htmlWallpaper ? htmlWallpaper.scanPaths : null
+                scanPaths: htmlWallpaper.scanPaths
             }
 
             Kirigami.Separator {
@@ -87,7 +88,7 @@ ColumnLayout {
             }
 
             // —— 中栏：HTML 壁纸缩略图网格 ——
-            Settings.ThumbnailsPanel {
+            View.ThumbnailsPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 // 注意：必须写 root.htmlWallpaper，不能写裸 htmlWallpaper——

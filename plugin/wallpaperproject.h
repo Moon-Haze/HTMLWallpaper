@@ -33,10 +33,9 @@ bool isHtmlType(const QString &type, const QStringList &nonHtmlTypes);
 class WallpaperProject;
 
 /** 后台扫描的结果聚合（纯值，线程安全；主线程消费）。 */
-struct ScanResult
-{
-    QList<WallpaperProject> projects;          // 解析结果
-    QList<QPair<QString, QString>> failures;   // (path, error)
+struct ScanResult {
+    QList<WallpaperProject> projects; // 解析结果
+    QList<QPair<QString, QString>> failures; // (path, error)
 };
 
 /**
@@ -58,29 +57,31 @@ class WallpaperProject
 public:
     WallpaperProject() = default;
     explicit WallpaperProject(const QString &dirUrl);
-    bool isValid() const { return m_valid; }
+    bool isValid() const;
 
-    QString name() const { return m_name; }
-    QString title() const { return m_title; }
-    QString description() const { return m_description; }
-    QString tags() const { return m_tags; }
-    QString type() const { return m_type; }
-    QString visibility() const { return m_visibility; }
-    QString workshopid() const { return m_workshopid; }
-    QString path() const { return m_path; }
-    QString file() const { return m_file; }
-    QString source() const { return m_file; }    // entry 别名
-    QString display() const { return m_title; }  // title 别名
-    QString preview() const { return m_preview; }
-    bool monetization() const { return m_monetization; }
-    QString contentrating() const { return m_contentrating; }
-    QString ratingsex() const { return m_ratingsex; }
-    QString ratingviolence() const { return m_ratingviolence; }
-    int version() const { return m_version; }
-    QString workshopurl() const { return m_workshopurl; }
-    const QList<WallpaperProperty> &properties() const { return m_properties; }
-    bool supportsaudioprocessing() const { return m_supportsaudioprocessing; }
-    bool supportsAudio() const { return m_supportsAudio; }
+    QString name() const;
+
+    QString title() const;
+    QString description() const;
+    QString tags() const;
+    QString type() const;
+    QString visibility() const;
+    QString workshopid() const;
+    QString path() const;
+    QString file() const;
+    QString source() const;
+    QString display() const;
+    QString preview() const;
+    bool monetization() const;
+    QString contentrating() const;
+    QString ratingsex() const;
+    QString ratingviolence() const;
+    int version() const;
+    QString workshopurl() const;
+    const QList<WallpaperProperty> &properties() const;
+    bool supportsaudioprocessing() const;
+
+    bool supportsAudio() const;
 
 private:
     QString m_name;

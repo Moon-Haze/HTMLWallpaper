@@ -8,10 +8,10 @@
 
 #include <QAbstractListModel>
 #include <QList>
+#include <qtmetamacros.h>
 
+#include "wallpaperitem.h"
 #include "wallpaperproject.h"
-
-class WallpaperItem;
 
 /**
  * @brief 扫描结果壁纸列表模型（HTMLBackend::wallpapers，列表层）。
@@ -62,11 +62,18 @@ public:
 
     /** 整体替换全部条目（扫描完成时主线程调用）；只发一次 reset + countChanged。 */
     void setEntries(const QList<WallpaperProject> &projects);
+
     void clear();
 
+    Q_INVOKABLE int indexOf(const QString &source) const;
+
     /** 兼容原 ListModel：返回第 i 项元数据对象（含 checked）。 */
-    Q_INVOKABLE QObject *get(int i) const;
+    Q_INVOKABLE WallpaperItem *get(int i);
+
+    /** 按 key 返回属性门面对象；不存在返回 nullptr。 */
+    Q_INVOKABLE WallpaperItem *byKey(const QString &key);
 
 private:
-    QList<WallpaperItem *> m_items;
+    QList<WallpaperItem> m_items;
+    QHash<QString, int> m_indexByKey;
 };

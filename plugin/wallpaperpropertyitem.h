@@ -39,19 +39,23 @@ class WallpaperPropertyItem : public QObject
 public:
     explicit WallpaperPropertyItem(const WallpaperProperty &property, QObject *parent = nullptr);
 
-    QString key() const { return m_property.key(); }
-    QString type() const { return m_property.type(); }
-    QString text() const { return m_property.text(); }
-    QVariant value() const { return m_property.value(); }
-    QVariant min() const { return m_property.min(); }
-    QVariant max() const { return m_property.max(); }
-    QVariant step() const { return m_property.step(); }
-    QVariant fraction() const { return m_property.fraction(); }
-    QVariant precision() const { return m_property.precision(); }
-    QVariantList options() const { return m_property.options(); }
-    QString condition() const { return m_property.condition(); }
-    QString group() const { return m_property.group(); }
-    int order() const { return m_property.order(); }
+    explicit WallpaperPropertyItem(const WallpaperPropertyItem &item, QObject *parent = nullptr);
+
+    WallpaperPropertyItem &operator=(const WallpaperPropertyItem &item);
+
+    QString key() const;
+    QString type() const;
+    QString text() const;
+    QVariant value() const;
+    QVariant min() const;
+    QVariant max() const;
+    QVariant step() const;
+    QVariant fraction() const;
+    QVariant precision() const;
+    QVariantList options() const;
+    QString condition() const;
+    QString group() const;
+    int order() const;
 
 private:
     WallpaperProperty m_property;

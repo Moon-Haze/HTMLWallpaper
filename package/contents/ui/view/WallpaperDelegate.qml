@@ -28,7 +28,7 @@ KCM.GridDelegate {
     property alias previewSize: previewImage.sourceSize
     // 注入的解析器实例（点选应用时使用）
     property QtObject htmlWallpaper: null
-
+    
     // 标记为"待删除"的项半透明显示（HTML 模式模型无此 role，恒为不透明）
     opacity: model.pendingDeletion ? 0.5 : 1
 
@@ -77,16 +77,5 @@ KCM.GridDelegate {
             duration: Kirigami.Units.longDuration
             easing.type: Easing.InOutQuad
         }
-    }
-
-    // 点击行为：应用该壁纸（wallpaperParsed 已随重构删除，参数不再写配置）；
-    // 无路径时仅切换勾选状态
-    onClicked: {
-        if (htmlWallpaper && model.path) {
-            root.cfg_DisplayPage = model.file;
-            console.log("Wallpaper applied:", model.file, "with properties:");
-        } 
-        // 注意：不再手动改 GridView.currentIndex，以免销毁 cfg_DisplayPage 驱动的绑定，
-        // 高亮由 resetCurrentIndex() 建立的绑定自动跟随 cfg_DisplayPage
     }
 }

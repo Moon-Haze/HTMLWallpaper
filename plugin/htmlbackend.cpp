@@ -59,6 +59,18 @@ HTMLBackend::HTMLBackend(QObject *parent)
     , m_wallpapers(new WallpaperListModel(this))
 {
 }
+QString HTMLBackend::selectWallpaper() const
+{
+    return m_selectWallpaper;
+}
+void HTMLBackend::setSelectWallpaper(const QString &wallpaper)
+{
+    if (m_selectWallpaper == wallpaper) {
+        return;
+    }
+    m_selectWallpaper = wallpaper;
+    Q_EMIT selectWallpaperChanged();
+}
 
 QStringList HTMLBackend::scanPaths() const
 {

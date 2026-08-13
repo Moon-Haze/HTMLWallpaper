@@ -33,42 +33,42 @@ QVariant WallpaperListModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() < 0 || index.row() >= m_items.size()) {
         return {};
     }
-    const WallpaperItem *item = m_items.at(index.row());
+    auto &item = m_items.at(index.row());
     switch (role) {
     case NameRole:
-        return item->name();
+        return item.name();
     case TitleRole:
-        return item->title();
+        return item.title();
     case DescriptionRole:
-        return item->description();
+        return item.description();
     case TagsRole:
-        return item->tags();
+        return item.tags();
     case TypeRole:
-        return item->type();
+        return item.type();
     case VisibilityRole:
-        return item->visibility();
+        return item.visibility();
     case WorkshopIdRole:
-        return item->workshopid();
+        return item.workshopid();
     case PathRole:
-        return item->path();
+        return item.path();
     case PreviewRole:
-        return item->preview();
+        return item.preview();
     case MonetizationRole:
-        return item->monetization();
+        return item.monetization();
     case ContentRatingRole:
-        return item->contentrating();
+        return item.contentrating();
     case RatingSexRole:
-        return item->ratingsex();
+        return item.ratingsex();
     case RatingViolenceRole:
-        return item->ratingviolence();
+        return item.ratingviolence();
     case VersionRole:
-        return item->version();
+        return item.version();
     case WorkshopUrlRole:
-        return item->workshopurl();
+        return item.workshopurl();
     case SupportsAudioRole:
-        return item->supportsAudio();
+        return item.supportsAudio();
     case FileRole:
-        return item->file();
+        return item.file();
     default:
         return {};
     }
@@ -108,11 +108,12 @@ QHash<int, QByteArray> WallpaperListModel::roleNames() const
 void WallpaperListModel::setEntries(const QList<WallpaperProject> &projects)
 {
     beginResetModel();
-    qDeleteAll(m_items);
     m_items.clear();
     m_items.reserve(projects.size());
-    for (const WallpaperProject &project : projects) {
-        m_items.append(new WallpaperItem(project, this));
+
+    for (int i = 0; i < projects.size(); ++i) {
+        m_items.append(WallpaperItem(projects.at(i), this));
+        m_indexByKey.insert(projects.at(i).source(), i);
     }
     endResetModel();
     Q_EMIT dataChanged(index(0, 0),
@@ -141,15 +142,33 @@ void WallpaperListModel::setEntries(const QList<WallpaperProject> &projects)
 void WallpaperListModel::clear()
 {
     beginResetModel();
-    qDeleteAll(m_items);
     m_items.clear();
     endResetModel();
 }
 
-QObject *WallpaperListModel::get(int i) const
+int WallpaperListModel::indexOf(const QString &source) const
+{
+    for (int i = 0; i < m_items.size(); i++) {
+        if (m_items.at(i).source() == source) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+WallpaperItem *WallpaperListModel::get(int i)
 {
     if (i < 0 || i >= m_items.size()) {
         return nullptr;
     }
-    return m_items.at(i);
+    return &m_items[i];
+}
+
+WallpaperItem *WallpaperListModel::byKey(const QString &key)
+{
+    auto it = m_indexByKey.find(key);
+    if (it != m_indexByKey.end()) {
+        return &m_items[it.value()];
+    }
+    return nullptr;
 }

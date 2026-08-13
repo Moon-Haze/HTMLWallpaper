@@ -53,29 +53,96 @@ class WallpaperItem : public QObject
 public:
     explicit WallpaperItem(const WallpaperProject &project, QObject *parent = nullptr);
 
-    QString name() const { return m_project.name(); }
-    QString title() const { return m_project.title(); }
-    QString description() const { return m_project.description(); }
-    QString tags() const { return m_project.tags(); }
-    QString type() const { return m_project.type(); }
-    QString visibility() const { return m_project.visibility(); }
-    QString workshopid() const { return m_project.workshopid(); }
-    QString path() const { return m_project.path(); }
-    QString file() const { return m_project.file(); }
-    QString source() const { return m_project.source(); }
-    QString display() const { return m_project.display(); }
-    QString preview() const { return m_project.preview(); }
-    bool monetization() const { return m_project.monetization(); }
-    QString contentrating() const { return m_project.contentrating(); }
-    QString ratingsex() const { return m_project.ratingsex(); }
-    QString ratingviolence() const { return m_project.ratingviolence(); }
-    int version() const { return m_project.version(); }
-    QString workshopurl() const { return m_project.workshopurl(); }
-    WallpaperPropertyModel *properties() { return &m_properties; }
-    bool supportsaudioprocessing() const { return m_project.supportsaudioprocessing(); }
-    bool supportsAudio() const { return m_project.supportsAudio(); }
+    explicit WallpaperItem(const WallpaperItem &item, QObject *parent = nullptr);
+
+    WallpaperItem &operator=(const WallpaperItem &item);
+
+    QString name() const
+    {
+        return m_project.name();
+    }
+    QString title() const
+    {
+        return m_project.title();
+    }
+    QString description() const
+    {
+        return m_project.description();
+    }
+    QString tags() const
+    {
+        return m_project.tags();
+    }
+    QString type() const
+    {
+        return m_project.type();
+    }
+    QString visibility() const
+    {
+        return m_project.visibility();
+    }
+    QString workshopid() const
+    {
+        return m_project.workshopid();
+    }
+    QString path() const
+    {
+        return m_project.path();
+    }
+    QString file() const
+    {
+        return m_project.file();
+    }
+    QString source() const
+    {
+        return m_project.source();
+    }
+    QString display() const
+    {
+        return m_project.display();
+    }
+    QString preview() const
+    {
+        return m_project.preview();
+    }
+    bool monetization() const
+    {
+        return m_project.monetization();
+    }
+    QString contentrating() const
+    {
+        return m_project.contentrating();
+    }
+    QString ratingsex() const
+    {
+        return m_project.ratingsex();
+    }
+    QString ratingviolence() const
+    {
+        return m_project.ratingviolence();
+    }
+    int version() const
+    {
+        return m_project.version();
+    }
+    QString workshopurl() const
+    {
+        return m_project.workshopurl();
+    }
+    WallpaperPropertyModel *properties()
+    {
+        return &m_properties;
+    }
+    bool supportsaudioprocessing() const
+    {
+        return m_project.supportsaudioprocessing();
+    }
+    bool supportsAudio() const
+    {
+        return m_project.supportsAudio();
+    }
 
 private:
-    WallpaperProject m_project;                  // 数据层（唯一数据来源）
-    WallpaperPropertyModel m_properties{this};   // 接口层 ListModel，构造时 setEntries
+    WallpaperProject m_project; // 数据层（唯一数据来源）
+    WallpaperPropertyModel m_properties{this}; // 接口层 ListModel，构造时 setEntries
 };

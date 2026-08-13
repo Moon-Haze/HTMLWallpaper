@@ -8,8 +8,6 @@
 
 #include "wallpaperpropertyitem.h"
 
-#include <algorithm>
-
 WallpaperPropertyModel::WallpaperPropertyModel(QObject *parent)
     : QAbstractListModel(parent)
 {
@@ -18,15 +16,13 @@ WallpaperPropertyModel::WallpaperPropertyModel(QObject *parent)
 void WallpaperPropertyModel::setEntries(const QList<WallpaperProperty> &properties)
 {
     beginResetModel();
-    qDeleteAll(m_items);
     m_items.clear();
     m_indexByKey.clear();
     m_items.reserve(properties.size());
-    int i = 0;
-    for (const WallpaperProperty &p : properties) {
-        m_items.append(new WallpaperPropertyItem(p, this));
-        m_indexByKey.insert(p.key(), i);
-        ++i;
+
+    for (int i = 0; i < properties.size(); ++i) {
+        m_items.append(WallpaperPropertyItem(properties.at(i), this));
+        m_indexByKey.insert(properties.at(i).key(), i);
     }
     endResetModel();
 }
@@ -49,34 +45,34 @@ QVariant WallpaperPropertyModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() < 0 || index.row() >= m_items.size()) {
         return {};
     }
-    const WallpaperPropertyItem *item = m_items.at(index.row());
+    auto &item = m_items.at(index.row());
     switch (role) {
     case KeyRole:
-        return item->key();
+        return item.key();
     case TypeRole:
-        return item->type();
+        return item.type();
     case TextRole:
-        return item->text();
+        return item.text();
     case ValueRole:
-        return item->value();
+        return item.value();
     case MinRole:
-        return item->min();
+        return item.min();
     case MaxRole:
-        return item->max();
+        return item.max();
     case StepRole:
-        return item->step();
+        return item.step();
     case FractionRole:
-        return item->fraction();
+        return item.fraction();
     case PrecisionRole:
-        return item->precision();
+        return item.precision();
     case OptionsRole:
-        return item->options();
+        return item.options();
     case ConditionRole:
-        return item->condition();
+        return item.condition();
     case GroupRole:
-        return item->group();
+        return item.group();
     case OrderRole:
-        return item->order();
+        return item.order();
     default:
         return {};
     }
@@ -100,20 +96,18 @@ QHash<int, QByteArray> WallpaperPropertyModel::roleNames() const
         {OrderRole, "order"},
     };
 }
-
-WallpaperPropertyItem *WallpaperPropertyModel::get(int i) const
+WallpaperPropertyItem *WallpaperPropertyModel::get(int i)
 {
     if (i < 0 || i >= m_items.size()) {
         return nullptr;
     }
-    return m_items.at(i);
+    return &m_items[i];
 }
-
-WallpaperPropertyItem *WallpaperPropertyModel::byKey(const QString &key) const
+WallpaperPropertyItem *WallpaperPropertyModel::byKey(const QString &key)
 {
     const int i = m_indexByKey.value(key, -1);
     if (i < 0) {
         return nullptr;
     }
-    return m_items.at(i);
+    return &m_items[i];
 }

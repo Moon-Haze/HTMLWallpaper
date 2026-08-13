@@ -10,9 +10,7 @@
 #include <QHash>
 #include <QList>
 
-#include "wallpaperproperty.h"
-
-class WallpaperPropertyItem;
+#include "wallpaperpropertyitem.h"
 
 /**
  * @brief project.json 的 general.properties 可配置属性表（只读 ListModel，列表层）。
@@ -59,11 +57,12 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     /** 返回第 i 行属性门面对象；越界返回 nullptr。 */
-    Q_INVOKABLE WallpaperPropertyItem *get(int i) const;
+    Q_INVOKABLE WallpaperPropertyItem *get(int i);
+
     /** 按 key 返回属性门面对象；不存在返回 nullptr。 */
-    Q_INVOKABLE WallpaperPropertyItem *byKey(const QString &key) const;
+    Q_INVOKABLE WallpaperPropertyItem *byKey(const QString &key);
 
 private:
-    QList<WallpaperPropertyItem *> m_items;
+    QList<WallpaperPropertyItem> m_items;
     QHash<QString, int> m_indexByKey;
 };

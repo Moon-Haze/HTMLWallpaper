@@ -5,7 +5,7 @@
   <kcfgfile name=""/>
 
   <group name="General">
-    <entry name="DisplayPage" type="String">
+    <entry name="SelectWallpaper" type="String">
       <label>Page to display</label>
       <default>https://kde.org/</default>
     </entry>

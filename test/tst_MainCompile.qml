@@ -6,7 +6,7 @@ import QtTest
  *
  * 依赖 plasmashell 的 WallpaperItem 类型与 QtWebEngine，环境特殊；此处验证
  * 到 QML 可编译（Component.Ready）+ 混合注入的纯逻辑（_pageUrl 拼接：
- * DisplayPage 纯入口 + wallpaperProperties query，已有 ? 时用 & 续接）。
+ * SelectWallpaper 纯入口 + wallpaperProperties query，已有 ? 时用 & 续接）。
  */
 TestCase {
     id: testCase

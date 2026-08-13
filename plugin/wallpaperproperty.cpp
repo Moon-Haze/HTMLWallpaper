@@ -58,3 +58,56 @@ WallpaperProperty::WallpaperProperty(const QString &key, const QVariantMap &raw)
     const int o = raw.value(QStringLiteral("order")).toInt(&ok);
     m_order = ok ? o : std::numeric_limits<int>::max();
 }
+
+QString WallpaperProperty::key() const
+{
+    return m_key;
+}
+QString WallpaperProperty::type() const
+{
+    return m_type;
+}
+QString WallpaperProperty::text() const
+{
+    return m_text;
+}
+QVariant WallpaperProperty::value() const
+{
+    return m_value;
+}
+QVariant WallpaperProperty::min() const
+{
+    return m_min;
+}
+QVariant WallpaperProperty::max() const
+{
+    return m_max;
+}
+QVariant WallpaperProperty::step() const
+{
+    return m_step;
+}
+QVariant WallpaperProperty::fraction() const
+{
+    return m_fraction;
+}
+QVariant WallpaperProperty::precision() const
+{
+    return m_precision;
+}
+QVariantList WallpaperProperty::options() const
+{
+    return m_options;
+}
+QString WallpaperProperty::condition() const
+{
+    return m_condition;
+}
+QString WallpaperProperty::group() const
+{
+    return m_group;
+}
+int WallpaperProperty::order() const
+{
+    return m_order;
+}

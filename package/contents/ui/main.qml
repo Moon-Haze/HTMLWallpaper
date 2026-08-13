@@ -13,7 +13,7 @@ import org.kde.plasma.plasmoid
  * 页面，并把它铺满整个桌面作为壁纸；同时处理证书、加载失败等边界情况。
  *
  * 壁纸参数（WallpaperProperties JSON）采用**混合注入**：
- *   - 初始加载：DisplayPage（纯入口）+ query 参数拼入 URL（页面可读
+ *   - 初始加载：SelectWallpaper（纯入口）+ query 参数拼入 URL（页面可读
  *     location.search 的 wallpaperProperties 字段）；
  *   - 运行中参数变化：`runJavaScript` 推送给页面的
  *     `wallpaperPropertyListener.applyUserProperties(json)`（Wallpaper Engine
@@ -67,7 +67,7 @@ WallpaperItem {
         });
     }
 
-    // 设置页面 URL（初始加载 / DisplayPage 变化 / 回退重载共用）
+    // 设置页面 URL（初始加载 / SelectWallpaper 变化 / 回退重载共用）
     function _applyUrl(): void {
         webView.url = wallpaper._pageUrl();
         wallpaper._injectedJson = wallpaper._propertiesJson;
@@ -75,7 +75,7 @@ WallpaperItem {
 
     // 支持拖放：把本地 .html 文件拖到桌面，直接设为壁纸
     onOpenUrlRequested: (url) => {
-        wallpaper.configuration.DisplayPage = url;
+        wallpaper.configuration.SelectWallpaper = url;
         wallpaper.configuration.writeConfig();
         wallpaper._displayPage = String(url);
         wallpaper._applyUrl();
@@ -85,8 +85,8 @@ WallpaperItem {
     Connections {
         target: wallpaper.configuration
         function onValueChanged(key: string) {
-            if (key === "DisplayPage") {
-                wallpaper._displayPage = wallpaper.configuration.DisplayPage || "";
+            if (key === "SelectWallpaper") {
+                wallpaper._displayPage = wallpaper.configuration.SelectWallpaper || "";
                 wallpaper._applyUrl();
             } else if (key === "WallpaperProperties") {
                 wallpaper._propertiesJson = wallpaper.configuration.WallpaperProperties || "{}";
@@ -100,7 +100,7 @@ WallpaperItem {
         id: webView
         anchors.fill: parent
         // 不指定 profile，使用 QtWebEngine 默认 profile
-        // url 由 _applyUrl() 赋值（DisplayPage + 参数 query），不直接绑定
+        // url 由 _applyUrl() 赋值（SelectWallpaper + 参数 query），不直接绑定
         // 缩放因子，对应配置项中的 ZoomFactor
         zoomFactor: wallpaper.configuration.ZoomFactor
         // 页面渲染前先铺黑底，避免闪烁 / 出现白屏
@@ -150,7 +150,7 @@ WallpaperItem {
 
     // 首次加载：从配置取入口 + 参数，拼 query 后显示
     Component.onCompleted: {
-        wallpaper._displayPage = wallpaper.configuration.DisplayPage || "";
+        wallpaper._displayPage = wallpaper.configuration.SelectWallpaper || "";
         wallpaper._propertiesJson = wallpaper.configuration.WallpaperProperties || "{}";
         wallpaper._applyUrl();
     }

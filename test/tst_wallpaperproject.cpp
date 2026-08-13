@@ -56,8 +56,7 @@ void tst_WallpaperProject::propertyTypeTextFallback()
     QCOMPARE(p.value(), QString()); // text 无 value → 空串
 
     // 显式 type/text
-    QVariantMap raw2{{QStringLiteral("type"), QStringLiteral("slider")},
-                     {QStringLiteral("text"), QStringLiteral("Speed")}};
+    QVariantMap raw2{{QStringLiteral("type"), QStringLiteral("slider")}, {QStringLiteral("text"), QStringLiteral("Speed")}};
     WallpaperProperty p2(QStringLiteral("speed"), raw2);
     QCOMPARE(p2.type(), QStringLiteral("slider"));
     QCOMPARE(p2.text(), QStringLiteral("Speed"));
@@ -70,18 +69,16 @@ void tst_WallpaperProject::propertyValueDefaults()
     QCOMPARE(WallpaperProperty(QStringLiteral("b"), boolRaw).value(), QVariant(false));
 
     // slider → min；无 min → 0
-    QVariantMap sliderRaw{{QStringLiteral("type"), QStringLiteral("slider")},
-                          {QStringLiteral("min"), 3}};
+    QVariantMap sliderRaw{{QStringLiteral("type"), QStringLiteral("slider")}, {QStringLiteral("min"), 3}};
     QCOMPARE(WallpaperProperty(QStringLiteral("s"), sliderRaw).value(), QVariant(3));
     QVariantMap sliderNoMin{{QStringLiteral("type"), QStringLiteral("slider")}};
     QCOMPARE(WallpaperProperty(QStringLiteral("s2"), sliderNoMin).value(), QVariant(0));
 
     // combo → 首个 option 的 value；无 options → 0
     QVariantMap comboRaw{{QStringLiteral("type"), QStringLiteral("combo")},
-                         {QStringLiteral("options"), QVariantList{QVariantMap{{QStringLiteral("label"), QStringLiteral("A")},
-                                                                                {QStringLiteral("value"), QStringLiteral("a")}},
-                                                                  QVariantMap{{QStringLiteral("label"), QStringLiteral("B")},
-                                                                                {QStringLiteral("value"), QStringLiteral("b")}}}}};
+                         {QStringLiteral("options"),
+                          QVariantList{QVariantMap{{QStringLiteral("label"), QStringLiteral("A")}, {QStringLiteral("value"), QStringLiteral("a")}},
+                                       QVariantMap{{QStringLiteral("label"), QStringLiteral("B")}, {QStringLiteral("value"), QStringLiteral("b")}}}}};
     QCOMPARE(WallpaperProperty(QStringLiteral("c"), comboRaw).value(), QVariant(QStringLiteral("a")));
 
     // color → "0 0 0"
@@ -89,8 +86,7 @@ void tst_WallpaperProject::propertyValueDefaults()
     QCOMPARE(WallpaperProperty(QStringLiteral("col"), colorRaw).value(), QVariant(QStringLiteral("0 0 0")));
 
     // 显式 value 覆盖兜底
-    QVariantMap explicitRaw{{QStringLiteral("type"), QStringLiteral("bool")},
-                            {QStringLiteral("value"), true}};
+    QVariantMap explicitRaw{{QStringLiteral("type"), QStringLiteral("bool")}, {QStringLiteral("value"), true}};
     QCOMPARE(WallpaperProperty(QStringLiteral("be"), explicitRaw).value(), QVariant(true));
 }
 
@@ -216,9 +212,9 @@ void tst_WallpaperProject::propertyModelOrdering_paramfallback()
     QCOMPARE(props.at(3).key(), QStringLiteral("gamma"));
     QCOMPARE(props.at(4).key(), QStringLiteral("epsilon"));
     // value 兜底
-    QCOMPARE(props.at(0).value(), false);    // bool → false
-    QCOMPARE(props.at(1).value(), 3);        // slider 无 value → min=3
-    QCOMPARE(props.at(2).value(), QVariant(QStringLiteral("a")));  // combo → 首个 option value
+    QCOMPARE(props.at(0).value(), false); // bool → false
+    QCOMPARE(props.at(1).value(), 3); // slider 无 value → min=3
+    QCOMPARE(props.at(2).value(), QVariant(QStringLiteral("a"))); // combo → 首个 option value
     QCOMPARE(props.at(3).value(), QVariant(QStringLiteral("0 0 0"))); // color
     QCOMPARE(props.at(4).value(), QString()); // text → ""
     // type/text 兜底
@@ -289,14 +285,14 @@ void tst_WallpaperProject::propertyModelMaterializes()
     QCOMPARE(model.data(model.index(1), WallpaperPropertyModel::ValueRole).toString(), QStringLiteral("0 1 0"));
 
     // get(i) 返回 QObject* 属性访问
-    WallpaperPropertyItem *first = model.get(0);
+    const WallpaperPropertyItem *first = model.get(0);
     QVERIFY(first != nullptr);
     QCOMPARE(first->key(), QStringLiteral("speed"));
     QCOMPARE(first->value(), 5);
     QCOMPARE(first->order(), 1);
 
     // byKey 命中 / 未命中
-    WallpaperPropertyItem *color = model.byKey(QStringLiteral("color"));
+    const WallpaperPropertyItem *color = model.byKey(QStringLiteral("color"));
     QVERIFY(color != nullptr);
     QCOMPARE(color->value(), QVariant(QStringLiteral("0 1 0")));
     QVERIFY(model.byKey(QStringLiteral("nope")) == nullptr);
