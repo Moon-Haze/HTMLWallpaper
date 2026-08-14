@@ -6,43 +6,9 @@
 
 #include "htmlbackend.h"
 
-#include "wallpaperitem.h"
-#include "wallpaperlistmodel.h"
 #include "wallpaperentry.h"
-
-#include <QDir>
-#include <QFutureWatcher>
-#include <QPair>
-#include <QUrl>
-#include <QtConcurrent>
-
-namespace
-{
-
-// 后台扫描 worker：只读 QDir + WallpaperEntry 构造，不触碰 QObject。
-ScanResult scanWallpapers(const QStringList &roots)
-{
-    ScanResult result;
-    for (const QString &base : roots) {
-        const QString baseUrl = WallpaperPath::toUrl(base);
-        QDir dir(QUrl(baseUrl).toLocalFile());
-        if (!dir.exists()) {
-            result.failures.append({base, QStringLiteral("cannot list directory")});
-            continue;
-        }
-        const QStringList subdirs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
-        for (const QString &sub : subdirs) {
-            const QString dirUrl = WallpaperPath::pathJoin(baseUrl, sub);
-            WallpaperEntry entry(dirUrl);
-            if (entry.isValid()) {
-                result.projects.append(entry);
-            }
-        }
-    }
-    return result;
-}
-
-} // namespace
+#include "wallpaperitem.h"
+#include "wallpapermodel.h"
 
 // ---------------------------------------------------------------------------
 // HTMLBackend
@@ -50,13 +16,18 @@ ScanResult scanWallpapers(const QStringList &roots)
 
 HTMLBackend::HTMLBackend(QObject *parent)
     : QObject(parent)
-    , m_wallpapers(new WallpaperListModel(this))
+    , m_wallpapers(new WallpaperModel(this))
 {
+    connect(m_wallpapers, &WallpaperModel::scanFinished, this, &HTMLBackend::scanFinished);
+    connect(m_wallpapers, &WallpaperModel::scanFailed, this, &HTMLBackend::scanFailed);
+    connect(m_wallpapers, &WallpaperModel::scanInProgressChanged, this, &HTMLBackend::scanInProgressChanged);
 }
+
 QString HTMLBackend::selectWallpaper() const
 {
     return m_selectWallpaper;
 }
+
 void HTMLBackend::setSelectWallpaper(const QString &wallpaper)
 {
     if (m_selectWallpaper == wallpaper) {
@@ -115,19 +86,10 @@ void HTMLBackend::setNonHtmlTypes(const QStringList &nonHtmlTypes)
 
 bool HTMLBackend::scanInProgress() const
 {
-    return m_scanning;
+    return m_wallpapers->scanInProgress();
 }
 
-void HTMLBackend::setScanInProgress(bool inProgress)
-{
-    if (m_scanning == inProgress) {
-        return;
-    }
-    m_scanning = inProgress;
-    Q_EMIT scanInProgressChanged();
-}
-
-WallpaperListModel *HTMLBackend::wallpapers() const
+WallpaperModel *HTMLBackend::wallpapers() const
 {
     return m_wallpapers;
 }
@@ -155,26 +117,5 @@ void HTMLBackend::removeScanPath(const QString &path)
 
 void HTMLBackend::scan()
 {
-    if (m_scanning) {
-        return;
-    }
-    setScanInProgress(true);
-    m_wallpapers->clear();
-
-    // 快照传给后台线程：worker 只读这些值拷贝，绝不触碰任何 QObject 成员。
-    const QStringList roots = m_scanPaths;
-
-    if (!m_watcher) {
-        m_watcher = new QFutureWatcher<ScanResult>(this);
-        QObject::connect(m_watcher, &QFutureWatcher<ScanResult>::finished, this, [this]() {
-            const ScanResult result = m_watcher->result();
-            for (const auto &failure : result.failures) {
-                Q_EMIT scanFailed(failure.first, failure.second);
-            }
-            m_wallpapers->setEntries(result.projects);
-            setScanInProgress(false);
-            Q_EMIT scanFinished();
-        });
-    }
-    m_watcher->setFuture(QtConcurrent::run(scanWallpapers, roots));
+    m_wallpapers->scan(m_scanPaths);
 }

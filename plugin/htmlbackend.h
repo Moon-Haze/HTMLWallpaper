@@ -10,24 +10,17 @@
 #include <QStringList>
 
 #include <QtQml/qqml.h>
-#include <qcontainerfwd.h>
 
-#include "wallpaperlistmodel.h"
-#include "wallpaperentry.h" // ScanResult / WallpaperPath
-
-// QML 类型注册（QML_ELEMENT / Q_OBJECT 的 moc）要求 Q_PROPERTY 指向的类型完整，
-// 故上面直接 include 各模型头而非 forward 声明。m_watcher 用不完整类型指针即可。
-template<typename T>
-class QFutureWatcher;
+#include "wallpapermodel.h"
 
 /**
  * @brief 解析"html-wallpapers"格式 HTML 壁纸的 C++ 后端（QML 门面）。
  *
  * 等价替代原 QML 的 HtmlWallpaperParser.qml（扫描 project.json、提供壁纸
  * 列表模型），供配置界面（config.qml → ScanPathsPanel →
- * ThumbnailsView / WallpaperDelegate）消费。扫描/解析逻辑已解耦到
- * 数据层（WallpaperProject / WallpaperProperty，后台线程执行）；本类只
- * 负责 scanPaths 管理等属性 + scan() 异步调度 + 结果聚合。
+ * ThumbnailsView / WallpaperDelegate）消费。扫描/解析逻辑已下沉到
+ * 数据层（WallpaperModel，后台线程执行）；本类只负责 scanPaths 管理等
+ * 属性 + scan() 一行转发 + 转发 Model 的扫描信号。
  *
  * 目录约定（Wallpaper Engine 风格）：
  *
@@ -64,10 +57,10 @@ class HTMLBackend : public QObject
     Q_PROPERTY(bool requireWebType READ requireWebType WRITE setRequireWebType NOTIFY requireWebTypeChanged)
     /** 明确非 HTML 的 Wallpaper Engine 类型黑名单（对应旧 _nonHtmlTypes）。 */
     Q_PROPERTY(QStringList nonHtmlTypes READ nonHtmlTypes WRITE setNonHtmlTypes NOTIFY nonHtmlTypesChanged)
-    /** 扫描流程进行中标志（避免重复触发 scan()）。 */
+    /** 扫描流程进行中标志（委托 Model，避免重复触发 scan()）。 */
     Q_PROPERTY(bool scanInProgress READ scanInProgress NOTIFY scanInProgressChanged)
     /** 扫描结果：壁纸列表模型，可直接作 GridView/ListView 的 model。 */
-    Q_PROPERTY(WallpaperListModel *wallpapers READ wallpapers CONSTANT)
+    Q_PROPERTY(WallpaperModel *wallpapers READ wallpapers CONSTANT)
 
 public:
     explicit HTMLBackend(QObject *parent = nullptr);
@@ -80,7 +73,7 @@ public:
     QStringList nonHtmlTypes() const;
     void setNonHtmlTypes(const QStringList &nonHtmlTypes);
     bool scanInProgress() const;
-    WallpaperListModel *wallpapers() const;
+    WallpaperModel *wallpapers() const;
 
     // —— 扫描入口 ——
     /** 顺序扫描 scanPaths，把各根下的合法壁纸填入 wallpapers；完成后发 scanFinished。 */
@@ -102,13 +95,9 @@ Q_SIGNALS:
     void scanInProgressChanged();
 
 private:
-    void setScanInProgress(bool inProgress);
-
     QString m_selectWallpaper;
     QStringList m_scanPaths;
     QStringList m_nonHtmlTypes{QStringLiteral("video"), QStringLiteral("scene"), QStringLiteral("application"), QStringLiteral("audio")};
     bool m_requireWebType = true;
-    bool m_scanning = false;
-    WallpaperListModel *m_wallpapers = nullptr;
-    QFutureWatcher<ScanResult> *m_watcher = nullptr;
+    WallpaperModel *m_wallpapers = nullptr;
 };

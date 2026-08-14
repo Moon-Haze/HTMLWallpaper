@@ -23,7 +23,7 @@ ecm_add_qml_module(plasma_wallpaper_htmlwallpaperplugin
 target_sources(plasma_wallpaper_htmlwallpaperplugin PRIVATE
     htmlbackend.cpp
     wallpaperitem.cpp
-    wallpaperlistmodel.cpp
+    wallpapermodel.cpp
     wallpaperentry.cpp
 )
 
