@@ -32,8 +32,8 @@ ColumnLayout {
     property alias cfg_SelectWallpaper: htmlWallpaper.selectWallpaper
 
     spacing: 0
-    // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下的 project.json，提供壁纸
-    // 列表 / 参数表 / 预览。scanPaths 跟随 cfg_ScanPaths（扫描目录），
+    // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下含 *.html 的壁纸子目录，
+    // 提供壁纸列表 / 参数表 / 预览。scanPaths 跟随 cfg_ScanPaths（扫描目录），
     // 变化时触发重扫；scanPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
     WallpaperController {
         id: htmlWallpaper

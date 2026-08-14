@@ -80,10 +80,6 @@ TestCase {
         verify(compiles("view/ScanPathsPanel.qml"), "ScanPathsPanel 应可编译");
     }
 
-    function test_propertyPanel_compiles() {
-        verify(compiles("view/PropertyPanel.qml"), "PropertyPanel 应可编译");
-    }
-
     function test_parser_compiles() {
         // HtmlWallpaperParser.qml 已删除，改为验证 C++ 后端模块可实例化
         let parser = Qt.createQmlObject(

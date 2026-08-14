@@ -17,10 +17,6 @@
       <label>Ignore HTTPS errors</label>
       <default>false</default>
     </entry>
-    <entry name="WallpaperProperties" type="String">
-      <label>Current HTML wallpaper properties (JSON)</label>
-      <default>{}</default>
-    </entry>
     <!-- 壁纸库扫描目录 -->
     <entry name="ScanPaths" type="StringList">
       <label>Directories to scan for HTML wallpapers</label>

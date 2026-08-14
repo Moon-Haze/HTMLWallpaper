@@ -17,22 +17,16 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.wallpapers.image as PlasmaWallpaper
 
 /**
- * HTML 壁纸配置面板（com.github.moon_haze.htmlwallpaper 模式下显示）。
+ * HTML 壁纸扫描目录列表（左栏）。
  *
- * 上半部分：轮播排序方式（随机 / 按名称 / 按修改时间）、按文件夹分组；
- * 主体三栏布局：
- *   左栏：扫描目录（文件夹）列表，可增删、打开目录；
- *   中栏：ThumbnailsView 展示目录下的 HTML 壁纸网格（点选即应用）；
- *   右栏：PropertyPanel 编辑当前壁纸的协议参数（color/slider/combo/bool/…）。
+ * 展示并管理 htmlWallpaper.scanPaths（QStringList）中的扫描目录，
+ * 支持增删与在文件管理器中打开目录；未配置目录时显示空态提示。
  *
  * 数据源是 config.qml 注入的 WallpaperController（C++）单实例：
- *   目录列表 ← htmlWallpaper.scanPaths；壁纸网格 ← htmlWallpaper.wallpapers；
- *   参数面板 ← 已随 WallpaperController 解耦重构停用（见下方右栏 PropertyPanel 注释）；
- *   可配置属性表现在经 WallpaperItem::properties（WallpaperPropertyModel ListModel）
- *   的 get(i) / byKey(key) 暴露，不再有 currentWallpaper.general.properties。
+ *   目录列表 ← htmlWallpaper.scanPaths；壁纸网格 ← htmlWallpaper.wallpapers
+ *   （WallpaperModel）。
  * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_ScanPaths 持久化，
- * 由 scanPaths 绑定同步 htmlWallpaper → 重扫）。参数"可调不持久"：改动只更新
- * 面板会话内镜像，不写 cfg_WallpaperProperties、不应用到壁纸。
+ * 由 scanPaths 绑定同步 htmlWallpaper → 重扫）。
  *
  * For proper alignment, an ancestor **MUST** have id "appearanceRoot" and property "parentLayout"
  */
