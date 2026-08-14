@@ -8,17 +8,17 @@ import QtQuick
 import QtTest
 
 /**
- * 缩略图高亮联动行为测试（currentIndex 跟随 htmlWallpaper.selectWallpaper）。
+ * 缩略图点击联动行为测试（点击驱动高亮）。
  *
- * 验证"选中壁纸驱动高亮"（2d7d7e4 重构后由 ThumbnailsPanel::updateHighlight
- * 实现，注入时 / selectWallpaperChanged / scanFinished 三处触发同步）：
- *   - currentIndex 跟随 selectWallpaper 对应项（打开面板/改配置 → 高亮跟随）；
- *   - 无匹配项回退第一格（索引 0）；
- *   - 扫描完成（scanFinished）后重新同步，重扫后高亮仍跟随 selectWallpaper。
+ * 锁定 ThumbnailsPanel 中 WallpaperDelegate 的 onClicked 行为：
+ * 点击某缩略图 → htmlWallpaper.selectWallpaper = model.file，
+ * 且 wallpapersGrid.view.currentIndex = index（高亮跟随点击项）。
+ * 不做反向同步：不验证 selectWallpaper 变化反向驱动高亮。
  *
  * 环境注意：htmlWallpaper 用 mock（QtObject 声明 selectWallpaper 属性 +
- * selectWallpaperChanged 信号 + wallpapers ListModel + indexOf 辅助函数），
- * 需手动 emit selectWallpaperChanged（JS 属性赋值不自动触发信号）。
+ * wallpapers ListModel）。QML 属性 selectWallpaper 会自动生成隐式
+ * selectWallpaperChanged 信号，因此不能再显式声明同名 signal（会触发
+ * "Duplicate signal name" 解析错误）。
  */
 TestCase {
     id: testCase
@@ -34,33 +34,26 @@ TestCase {
     property var comp: null
 
     function init() {
-        // htmlWallpaper mock：selectWallpaper（可跟踪）+ wallpapers（ListModel）+
-        // indexOf 辅助 + scanFinished 信号。注意：createQmlObject 内联对象体成员
-        // 必须以换行分隔。
+        // htmlWallpaper mock：selectWallpaper（可写属性）+ wallpapers（ListModel，
+        // 含 file/path/title/preview role，供 delegate 与 onClicked 读取）。
+        // 注意：createQmlObject 内联对象体成员必须以换行分隔。
         htmlWallpaper = Qt.createQmlObject(
             'import QtQuick;'
             + '\nQtObject {'
-            + '\n  property string selectWallpaper: "a.html"'
-            + '\n  signal selectWallpaperChanged()'
+            + '\n  property string selectWallpaper: ""'
             + '\n  property ListModel wallpapers: ListModel {'
-            + '\n    ListElement { source: "a.html"; path: "file:///a.html"; checked: false; display: "a" }'
-            + '\n    ListElement { source: "b.html"; path: "file:///b.html"; checked: false; display: "b" }'
-            + '\n    ListElement { source: "c.html"; path: "file:///c.html"; checked: true; display: "c" }'
+            + '\n    ListElement { name: "a"; title: "a"; path: "file:///a.html"; file: "file:///a.html"; preview: "" }'
+            + '\n    ListElement { name: "b"; title: "b"; path: "file:///b.html"; file: "file:///b.html"; preview: "" }'
+            + '\n    ListElement { name: "c"; title: "c"; path: "file:///c.html"; file: "file:///c.html"; preview: "" }'
             + '\n  }'
-            + '\n  function indexOf(source) {'
-            + '\n    for (var i = 0; i < wallpapers.count; i++) {'
-            + '\n      if (wallpapers.get(i).source === source) return i;'
-            + '\n    }'
-            + '\n    return -1;'
-            + '\n  }'
-            + '\n  signal scanFinished()'
             + '\n}',
             testCase);
         verify(htmlWallpaper !== null, "htmlWallpaper mock 实例化失败");
 
         let c = Qt.createComponent("../package/contents/ui/view/ThumbnailsPanel.qml");
         verify(c.status === Component.Ready, "ThumbnailsPanel 加载失败: " + c.errorString());
-        comp = c.createObject(testCase, { htmlWallpaper: htmlWallpaper });
+        // 给足尺寸让 GridView 实例化可见 delegate（offscreen 下显式宽高驱动布局）
+        comp = c.createObject(testCase, { htmlWallpaper: htmlWallpaper, width: 600, height: 400 });
         verify(comp !== null, "ThumbnailsPanel 实例化失败");
         c.destroy();
     }
@@ -85,52 +78,24 @@ TestCase {
         return cond();
     }
 
-    // 设置 selectWallpaper 并手动触发信号（mock 属性赋值不自动 emit）
-    function setSelectWallpaper(value) {
-        htmlWallpaper.selectWallpaper = value;
-        htmlWallpaper.selectWallpaperChanged();
+    // 定位到第 i 项并触发其 delegate 的 clicked 信号（等价点击缩略图）
+    function clickIndex(i) {
+        comp.view.currentIndex = i;
+        verify(waitForCondition(() => comp.view.currentItem !== null, 2000),
+               "索引 " + i + " 的 delegate 未实例化");
+        comp.view.currentItem.clicked();
     }
 
-    // 打开面板时高亮 = selectWallpaper 对应项；改动配置时高亮跟随
-    function test_currentIndex_followsSelectWallpaper() {
-        // 初始 selectWallpaper = "a.html"，注入时 updateHighlight 已同步 → 索引 0
-        verify(waitForCondition(() => comp.view.currentIndex === 0, 2000),
-               "初始 currentIndex 应为 0，实际 " + comp.view.currentIndex);
+    // 点击缩略图 → selectWallpaper = model.file，currentIndex = index
+    function test_clickDelegate_setsSelectWallpaperAndIndex() {
+        // 初始 selectWallpaper 为空；点击第 0 项
+        clickIndex(0);
+        compare(htmlWallpaper.selectWallpaper, htmlWallpaper.wallpapers.get(0).file);
+        compare(comp.view.currentIndex, 0);
 
-        // 改配置 → 高亮自动跟随
-        setSelectWallpaper("b.html");
-        verify(waitForCondition(() => comp.view.currentIndex === 1, 2000),
-               "currentIndex 应跟随 selectWallpaper 到 1，实际 " + comp.view.currentIndex);
-
-        setSelectWallpaper("c.html");
-        verify(waitForCondition(() => comp.view.currentIndex === 2, 2000),
-               "currentIndex 应跟随 selectWallpaper 到 2，实际 " + comp.view.currentIndex);
-    }
-
-    // 无匹配项回退第一格
-    function test_unmatchedSelectWallpaper_fallsBackToZero() {
-        setSelectWallpaper("zzz.html");
-        verify(waitForCondition(() => comp.view.currentIndex === 0, 2000),
-               "无匹配应回退 0，实际 " + comp.view.currentIndex);
-    }
-
-    // 扫描完成重新同步：重扫后高亮仍跟随 selectWallpaper
-    function test_scanFinished_rebuildsBinding() {
-        setSelectWallpaper("b.html");
-        verify(waitForCondition(() => comp.view.currentIndex === 1, 2000),
-               "初始 b.html 应在索引 1，实际 " + comp.view.currentIndex);
-
-        // 模拟重扫：清空模型、重新填充，触发 scanFinished → updateHighlight 重新同步
-        htmlWallpaper.wallpapers.clear();
-        htmlWallpaper.scanFinished();
-        // 空模型 → 回退 0
-        verify(waitForCondition(() => comp.view.currentIndex === 0, 2000),
-               "空模型应回退 0，实际 " + comp.view.currentIndex);
-
-        htmlWallpaper.wallpapers.append({ source: "b.html", path: "file:///b.html", checked: false, display: "b" });
-        htmlWallpaper.scanFinished();
-        // b.html 现在在索引 0 → 高亮应回到 0
-        verify(waitForCondition(() => comp.view.currentIndex === 0, 2000),
-               "重扫后 b.html 应在索引 0，实际 " + comp.view.currentIndex);
+        // 点击第 1 项 → 选中与高亮跟随点击项
+        clickIndex(1);
+        compare(htmlWallpaper.selectWallpaper, htmlWallpaper.wallpapers.get(1).file);
+        compare(comp.view.currentIndex, 1);
     }
 }
