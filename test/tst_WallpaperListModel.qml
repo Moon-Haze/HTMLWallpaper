@@ -11,18 +11,18 @@ import com.github.moon_haze.htmlwallpaper
 /**
  * WallpaperListModel（C++）单元测试。
  *
- * 覆盖：扫描收录、get(i) 返回 WallpaperItem 元数据（含扩展字段与 file 入口）、
- * file 存在性兜底（missing-entry → real.html）、越界 get 安全返回 null。
- * fixtures 位于 tests/data/wallpapers/（aurora / fetch / matrix / nova / missing-entry /
- * paramfallback 被收录）。
+ * 覆盖：扫描收录、get(i) 返回 WallpaperItem 元数据（name/title/file/preview 等）、
+ * file 入口探测（missing-entry → real.html）、越界 get 安全返回 null。
+ * fixtures 位于 test/data/wallpapers/（aurora / matrix / missing-entry / neon /
+ * nova / offline 被收录）。
  */
 TestCase {
     id: testCase
     name: "WallpaperListModelTests"
 
-    // 指向 fixtures 根目录（本文件位于 tests/ 下）
+    // 指向 fixtures 根目录（本文件位于 test/ 下）
     property url fixtureDir: Qt.resolvedUrl("data/wallpapers")
-    // 每个测试函数独立创建的解析器实例
+    // 每个测试函数独立创建的控制器实例
     property var htmlWallpaper: null
 
     SignalSpy {
@@ -63,7 +63,7 @@ TestCase {
         compare(first.name, "aurora");
     }
 
-    // get(i) 返回 WallpaperItem：基础元数据 + 扩展字段 + file 入口
+    // get(i) 返回 WallpaperItem：name/title/file 等基础元数据
     function test_getReturnsItemMetadata() {
         const model = scanWallpapers();
         let aurora = null, matrix = null;
@@ -75,25 +75,15 @@ TestCase {
         verify(aurora !== null, "缺少 aurora");
         verify(matrix !== null, "缺少 matrix");
 
-        // aurora：缺省 file 用 index.html，扩展字段来自 project.json 顶层
-        compare(aurora.title, "Aurora");
-        compare(aurora.workshopid, "1234567890");
-        compare(aurora.tags, "aurora, sky");
+        // aurora：title = name，缺省入口用 index.html
+        compare(aurora.title, "aurora");
         verify(aurora.file.endsWith("/data/wallpapers/aurora/index.html"), "file: " + aurora.file);
-        compare(aurora.monetization, false);
-        compare(aurora.contentrating, "Everyone");
-        compare(aurora.version, 3);
-        compare(aurora.supportsAudio, true);
 
-        // matrix：自定义 file=main.html + general.properties 可配置属性表（ListModel）
+        // matrix：入口为 main.html
         verify(matrix.file.endsWith("/data/wallpapers/matrix/main.html"), "matrix file: " + matrix.file);
-        verify(matrix.properties !== null, "matrix.properties 应为 ListModel");
-        compare(matrix.properties.count, 4);
-        compare(matrix.properties.byKey("speed").type, "slider");
-        compare(matrix.supportsaudioprocessing, false);
     }
 
-    // missing-entry 的 file 指向不存在的 ghost.html → 自动探测到 real.html
+    // missing-entry 目录仅 real.html → 探测到 real.html
     function test_fileFallbackWhenMissing() {
         const model = scanWallpapers();
         let missing = null;
@@ -103,7 +93,7 @@ TestCase {
         }
         verify(missing !== null, "缺少 missing-entry");
         verify(missing.file.endsWith("/data/wallpapers/missing-entry/real.html"), "missing file 应自动探测: " + missing.file);
-        compare(missing.title, "Missing Entry");
+        compare(missing.title, "missing-entry");
     }
 
     // 越界 get 安全返回 null

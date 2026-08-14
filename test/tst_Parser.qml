@@ -12,18 +12,18 @@ import com.github.moon_haze.htmlwallpaper
 /**
  * WallpaperController（C++）单元测试。
  *
- * 覆盖异步扫描流程（QtConcurrent worker 枚举目录 + QFile 读 project.json）
- * 与 scanPaths 路径管理。fixtures 位于 tests/data/wallpapers/
- * （aurora / matrix / nova / fetch / missing-entry / paramfallback 被收录；
- *   neon 无 project.json、offline 非 web 被过滤）。
+ * 覆盖异步扫描流程（QtConcurrent worker 枚举根目录下各子目录的 *.html 入口）
+ * 与 scanPaths 路径管理。fixtures 位于 test/data/wallpapers/
+ * （aurora / matrix / missing-entry / neon / nova / offline 被收录；
+ *   fetch / paramfallback 无 html 被过滤）。
  */
 TestCase {
     id: testCase
     name: "ParserTests"
 
-    // 指向 fixtures 根目录（tst_Parser.qml 位于 tests/ 下）
+    // 指向 fixtures 根目录（tst_Parser.qml 位于 test/ 下）
     property url fixtureDir: Qt.resolvedUrl("data/wallpapers")
-    // 每个测试函数独立创建的解析器实例
+    // 每个测试函数独立创建的控制器实例
     property var parser: null
 
     SignalSpy {
@@ -88,65 +88,49 @@ TestCase {
         scanSpy.wait(5000);
         verify(scanSpy.count > 0, "scanFinished 未在 5s 内发出");
 
-        // aurora + matrix + nova + fetch + missing-entry + paramfallback 被收录；
-        // neon 无 project.json、offline 非 web 被过滤
+        // aurora / matrix / missing-entry / neon / nova / offline 被收录；
+        // fetch / paramfallback 无 html 被过滤
         compare(parser.wallpapers.count, 6, "期望 6 个壁纸，实际 " + parser.wallpapers.count);
 
-        let aurora = null, matrix = null, nova = null, fetch = null, missing = null;
+        let aurora = null, matrix = null, neon = null, nova = null, offline = null, missing = null;
+        let fetch = null, paramfallback = null;
         for (let i = 0; i < parser.wallpapers.count; i++) {
             let item = parser.wallpapers.get(i);
             if (item.name === "aurora") aurora = item;
             if (item.name === "matrix") matrix = item;
+            if (item.name === "neon") neon = item;
             if (item.name === "nova") nova = item;
-            if (item.name === "fetch") fetch = item;
+            if (item.name === "offline") offline = item;
             if (item.name === "missing-entry") missing = item;
+            if (item.name === "fetch") fetch = item;
+            if (item.name === "paramfallback") paramfallback = item;
         }
         verify(aurora !== null, "缺少 aurora");
         verify(matrix !== null, "缺少 matrix");
+        verify(neon !== null, "缺少 neon");
         verify(nova !== null, "缺少 nova");
-        verify(fetch !== null, "缺少 fetch");
+        verify(offline !== null, "缺少 offline");
         verify(missing !== null, "缺少 missing-entry");
+        // 排除项：无 html 的目录不被收录
+        verify(fetch === null, "fetch 无 html 不应被收录");
+        verify(paramfallback === null, "paramfallback 无 html 不应被收录");
 
-        // aurora 字段（缺省 file 用 index.html）
-        compare(aurora.title, "Aurora");
-        compare(aurora.workshopid, "1234567890");
-        compare(aurora.tags, "aurora, sky"); // ListModel role 内是字符串，非数组
+        // aurora：title/display = name（目录名），缺省入口探测到 index.html
+        compare(aurora.title, "aurora");
+        compare(aurora.display, "aurora");
         verify(aurora.file.endsWith("/data/wallpapers/aurora/index.html"), "file: " + aurora.file);
-        verify(aurora.preview.endsWith("/data/wallpapers/aurora/preview.jpg"), "preview: " + aurora.preview);
-        // source/display 别名
+        // source 是 file 的别名
         compare(aurora.source, aurora.file);
-        compare(aurora.display, "Aurora");
 
-        // aurora 扩展元数据（project.json 顶层字段 → WallpaperItem Q_PROPERTY）
-        compare(aurora.monetization, false);
-        compare(aurora.contentrating, "Everyone");
-        compare(aurora.ratingsex, "none");
-        compare(aurora.ratingviolence, "none");
-        compare(aurora.version, 3);
-        compare(aurora.workshopurl, "steam://url/CommunityFilePage/1234567890");
-        compare(aurora.supportsAudio, true);
-
-        // matrix 用自定义 file=main.html
+        // matrix 目录下入口为 main.html
         verify(matrix.file.endsWith("/data/wallpapers/matrix/main.html"), "matrix file: " + matrix.file);
 
-        // matrix 有 general.properties 可配置属性表，经 properties（WallpaperPropertyModel
-        // ListModel）暴露：按 order 排序（speed=1/color=2/glow=3/charset=4）共 4 行
-        verify(matrix.properties !== null, "matrix.properties 应为 ListModel");
-        compare(matrix.properties.count, 4, "matrix 应含 4 个可配置属性");
-        compare(matrix.properties.get(0).key, "speed"); // order=1 首行
-        compare(matrix.properties.get(1).key, "color");
-        compare(matrix.properties.get(3).key, "charset");
-        compare(matrix.properties.byKey("speed").type, "slider");
-        compare(matrix.properties.byKey("speed").min, 1);
-        compare(matrix.properties.byKey("color").value, "0 1 0");
-        compare(matrix.supportsaudioprocessing, false); // matrix 的 general 无 supportsaudioprocessing
-
-        // nova 无 preview 字段 → 自动探测到 preview.jpg
+        // nova 目录下自动探测到 preview.jpg
         verify(nova.preview.endsWith("/data/wallpapers/nova/preview.jpg"), "nova preview 应自动探测: " + nova.preview);
-        compare(nova.title, "Nova");
+        compare(nova.title, "nova");
 
-        // missing-entry 的 file 指向不存在的 ghost.html → 自动探测到 real.html
+        // missing-entry 目录仅 real.html → 探测到 real.html
         verify(missing.file.endsWith("/data/wallpapers/missing-entry/real.html"), "missing file 应自动探测: " + missing.file);
-        compare(missing.title, "Missing Entry");
+        compare(missing.title, "missing-entry");
     }
 }
