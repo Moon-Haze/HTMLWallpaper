@@ -31,8 +31,6 @@ ColumnLayout {
 
     property alias cfg_SelectWallpaper: htmlWallpaper.selectWallpaper
 
-    property string cfg_WallpaperProperties        // 当前 HTML 壁纸参数 JSON（运行时注入/重启恢复）
-
     spacing: 0
     // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下的 project.json，提供壁纸
     // 列表 / 参数表 / 预览。scanPaths 跟随 cfg_ScanPaths（扫描目录），
@@ -96,25 +94,6 @@ ColumnLayout {
                 // 它自己的属性，形成自引用绑定（"Binding loop for htmlWallpaper"）。
                 htmlWallpaper: htmlWallpaper
             }
-
-            Kirigami.Separator {
-                Layout.fillHeight: true
-            }
-
-            // —— 右栏：参数面板 ——
-            // PropertyPanel 组件当前停用（HTMLBackend 解耦重构删除了其依赖的
-            // currentWallpaper / evaluateCondition / colorToHex / wallpaperParsed API）。
-            // 若未来恢复，须先按新契约重写 PropertyPanel.qml：
-            // 属性表经 wallpapers.get(i).properties（WallpaperPropertyModel）的
-            // get(i) / byKey(key) 访问，condition 可见性不再有 evaluateCondition 支持。
-            // PropertyPanel {
-            //     Layout.fillHeight: true
-            //     Layout.preferredWidth: Kirigami.Units.gridUnit * 24
-            //     Layout.maximumWidth: Kirigami.Units.gridUnit * 34
-            //     htmlWallpaper: root.htmlWallpaper
-            //     // 参数改动不再写 cfg_WallpaperProperties（可调不持久）；propertyChanged
-            //     // 信号保留供测试 / 后续扩展消费
-            // }
         }
     }
 
@@ -123,4 +102,5 @@ ColumnLayout {
         if (wallpaper.configuration)
             wallpaper.configuration.PreviewImage = "null";
     }
+    
 }

@@ -8,17 +8,17 @@ import QtQuick
 import QtTest
 
 /**
- * 缩略图高亮联动行为测试（currentIndex 绑定 cfg_SelectWallpaper）。
+ * 缩略图高亮联动行为测试（currentIndex 跟随 htmlWallpaper.selectWallpaper）。
  *
- * 验证"配置驱动高亮"的持久绑定语义（见 docs/superpowers/specs/2026-08-09-
- * highlight-binding-design.md）：
- *   - currentIndex 由 resetCurrentIndex() 建立的 Qt.binding 驱动，跟随
- *     root.cfg_SelectWallpaper 变化（打开面板/改配置 → 高亮跟随当前应用壁纸）；
+ * 验证"选中壁纸驱动高亮"（2d7d7e4 重构后由 ThumbnailsPanel::updateHighlight
+ * 实现，注入时 / selectWallpaperChanged / scanFinished 三处触发同步）：
+ *   - currentIndex 跟随 selectWallpaper 对应项（打开面板/改配置 → 高亮跟随）；
  *   - 无匹配项回退第一格（索引 0）；
- *   - 扫描完成（scanFinished）后重建绑定，重扫后高亮仍跟随 cfg_SelectWallpaper。
+ *   - 扫描完成（scanFinished）后重新同步，重扫后高亮仍跟随 selectWallpaper。
  *
- * 环境注意：KDeclarative 国际化函数用同名 property 注入 mock；root 经动态
- * 作用域链解析到本 TestCase（其 cfg_SelectWallpaper 是声明属性，可被绑定追踪）。
+ * 环境注意：htmlWallpaper 用 mock（QtObject 声明 selectWallpaper 属性 +
+ * selectWallpaperChanged 信号 + wallpapers ListModel + indexOf 辅助函数），
+ * 需手动 emit selectWallpaperChanged（JS 属性赋值不自动触发信号）。
  */
 TestCase {
     id: testCase
@@ -30,33 +30,35 @@ TestCase {
     property var i18nd: function (domain, text) { return text; }
     property var i18ndc: function (domain, context, text) { return text; }
 
-    // root mock：ThumbnailsPanel 经作用域链把 root 解析到本 TestCase，
-    // cfg_SelectWallpaper 作为声明属性可被 Qt.binding 追踪；wallpaperBrowseCompleted
-    // 信号供 ThumbnailsPanel 的 Connections 匹配（MainView 代理信号的同名信号）。
-    property string cfg_SelectWallpaper: "a.html"
-    signal wallpaperBrowseCompleted()
-    property var root: testCase
-
     property var htmlWallpaper: null
     property var comp: null
 
     function init() {
-        // htmlWallpaper mock：wallpapers（ListModel）+ scanFinished 信号
-        // 注意：createQmlObject 内联对象体成员必须以换行分隔
+        // htmlWallpaper mock：selectWallpaper（可跟踪）+ wallpapers（ListModel）+
+        // indexOf 辅助 + scanFinished 信号。注意：createQmlObject 内联对象体成员
+        // 必须以换行分隔。
         htmlWallpaper = Qt.createQmlObject(
             'import QtQuick;'
             + '\nQtObject {'
+            + '\n  property string selectWallpaper: "a.html"'
+            + '\n  signal selectWallpaperChanged()'
             + '\n  property ListModel wallpapers: ListModel {'
             + '\n    ListElement { source: "a.html"; path: "file:///a.html"; checked: false; display: "a" }'
             + '\n    ListElement { source: "b.html"; path: "file:///b.html"; checked: false; display: "b" }'
             + '\n    ListElement { source: "c.html"; path: "file:///c.html"; checked: true; display: "c" }'
+            + '\n  }'
+            + '\n  function indexOf(source) {'
+            + '\n    for (var i = 0; i < wallpapers.count; i++) {'
+            + '\n      if (wallpapers.get(i).source === source) return i;'
+            + '\n    }'
+            + '\n    return -1;'
             + '\n  }'
             + '\n  signal scanFinished()'
             + '\n}',
             testCase);
         verify(htmlWallpaper !== null, "htmlWallpaper mock 实例化失败");
 
-        let c = Qt.createComponent("../package/contents/ui/settings/ThumbnailsPanel.qml");
+        let c = Qt.createComponent("../package/contents/ui/view/ThumbnailsPanel.qml");
         verify(c.status === Component.Ready, "ThumbnailsPanel 加载失败: " + c.errorString());
         comp = c.createObject(testCase, { htmlWallpaper: htmlWallpaper });
         verify(comp !== null, "ThumbnailsPanel 实例化失败");
@@ -83,36 +85,42 @@ TestCase {
         return cond();
     }
 
-    // 打开面板时高亮 = cfg_SelectWallpaper 对应项；改动配置时高亮跟随
+    // 设置 selectWallpaper 并手动触发信号（mock 属性赋值不自动 emit）
+    function setSelectWallpaper(value) {
+        htmlWallpaper.selectWallpaper = value;
+        htmlWallpaper.selectWallpaperChanged();
+    }
+
+    // 打开面板时高亮 = selectWallpaper 对应项；改动配置时高亮跟随
     function test_currentIndex_followsSelectWallpaper() {
-        // 初始 cfg_SelectWallpaper = "a.html" → 索引 0
+        // 初始 selectWallpaper = "a.html"，注入时 updateHighlight 已同步 → 索引 0
         verify(waitForCondition(() => comp.view.currentIndex === 0, 2000),
                "初始 currentIndex 应为 0，实际 " + comp.view.currentIndex);
 
-        // 改配置 → 高亮自动跟随（绑定驱动）
-        cfg_SelectWallpaper = "b.html";
+        // 改配置 → 高亮自动跟随
+        setSelectWallpaper("b.html");
         verify(waitForCondition(() => comp.view.currentIndex === 1, 2000),
-               "currentIndex 应跟随 cfg_SelectWallpaper 到 1，实际 " + comp.view.currentIndex);
+               "currentIndex 应跟随 selectWallpaper 到 1，实际 " + comp.view.currentIndex);
 
-        cfg_SelectWallpaper = "c.html";
+        setSelectWallpaper("c.html");
         verify(waitForCondition(() => comp.view.currentIndex === 2, 2000),
-               "currentIndex 应跟随 cfg_SelectWallpaper 到 2，实际 " + comp.view.currentIndex);
+               "currentIndex 应跟随 selectWallpaper 到 2，实际 " + comp.view.currentIndex);
     }
 
-    // 无匹配项回退第一格（与 checked 回退行为一致）
+    // 无匹配项回退第一格
     function test_unmatchedSelectWallpaper_fallsBackToZero() {
-        cfg_SelectWallpaper = "zzz.html";
+        setSelectWallpaper("zzz.html");
         verify(waitForCondition(() => comp.view.currentIndex === 0, 2000),
                "无匹配应回退 0，实际 " + comp.view.currentIndex);
     }
 
-    // 扫描完成重建绑定：重扫后高亮仍跟随 cfg_SelectWallpaper
+    // 扫描完成重新同步：重扫后高亮仍跟随 selectWallpaper
     function test_scanFinished_rebuildsBinding() {
-        cfg_SelectWallpaper = "b.html";
+        setSelectWallpaper("b.html");
         verify(waitForCondition(() => comp.view.currentIndex === 1, 2000),
                "初始 b.html 应在索引 1，实际 " + comp.view.currentIndex);
 
-        // 模拟重扫：清空模型、重新填充，触发 scanFinished → resetCurrentIndex 重建绑定
+        // 模拟重扫：清空模型、重新填充，触发 scanFinished → updateHighlight 重新同步
         htmlWallpaper.wallpapers.clear();
         htmlWallpaper.scanFinished();
         // 空模型 → 回退 0

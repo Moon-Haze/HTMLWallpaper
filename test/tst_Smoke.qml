@@ -68,21 +68,20 @@ TestCase {
     }
 
     function test_thumbnails_compiles() {
-        // ThumbnailsView 已拆分为 MainView（三栏容器）+ ThumbnailsPanel（中栏网格）
-        verify(compiles("settings/MainView.qml"), "MainView 应可编译");
-        verify(compiles("settings/ThumbnailsPanel.qml"), "ThumbnailsPanel 应可编译");
+        // 面板组件已从 settings/ 迁移至 view/（三栏容器 MainView 已并入 config.qml）
+        verify(compiles("view/ThumbnailsPanel.qml"), "ThumbnailsPanel 应可编译");
     }
 
     function test_wallpaperDelegate_compiles() {
-        verify(compiles("settings/WallpaperDelegate.qml"), "WallpaperDelegate 应可编译");
+        verify(compiles("view/WallpaperDelegate.qml"), "WallpaperDelegate 应可编译");
     }
 
     function test_slideshowComponent_compiles() {
-        verify(compiles("settings/ScanPathsPanel.qml"), "ScanPathsPanel 应可编译");
+        verify(compiles("view/ScanPathsPanel.qml"), "ScanPathsPanel 应可编译");
     }
 
     function test_propertyPanel_compiles() {
-        verify(compiles("settings/PropertyPanel.qml"), "PropertyPanel 应可编译");
+        verify(compiles("view/PropertyPanel.qml"), "PropertyPanel 应可编译");
     }
 
     function test_parser_compiles() {
@@ -94,7 +93,7 @@ TestCase {
     }
 
     function test_addFolderDialog_compiles() {
-        verify(compiles("settings/AddFolderDialog.qml"), "AddFolderDialog 应可编译");
+        verify(compiles("view/AddFolderDialog.qml"), "AddFolderDialog 应可编译");
     }
 
     // —— 字符串数组 model 的 delegate 语义（scanPaths 作 model 用 modelData 防回归）——
@@ -130,7 +129,9 @@ TestCase {
     // —— AddFolderDialog 实例化 smoke ——
 
     function test_addFolderDialog_loadsFolderDialog() {
-        let d = Qt.createComponent("../package/contents/ui/settings/AddFolderDialog.qml").createObject(testCase);
+        let d = Qt.createComponent("../package/contents/ui/view/AddFolderDialog.qml").createObject(testCase, {
+            addScanPath: function (path) { testCase.addedPaths.push(String(path)); }
+        });
         verify(d !== null, "AddFolderDialog 实例化失败");
         verify(waitForCondition(() => d.status === Loader.Ready, 3000),
                "文件夹对话框未在 3s 内加载，status=" + d.status);
@@ -138,16 +139,19 @@ TestCase {
         d.destroy();
     }
 
-    // 模拟用户确认：onAccepted 应把选中文件夹交给 config 的 addScanPath
+    // 模拟用户确认：onAccepted 应调用注入的 addScanPath 把选中文件夹交出去
     function test_addFolderDialog_accepted_addsScanPath() {
         addedPaths = [];
-        let d = Qt.createComponent("../package/contents/ui/settings/AddFolderDialog.qml").createObject(testCase);
+        // 重构后 AddFolderDialog 走注入属性 addScanPath/onAdded，不再解析 root 作用域链
+        let d = Qt.createComponent("../package/contents/ui/view/AddFolderDialog.qml").createObject(testCase, {
+            addScanPath: function (path) { testCase.addedPaths.push(String(path)); }
+        });
         verify(d !== null, "AddFolderDialog 实例化失败");
         verify(waitForCondition(() => d.status === Loader.Ready && d.item, 3000),
                "FolderDialog 未加载");
         // 手动触发对话框的 accepted 信号（Connections.onAccepted 里会销毁 Loader）
         d.item.accepted();
         verify(waitForCondition(() => addedPaths.length > 0, 3000),
-               "onAccepted 未调用 root.addScanPath");
+               "onAccepted 未调用 addScanPath 回调");
     }
 }
