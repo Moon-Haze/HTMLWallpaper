@@ -8,7 +8,7 @@
 
 #include "wallpaperitem.h"
 #include "wallpaperlistmodel.h"
-#include "wallpaperproject.h"
+#include "wallpaperentry.h"
 
 #include <QDir>
 #include <QFutureWatcher>
@@ -19,14 +19,12 @@
 namespace
 {
 
-// 后台扫描 worker：只做纯数据读取（QDir + WallpaperProject 构造），
-// 不触碰任何 QObject，可安全地在后台线程执行。
-ScanResult scanWallpapers(const QStringList &roots, bool requireWebType, const QStringList &nonHtmlTypes)
+// 后台扫描 worker：只读 QDir + WallpaperEntry 构造，不触碰 QObject。
+ScanResult scanWallpapers(const QStringList &roots)
 {
-    using namespace WallpaperProjectJson;
     ScanResult result;
     for (const QString &base : roots) {
-        const QString baseUrl = toUrl(base);
+        const QString baseUrl = WallpaperPath::toUrl(base);
         QDir dir(QUrl(baseUrl).toLocalFile());
         if (!dir.exists()) {
             result.failures.append({base, QStringLiteral("cannot list directory")});
@@ -34,15 +32,11 @@ ScanResult scanWallpapers(const QStringList &roots, bool requireWebType, const Q
         }
         const QStringList subdirs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
         for (const QString &sub : subdirs) {
-            const QString dirUrl = pathJoin(baseUrl, sub);
-            WallpaperProject proj(dirUrl);
-            if (!proj.isValid()) {
-                continue; // 无 project.json / 解析失败 → 静默跳过（与旧实现一致）
+            const QString dirUrl = WallpaperPath::pathJoin(baseUrl, sub);
+            WallpaperEntry entry(dirUrl);
+            if (entry.isValid()) {
+                result.projects.append(entry);
             }
-            if (requireWebType && !isHtmlType(proj.type(), nonHtmlTypes)) {
-                continue; // 非 HTML 类型过滤
-            }
-            result.projects.append(proj);
         }
     }
     return result;
@@ -82,7 +76,7 @@ void HTMLBackend::setScanPaths(const QStringList &paths)
     QStringList normalized;
     normalized.reserve(paths.size());
     for (const QString &p : paths) {
-        normalized.append(WallpaperProjectJson::toUrl(p));
+        normalized.append(WallpaperPath::toUrl(p));
     }
     if (m_scanPaths == normalized) {
         return;
@@ -140,7 +134,7 @@ WallpaperListModel *HTMLBackend::wallpapers() const
 
 bool HTMLBackend::addScanPath(const QString &path)
 {
-    const QString p = WallpaperProjectJson::toUrl(path);
+    const QString p = WallpaperPath::toUrl(path);
     if (m_scanPaths.contains(p)) {
         return false;
     }
@@ -151,7 +145,7 @@ bool HTMLBackend::addScanPath(const QString &path)
 
 void HTMLBackend::removeScanPath(const QString &path)
 {
-    const QString p = WallpaperProjectJson::toUrl(path);
+    const QString p = WallpaperPath::toUrl(path);
     if (!m_scanPaths.contains(p)) {
         return;
     }
@@ -169,8 +163,6 @@ void HTMLBackend::scan()
 
     // 快照传给后台线程：worker 只读这些值拷贝，绝不触碰任何 QObject 成员。
     const QStringList roots = m_scanPaths;
-    const bool requireWebType = m_requireWebType;
-    const QStringList nonHtmlTypes = m_nonHtmlTypes;
 
     if (!m_watcher) {
         m_watcher = new QFutureWatcher<ScanResult>(this);
@@ -184,5 +176,5 @@ void HTMLBackend::scan()
             Q_EMIT scanFinished();
         });
     }
-    m_watcher->setFuture(QtConcurrent::run(scanWallpapers, roots, requireWebType, nonHtmlTypes));
+    m_watcher->setFuture(QtConcurrent::run(scanWallpapers, roots));
 }

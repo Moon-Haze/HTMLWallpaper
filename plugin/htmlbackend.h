@@ -13,7 +13,7 @@
 #include <qcontainerfwd.h>
 
 #include "wallpaperlistmodel.h"
-#include "wallpaperproject.h" // ScanResult / WallpaperProjectJson
+#include "wallpaperentry.h" // ScanResult / WallpaperPath
 
 // QML 类型注册（QML_ELEMENT / Q_OBJECT 的 moc）要求 Q_PROPERTY 指向的类型完整，
 // 故上面直接 include 各模型头而非 forward 声明。m_watcher 用不完整类型指针即可。

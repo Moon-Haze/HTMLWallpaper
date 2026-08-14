@@ -37,15 +37,12 @@ if(BUILD_TESTING)
     endif()
 
     # C++ 数据层单测（QTest）：编译 plugin 下纯数据层源文件，不依赖 QML/KF6。
-    # qt_add_executable 自动开启 AUTOMOC（WallpaperProperty 无 Q_OBJECT，但后续
-    # 任务会把带 Q_OBJECT 的 WallpaperPropertyItem/Model 加进来）。
+    # qt_add_executable 自动开启 AUTOMOC（WallpaperEntry 无 Q_OBJECT；测试类
+    # 自身带 Q_OBJECT，经 #include "tst_wallpaperproject.moc" 生成 moc）。
     find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Test)
     qt_add_executable(tst_wallpaperproject tst_wallpaperproject.cpp)
     target_sources(tst_wallpaperproject PRIVATE
-        ../plugin/wallpaperproperty.cpp
-        ../plugin/wallpaperproject.cpp
-        ../plugin/wallpaperpropertyitem.cpp
-        ../plugin/wallpaperpropertymodel.cpp
+        ../plugin/wallpaperentry.cpp
     )
     # 让 tst_*.cpp 能 #include "wallpaperproperty.h" 等 plugin 下的头文件
     target_include_directories(tst_wallpaperproject PRIVATE ../plugin)

@@ -6,24 +6,21 @@
 
 #include "wallpaperitem.h"
 
-WallpaperItem::WallpaperItem(const WallpaperProject &project, QObject *parent)
+WallpaperItem::WallpaperItem(const WallpaperEntry &entry, QObject *parent)
     : QObject(parent)
-    , m_project(project)
-    , m_properties(this)
+    , m_entry(entry)
 {
-    m_properties.setEntries(m_project.properties());
 }
 
 WallpaperItem::WallpaperItem(const WallpaperItem &item, QObject *parent)
-    : WallpaperItem(item.m_project, parent)
+    : WallpaperItem(item.m_entry, parent)
 {
 }
 
 WallpaperItem &WallpaperItem::operator=(const WallpaperItem &item)
 {
     if (this != &item) {
-        m_project = item.m_project;
-        m_properties.setEntries(m_project.properties());
+        m_entry = item.m_entry;
     }
     return *this;
 }

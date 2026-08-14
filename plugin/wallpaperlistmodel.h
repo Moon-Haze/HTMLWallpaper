@@ -10,20 +10,17 @@
 #include <QList>
 #include <qtmetamacros.h>
 
+#include "wallpaperentry.h"
 #include "wallpaperitem.h"
-#include "wallpaperproject.h"
 
 /**
  * @brief 扫描结果壁纸列表模型（HTMLBackend::wallpapers，列表层）。
  *
  * 以 QAbstractListModel 实现原 QML ListModel 的公开 API 子集：
  * count / get(i) 与 data()。roles 对齐 WallpaperDelegate / ThumbnailsView
- * 使用的字段：name / title / description / tags / type / visibility / workshopid /
- * path / preview / file / ...（file 是 project.json 的 file 字段，经
- * WallpaperProject 探测兜底）。另含 project.json 扩展元数据 role：
- * monetization / contentrating / ratingsex / ratingviolence / version /
- * workshopurl / supportsAudio（对齐 WallpaperItem）。
- * setEntries(QList<WallpaperProject>) 主线程物化 WallpaperItem*（QObject）。
+ * 使用的字段：name / title / path / preview / file（file 是目录探测选出的
+ * *.html 入口）。
+ * setEntries(QList<WallpaperEntry>) 主线程物化 WallpaperItem*（QObject）。
  */
 class WallpaperListModel : public QAbstractListModel
 {
@@ -34,20 +31,8 @@ public:
     enum Roles {
         NameRole = Qt::UserRole + 1,
         TitleRole,
-        DescriptionRole,
-        TagsRole,
-        TypeRole,
-        VisibilityRole,
-        WorkshopIdRole,
         PathRole,
         PreviewRole,
-        MonetizationRole,
-        ContentRatingRole,
-        RatingSexRole,
-        RatingViolenceRole,
-        VersionRole,
-        WorkshopUrlRole,
-        SupportsAudioRole,
         FileRole,
     };
     Q_ENUM(Roles)
@@ -61,7 +46,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     /** 整体替换全部条目（扫描完成时主线程调用）；只发一次 reset + countChanged。 */
-    void setEntries(const QList<WallpaperProject> &projects);
+    void setEntries(const QList<WallpaperEntry> &projects);
 
     void clear();
 

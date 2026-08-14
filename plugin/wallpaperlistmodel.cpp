@@ -39,34 +39,10 @@ QVariant WallpaperListModel::data(const QModelIndex &index, int role) const
         return item.name();
     case TitleRole:
         return item.title();
-    case DescriptionRole:
-        return item.description();
-    case TagsRole:
-        return item.tags();
-    case TypeRole:
-        return item.type();
-    case VisibilityRole:
-        return item.visibility();
-    case WorkshopIdRole:
-        return item.workshopid();
     case PathRole:
         return item.path();
     case PreviewRole:
         return item.preview();
-    case MonetizationRole:
-        return item.monetization();
-    case ContentRatingRole:
-        return item.contentrating();
-    case RatingSexRole:
-        return item.ratingsex();
-    case RatingViolenceRole:
-        return item.ratingviolence();
-    case VersionRole:
-        return item.version();
-    case WorkshopUrlRole:
-        return item.workshopurl();
-    case SupportsAudioRole:
-        return item.supportsAudio();
     case FileRole:
         return item.file();
     default:
@@ -87,25 +63,13 @@ QHash<int, QByteArray> WallpaperListModel::roleNames() const
     return {
         {NameRole, "name"},
         {TitleRole, "title"},
-        {DescriptionRole, "description"},
-        {TagsRole, "tags"},
-        {TypeRole, "type"},
-        {VisibilityRole, "visibility"},
-        {WorkshopIdRole, "workshopid"},
         {PathRole, "path"},
         {PreviewRole, "preview"},
-        {MonetizationRole, "monetization"},
-        {ContentRatingRole, "contentrating"},
-        {RatingSexRole, "ratingsex"},
-        {RatingViolenceRole, "ratingviolence"},
-        {VersionRole, "version"},
-        {WorkshopUrlRole, "workshopurl"},
-        {SupportsAudioRole, "supportsaudio"},
         {FileRole, "file"},
     };
 }
 
-void WallpaperListModel::setEntries(const QList<WallpaperProject> &projects)
+void WallpaperListModel::setEntries(const QList<WallpaperEntry> &projects)
 {
     beginResetModel();
     m_items.clear();
@@ -121,20 +85,8 @@ void WallpaperListModel::setEntries(const QList<WallpaperProject> &projects)
                        {
                            NameRole,
                            TitleRole,
-                           DescriptionRole,
-                           TagsRole,
-                           TypeRole,
-                           VisibilityRole,
-                           WorkshopIdRole,
                            PathRole,
                            PreviewRole,
-                           MonetizationRole,
-                           ContentRatingRole,
-                           RatingSexRole,
-                           RatingViolenceRole,
-                           VersionRole,
-                           WorkshopUrlRole,
-                           SupportsAudioRole,
                            FileRole,
                        });
 }
