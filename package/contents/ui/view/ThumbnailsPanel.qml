@@ -15,12 +15,13 @@ import org.kde.kirigami as Kirigami
 /**
  * HTML 壁纸缩略图网格（com.github.moon_haze.htmlwallpaper 模式中栏）。
  *
- * 展示 htmlWallpaper.wallpapers（C++ WallpaperListModel），每项带单选按钮，
- * 唯一勾选项为当前轮播壁纸（互斥选择，见 setExclusiveChecked）。
+ * 展示 htmlWallpaper.wallpapers（C++ WallpaperModel）缩略图网格；点击某项
+ * 应用该壁纸（htmlWallpaper.selectWallpaper = model.file）并使当前项高亮
+ * （wallpapersGrid.view.currentIndex = index，见 WallpaperDelegate.onClicked）。
  */
 Item {
     id: thumbnails
-    // 尺寸由外层布局（MainView 的 RowLayout）通过 Layout.fill* 管理，
+    // 尺寸由外层布局（config.qml 的 RowLayout）通过 Layout.fill* 管理，
     // 不再用 anchors.fill——在布局管理的子项上用 anchors 会触发
     // "Detected anchors on an item that is managed by a layout" 警告。
     // 内部 ColumnLayout 仍以 anchors.fill: parent 填满本组件。
@@ -29,7 +30,7 @@ Item {
     property alias view: wallpapersGrid.view
 
 
-    // 注入的解析器实例（由 MainView 传入）
+    // 注入的解析器实例（由调用方 config.qml 传入）
     property QtObject htmlWallpaper: null
 
     property var previewSize: {
@@ -104,8 +105,8 @@ Item {
                     htmlWallpaper: thumbnails.htmlWallpaper
                     // 计算缩略图采样尺寸：太小会糊，按屏幕 1/8 起，下限一档
                     previewSize: thumbnails.previewSize
-                    // 点击行为：应用该壁纸（wallpaperParsed 已随重构删除，参数不再写配置）；
-                    // 无路径时仅切换勾选状态
+                    // 点击行为：htmlWallpaper && model.path 时响应——设置
+                    // selectWallpaper = model.file，并让当前项高亮跟随点击项
                     onClicked: {
                         if (htmlWallpaper && model.path) {
                             htmlWallpaper.selectWallpaper = model.file;

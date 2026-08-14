@@ -26,6 +26,12 @@ import "view" as View
  */
 ColumnLayout {
     id: root
+    // 把外层控制器暴露给子组件（ThumbnailsPanel）。不能直接用裸 htmlWallpaper——
+    // ThumbnailsPanel 自身有同名 htmlWallpaper 属性，组件内声明式 binding 会
+    // 被自身属性遮蔽成自引用（"Binding loop for htmlWallpaper"，面板拿到 null）。
+    // 经 root 的别名属性引用即可正确解析到外层控制器。
+    property alias htmlWallpaperController: htmlWallpaper
+
     // property alias wallpaper: mainView.wallpaper
     property alias cfg_ScanPaths: htmlWallpaper.scanPaths
 
@@ -89,10 +95,7 @@ ColumnLayout {
             View.ThumbnailsPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                // 注意：必须写 root.htmlWallpaper，不能写裸 htmlWallpaper——
-                // ThumbnailsPanel 自身有同名 htmlWallpaper 属性，裸标识符会被解析成
-                // 它自己的属性，形成自引用绑定（"Binding loop for htmlWallpaper"）。
-                htmlWallpaper: htmlWallpaper
+                htmlWallpaper: root.htmlWallpaperController
             }
         }
     }

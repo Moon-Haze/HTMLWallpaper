@@ -78,12 +78,17 @@ TestCase {
         return cond();
     }
 
-    // 定位到第 i 项并触发其 delegate 的 clicked 信号（等价点击缩略图）
+    // 定位到第 i 项并触发其 delegate 的 clicked 信号（等价点击缩略图）。
+    // 触发前把 currentIndex 复位到别的索引（(i + 1) % 3），使随后的
+    // compare(currentIndex, i) 真实验证 onClicked 把高亮移回点击项，
+    // 而非因预先设了 currentIndex=i 而恒真（自证循环）。
     function clickIndex(i) {
         comp.view.currentIndex = i;
         verify(waitForCondition(() => comp.view.currentItem !== null, 2000),
                "索引 " + i + " 的 delegate 未实例化");
-        comp.view.currentItem.clicked();
+        const delegate = comp.view.currentItem;   // 持有第 i 项 delegate
+        comp.view.currentIndex = (i + 1) % 3;     // 复位到别的索引，使 currentIndex 断言有意义
+        delegate.clicked();                        // 触发 onClicked（delegate 的 model context 仍有效）
     }
 
     // 点击缩略图 → selectWallpaper = model.file，currentIndex = index
