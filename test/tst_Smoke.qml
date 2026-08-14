@@ -87,8 +87,8 @@ TestCase {
     function test_parser_compiles() {
         // HtmlWallpaperParser.qml 已删除，改为验证 C++ 后端模块可实例化
         let parser = Qt.createQmlObject(
-            "import com.github.moon_haze.htmlwallpaper; HTMLBackend {}", testCase);
-        verify(parser !== null, "HTMLBackend 应可实例化");
+            "import com.github.moon_haze.htmlwallpaper; WallpaperController {}", testCase);
+        verify(parser !== null, "WallpaperController 应可实例化");
         parser.destroy();
     }
 

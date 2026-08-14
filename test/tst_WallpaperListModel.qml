@@ -31,8 +31,8 @@ TestCase {
     }
 
     function init() {
-        htmlWallpaper = Qt.createQmlObject("import com.github.moon_haze.htmlwallpaper; HTMLBackend {}", testCase);
-        verify(htmlWallpaper !== null, "HTMLBackend 实例化失败");
+        htmlWallpaper = Qt.createQmlObject("import com.github.moon_haze.htmlwallpaper; WallpaperController {}", testCase);
+        verify(htmlWallpaper !== null, "WallpaperController 实例化失败");
         scanSpy.target = htmlWallpaper;
     }
 

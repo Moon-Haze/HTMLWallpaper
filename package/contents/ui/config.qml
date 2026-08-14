@@ -35,7 +35,7 @@ ColumnLayout {
     // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下的 project.json，提供壁纸
     // 列表 / 参数表 / 预览。scanPaths 跟随 cfg_ScanPaths（扫描目录），
     // 变化时触发重扫；scanPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
-    HTMLBackend {
+    WallpaperController {
         id: htmlWallpaper
         // 路径变化时重扫（数据源即 scanPaths，无需中间模型同步）
         onScanPathsChanged: htmlWallpaper.scan()

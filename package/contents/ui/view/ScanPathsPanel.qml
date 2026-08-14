@@ -25,9 +25,9 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
  *   中栏：ThumbnailsView 展示目录下的 HTML 壁纸网格（点选即应用）；
  *   右栏：PropertyPanel 编辑当前壁纸的协议参数（color/slider/combo/bool/…）。
  *
- * 数据源是 config.qml 注入的 HTMLBackend（C++）单实例：
+ * 数据源是 config.qml 注入的 WallpaperController（C++）单实例：
  *   目录列表 ← htmlWallpaper.scanPaths；壁纸网格 ← htmlWallpaper.wallpapers；
- *   参数面板 ← 已随 HTMLBackend 解耦重构停用（见下方右栏 PropertyPanel 注释）；
+ *   参数面板 ← 已随 WallpaperController 解耦重构停用（见下方右栏 PropertyPanel 注释）；
  *   可配置属性表现在经 WallpaperItem::properties（WallpaperPropertyModel ListModel）
  *   的 get(i) / byKey(key) 暴露，不再有 currentWallpaper.general.properties。
  * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_ScanPaths 持久化，

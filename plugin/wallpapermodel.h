@@ -19,7 +19,7 @@ template<typename T>
 class QFutureWatcher;
 
 /**
- * @brief 扫描结果壁纸列表模型（HTMLBackend::wallpapers，列表层，自治扫描）。
+ * @brief 扫描结果壁纸列表模型（WallpaperController::wallpapers，列表层，自治扫描）。
  *
  * 以 QAbstractListModel 实现原 QML ListModel 的公开 API 子集：
  * count / get(i) 与 data()。roles 对齐 WallpaperDelegate / ThumbnailsView

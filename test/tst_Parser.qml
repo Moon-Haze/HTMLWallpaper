@@ -10,7 +10,7 @@ import Qt.labs.folderlistmodel
 import com.github.moon_haze.htmlwallpaper
 
 /**
- * HTMLBackend（C++）单元测试。
+ * WallpaperController（C++）单元测试。
  *
  * 覆盖异步扫描流程（QtConcurrent worker 枚举目录 + QFile 读 project.json）
  * 与 scanPaths 路径管理。fixtures 位于 tests/data/wallpapers/
@@ -33,8 +33,8 @@ TestCase {
 
     function init() {
         // C++ 后端模块类型，每个测试函数独立重建实例
-        parser = Qt.createQmlObject("import com.github.moon_haze.htmlwallpaper; HTMLBackend {}", testCase);
-        verify(parser !== null, "HTMLBackend 实例化失败");
+        parser = Qt.createQmlObject("import com.github.moon_haze.htmlwallpaper; WallpaperController {}", testCase);
+        verify(parser !== null, "WallpaperController 实例化失败");
     }
 
     function cleanup() {
