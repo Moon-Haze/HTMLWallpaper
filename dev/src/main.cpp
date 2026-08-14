@@ -31,9 +31,9 @@
 #include <QTimer>
 #include <QUrl>
 
-// 说明：HTMLBackend（C++）内部用 QFile 直接读 project.json，不再需要旧的
-// fileReader QML XHR hack（HtmlWallpaperParser 时代 dev 环境 XHR 的 file://
-// 回调不触发才需要注入同步读取器）。
+// 说明：WallpaperController 后台扫描子目录 *.html，无需旧的 QML 解析
+// （HtmlWallpaperParser 时代 fileReader QML XHR hack 已废弃，dev 环境 XHR
+// 的 file:// 回调不触发才需要注入同步读取器）。
 
 int main(int argc, char *argv[])
 {

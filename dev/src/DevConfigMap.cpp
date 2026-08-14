@@ -19,7 +19,6 @@ DevConfigMap::DevConfigMap(QObject *parent)
     setProperty("SelectWallpaper", QString());
     setProperty("ZoomFactor", 1.0);
     setProperty("InsecureHTTPS", false);
-    setProperty("WallpaperProperties", QStringLiteral("{}"));
     setProperty("FillMode", 2); // Image.Stretch
     setProperty("ScanPaths", QStringList{});
     setProperty("SlideInterval", 900);

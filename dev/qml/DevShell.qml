@@ -19,8 +19,7 @@ import QtQuick.Layouts
  *     初始属性注入（与 KCM 的 QQmlComponent initial property 机制一致）。
  *
  * 布局：左 60% 为 config.qml 三栏面板，右 40% 为 WebEngine 实时预览。
- * 选中壁纸 / 调整参数 → 监听 cfg_SelectWallpaper / cfg_WallpaperProperties →
- * 同步给预览面板。
+ * 选中壁纸 → 监听 cfg_SelectWallpaper → 同步给预览面板。
  */
 ApplicationWindow {
     id: win
@@ -68,8 +67,7 @@ ApplicationWindow {
         Component.onCompleted: configLoader.setSource(
             "../../package/contents/ui/config.qml", {
                 cfg_ScanPaths: ["/usr/share/html-wallpapers"],
-                cfg_SelectWallpaper: "https://kde.org/",
-                cfg_WallpaperProperties: "{}"
+                cfg_SelectWallpaper: "https://kde.org/"
             })
     }
     
