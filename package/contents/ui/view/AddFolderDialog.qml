@@ -13,18 +13,18 @@ import QtQuick.Dialogs as QtDialogs
  * "添加文件夹"对话框加载器。
  *
  * 纯 HTML 模式（com.github.moon_haze.htmlwallpaper）：只加载文件夹选择
- * 对话框（FolderDialog），确认后调用注入的 addScanPath 回调把选中文件夹
+ * 对话框（FolderDialog），确认后调用注入的 addScanUrl 回调把选中文件夹
  * 加入扫描目录（回调由 config 层提供，负责持久化 cfg_ScanPaths），随后
  * 调用 onAdded 通知父级刷新缩略图 / 标记配置变更。
  *
- * 依赖注入只给本组件所需的两个回调，不暴露整个 config 根对象；addScanPath
+ * 依赖注入只给本组件所需的两个回调，不暴露整个 config 根对象；addScanUrl
  * 的实现保留在 config.qml（QStringList 是值类型，改 cfg_ScanPaths 才持久化）。
  */
 Loader {
     id: dialogLoader
 
-    // 注入：把选中文件夹加入扫描目录的回调（config 层 addScanPath）
-    property var addScanPath: null
+    // 注入：把选中文件夹加入扫描目录的回调（config 层 addScanUrl）
+    property var addScanUrl: null
     // 注入：添加成功后的回调（父级负责刷新缩略图 / 标记配置变更）
     property var onAdded: null
 
@@ -37,8 +37,8 @@ Loader {
         // 用户点击"确定"：把选中文件夹加入扫描目录并通知父级
         function onAccepted() {
             if (dialogLoader.item instanceof QtDialogs.FolderDialog) {
-                if (dialogLoader.addScanPath) {
-                    dialogLoader.addScanPath(dialogLoader.item.selectedFolder);
+                if (dialogLoader.addScanUrl) {
+                    dialogLoader.addScanUrl(dialogLoader.item.selectedFolder);
                 }
                 if (dialogLoader.onAdded) {
                     dialogLoader.onAdded();

@@ -24,6 +24,7 @@ private Q_SLOTS:
     void addEntriesGroupsByKey();
     void addEntriesOverwritesSameKey();
     void clearEmptiesAll();
+    void pathDisplayHelpers();
 };
 
 void tst_wallpapermodel::addEntriesGroupsByKey()
@@ -86,6 +87,17 @@ void tst_wallpapermodel::clearEmptiesAll()
     QCOMPARE(model.count(), 0);
     QCOMPARE(model.groupCount(), 0);
     QCOMPARE(model.keys().size(), 0);
+}
+
+void tst_wallpapermodel::pathDisplayHelpers()
+{
+    WallpaperModel model;
+    // 文件夹名：去末尾斜杠取最后一段
+    QCOMPARE(model.folderName(QStringLiteral("file:///home/user/wallpapers/aurora")), QStringLiteral("aurora"));
+    QCOMPARE(model.folderName(QStringLiteral("file:///home/user/wallpapers/aurora/")), QStringLiteral("aurora"));
+    // 父目录路径：去末尾斜杠去掉最后一段
+    QCOMPARE(model.parentPath(QStringLiteral("file:///home/user/wallpapers/aurora")), QStringLiteral("file:///home/user/wallpapers"));
+    QCOMPARE(model.parentPath(QStringLiteral("file:///home/user/wallpapers/aurora/")), QStringLiteral("file:///home/user/wallpapers"));
 }
 
 QTEST_MAIN(tst_wallpapermodel)

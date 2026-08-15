@@ -21,11 +21,6 @@ import org.kde.kirigami as Kirigami
  */
 Item {
     id: thumbnails
-    // 尺寸由外层布局（config.qml 的 RowLayout）通过 Layout.fill* 管理，
-    // 不再用 anchors.fill——在布局管理的子项上用 anchors 会触发
-    // "Detected anchors on an item that is managed by a layout" 警告。
-    // 内部 ColumnLayout 仍以 anchors.fill: parent 填满本组件。
-
     // 暴露底层 GridView，供外部滚动到指定项
     property alias view: wallpapersGrid.view
 
@@ -53,6 +48,32 @@ Item {
                 return Qt.size(baseSize * aspectRatio, baseSize);
             }
         }
+    }
+
+    // 当前选中的扫描根 key（"" = 全部）。由调用方 config.qml 注入绑定。
+    property string activeFolder: ""
+    // 当前网格 model：全部 → htmlWallpaper.wallpapers；单组 → byKey(activeFolder)
+    property var gridModel: null
+
+    // 依 activeFolder 重新计算 gridModel，并滚回顶部、清空选中高亮
+    function refreshModel() {
+        const walls = htmlWallpaper && htmlWallpaper.wallpapers ? htmlWallpaper.wallpapers : null;
+        if (!walls) {
+            gridModel = null;
+            return;
+        }
+        gridModel = activeFolder.length === 0 ? walls : walls.byKey(activeFolder);
+        wallpapersGrid.view.currentIndex = -1;
+        wallpapersGrid.view.positionViewAtIndex(0, ListView.Beginning);
+    }
+
+    onActiveFolderChanged: refreshModel()
+    onHtmlWallpaperChanged: refreshModel()
+
+    // 重扫保护：WallpaperModel beginResetModel 时旧 byKey 快照失效，重算 gridModel
+    Connections {
+        target: htmlWallpaper && htmlWallpaper.wallpapers ? htmlWallpaper.wallpapers : null
+        function onModelReset() { refreshModel(); }
     }
 
     ColumnLayout {
@@ -84,7 +105,7 @@ Item {
                 framedView: false
 
                 // 直接挂模型，节省缩略图下方标签的额外空间
-                view.model: htmlWallpaper ? htmlWallpaper.wallpapers : null
+                view.model: thumbnails.gridModel
 
                 // 单元格尺寸随屏幕宽高比调整，保持缩略图比例不拉伸
                 view.implicitCellWidth: {
@@ -108,10 +129,10 @@ Item {
                     // 点击行为：htmlWallpaper && model.path 时响应——设置
                     // selectWallpaper = model.file，并让当前项高亮跟随点击项
                     onClicked: {
-                        if (htmlWallpaper && model.path) {
-                            htmlWallpaper.selectWallpaper = model.file;
+                        if (htmlWallpaper && (model.path ?? modelData.path)) {
+                            htmlWallpaper.selectWallpaper = model.file ?? modelData.file;
                             wallpapersGrid.view.currentIndex = index;
-                            console.log("Selected wallpaper:", model.file, "at index", index);
+                            console.log("Selected wallpaper:", model.file ?? modelData.file, "at index", index);
                         }
                     }
                 }

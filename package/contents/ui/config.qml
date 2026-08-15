@@ -33,23 +33,25 @@ ColumnLayout {
     property alias htmlWallpaperController: htmlWallpaper
 
     // property alias wallpaper: mainView.wallpaper
-    property alias cfg_ScanPaths: htmlWallpaper.scanPaths
+    property alias cfg_ScanUrls: htmlWallpaper.scanUrls
 
     property alias cfg_SelectWallpaper: htmlWallpaper.selectWallpaper
 
     spacing: 0
+
     // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下含 *.html 的壁纸子目录，
-    // 提供壁纸列表 / 参数表 / 预览。scanPaths 跟随 cfg_ScanPaths（扫描目录），
-    // 变化时触发重扫；scanPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
+    // 提供壁纸列表 / 参数表 / 预览。scanUrls 跟随 cfg_ScanPaths（扫描目录），
+    // 变化时触发重扫；scanUrls 本身即 QStringList，QML 侧直接作目录列表的 model。
     WallpaperController {
         id: htmlWallpaper
-        // 路径变化时重扫（数据源即 scanPaths，无需中间模型同步）
-        onScanPathsChanged: htmlWallpaper.scan()
-        // 扫描完成 → 按 cfg_SelectWallpaper 匹配勾选当前壁纸（无匹配回退第一项）
-        // onScanFinished: root.syncCheckedFromSelectWallpaper()
-        // 初始化：scanPaths 绑定赋初值不触发 onScanPathsChanged，补一次初始扫描，
-        // 否则打开配置面板时中栏网格为空
-        Component.onCompleted: htmlWallpaper.scan()
+        // 路径变化时重扫（数据源即 scanUrls，无需中间模型同步）
+        onScanUrlsChanged: {
+            htmlWallpaper.scan()
+        }
+
+        Component.onCompleted:{
+            htmlWallpaper.scan()
+        }
     }
     // —— 主内容区：接受拖放，加载 HTML 壁纸面板 ——
     DropArea {
@@ -80,11 +82,11 @@ ColumnLayout {
             spacing: 0
             
             // —— 左栏：扫描目录（文件夹）列表 ——
-            View.ScanPathsPanel {
-                id: scanPathsView
+            View.ScanUrlsPanel {
+                id: scanUrlsView
                 spacing: 0
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 16
-                scanPaths: htmlWallpaper.scanPaths
+                htmlWallpaper: htmlWallpaper
             }
 
             Kirigami.Separator {
@@ -96,6 +98,8 @@ ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 htmlWallpaper: root.htmlWallpaperController
+                // 标签联动：左栏选中文件夹 → 中栏显示对应壁纸组
+                activeFolder: scanUrlsView.selectedFolder
             }
         }
     }

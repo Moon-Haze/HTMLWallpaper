@@ -28,9 +28,16 @@ ColumnLayout {
     QtObject {
         id: htmlWallpaper
         property string selectWallpaper: ""
-        property ListModel wallpapers: ListModel {
-            ListElement { name: "a"; title: "a"; path: "file:///a.html"; file: "file:///a.html"; preview: "" }
-        }
+        // 模拟 WallpaperModel：JS 数组作 model，可挂 byKey/get 方法。
+        // byKey 返回整个数组（mock 简化：不分 key 返回不同组）。
+        property var wallpapers: (function () {
+            const all = [
+                { name: "a", title: "a", path: "file:///a.html", file: "file:///a.html", preview: "" }
+            ];
+            all.byKey = function (url) { return all; };
+            all.get = function (i) { return all[i]; };
+            return all;
+        })()
     }
 
     // 暴露面板供测试断言

@@ -190,6 +190,26 @@ int WallpaperModel::groupCount() const
     return m_items.size();
 }
 
+QString WallpaperModel::folderName(const QString &url) const
+{
+    // 与 wallpaperentry.cpp 的 basename 一致：去末尾斜杠后取最后一段
+    QString s = url;
+    while (s.endsWith(QLatin1Char('/'))) {
+        s.chop(1);
+    }
+    return s.mid(s.lastIndexOf(QLatin1Char('/')) + 1);
+}
+
+QString WallpaperModel::parentPath(const QString &url) const
+{
+    // 去末尾斜杠后去掉最后一段（保留父目录完整路径）
+    QString s = url;
+    while (s.endsWith(QLatin1Char('/'))) {
+        s.chop(1);
+    }
+    return s.left(s.lastIndexOf(QLatin1Char('/')));
+}
+
 void WallpaperModel::scan(const QStringList &roots)
 {
     if (m_scanning) {

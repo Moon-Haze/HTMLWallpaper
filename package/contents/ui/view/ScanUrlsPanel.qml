@@ -19,25 +19,45 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
 /**
  * HTML 壁纸扫描目录列表（左栏）。
  *
- * 展示并管理 htmlWallpaper.scanPaths（QStringList）中的扫描目录，
+ * 展示并管理 htmlWallpaper.scanUrls（QStringList）中的扫描目录，
  * 支持增删与在文件管理器中打开目录；未配置目录时显示空态提示。
  *
  * 数据源是 config.qml 注入的 WallpaperController（C++）单实例：
- *   目录列表 ← htmlWallpaper.scanPaths；壁纸网格 ← htmlWallpaper.wallpapers
+ *   目录列表 ← htmlWallpaper.scanUrls；壁纸网格 ← htmlWallpaper.wallpapers
  *   （WallpaperModel）。
- * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_ScanPaths 持久化，
- * 由 scanPaths 绑定同步 htmlWallpaper → 重扫）。
+ * 目录增删走 config 的 addScanUrl/removeScanUrl（只改 cfg_ScanUrls 持久化，
+ * 由 scanUrls 绑定同步 htmlWallpaper → 重扫）。
  *
- * For proper alignment, an ancestor **MUST** have id "appearanceRoot" and property "parentLayout"
  */
 // —— 左栏：扫描目录（文件夹）列表 ——
 ColumnLayout {
-    id: root
+    id: scanUrlsPanel
 
-    property alias scanPaths: scanPathsView.model
+    // 注入的解析器实例（由调用方 config.qml 传入）
+    property QtObject htmlWallpaper: null
+
+    // 当前选中的扫描根 URL（"" = 全部）。由 config.qml 绑定到 ThumbnailsPanel.activeFolder
+    property string selectedFolder: ""
+
+    // 暴露内部列表与"全部"标签供集成测试驱动真实点击（只读引用，不参与生产行为）
+    property alias folderList: scanUrlsView
+    property alias allTab: allTabDelegate
 
     Kirigami.Separator {
         Layout.fillWidth: true
+    }
+
+    // —— 顶部固定"全部"标签：显示所有扫描根合并的壁纸 ——
+    Kirigami.SubtitleDelegate {
+        id: allTabDelegate
+        Layout.fillWidth: true
+        text: i18nd("plasma_wallpaper_org.kde.image", "All")
+        // 选中态：selectedFolder 为空即"全部"
+        highlighted: scanUrlsPanel.selectedFolder.length === 0
+        onClicked: scanUrlsPanel.selectedFolder = ""
+        // 与文件夹标签一致：列表项无需悬停/按压反馈
+        hoverEnabled: false
+        down: false
     }
 
     QQC2.ScrollView {
@@ -52,13 +72,16 @@ ColumnLayout {
             color: Kirigami.Theme.backgroundColor
         }
 
-        // 扫描目录列表：数据源是 htmlWallpaper.scanPaths（跟随 cfg_ScanPaths）
+        // 扫描目录列表：数据源是 htmlWallpaper.scanUrls（跟随 cfg_ScanUrlss）
         ListView {
-            id: scanPathsView
+            id: scanUrlsView
+
+            model: htmlWallpaper.scanUrls
+
             headerPositioning: ListView.OverlayHeader
             // 悬浮标题栏，含“添加文件夹”按钮
             header: Kirigami.InlineViewHeader {
-                width: scanPathsView.width
+                width: scanUrlsView.width
                 text: i18nd("plasma_wallpaper_org.kde.image", "Folders")
                 actions: [
                     Kirigami.Action {
@@ -68,23 +91,11 @@ ColumnLayout {
                         onTriggered:{
                             const dialogComponent = Qt.createComponent("AddFolderDialog.qml");
                             // 只注入对话框所需的最小依赖：两个回调，不暴露 config 根对象。
-                            // addScanPath 实现在 config.qml（改 cfg_ScanPaths 才持久化）；
+                            // addScanUrl 实现在 config.qml（改 cfg_ScanUrls 才持久化）；
                             // 完成后这里通知 config 层刷新缩略图 / 标记配置变更
-                            dialogComponent.createObject(root, {
-                                addScanPath: (path) => {
-                                    const p = String(path);
-                                    if (scanPaths.indexOf(p) >= 0) {
-                                        return;
-                                    }
-                                    const list = scanPaths.slice();
-                                    list.push(p);
-                                    scanPaths = list;
-                                },
-                                onAdded: () => {
-                                    if (root.configApi) {
-                                        root.configApi.wallpaperBrowseCompleted();
-                                        root.configApi.configurationChanged();
-                                    }
+                            dialogComponent.createObject(scanUrlsPanel, {
+                                addScanUrl: (path) => {
+                                    htmlWallpaper.addScanUrl(String(path));
                                 }
                             });
                             dialogComponent.destroy();
@@ -98,23 +109,23 @@ ColumnLayout {
                 // 字符串数组 model：modelData 直接是路径字符串
                 required property string modelData
 
-                width: scanPathsView.width
+                width: scanUrlsView.width
+
+                // 标签点击：切换中栏为当前文件夹壁纸组
+                onClicked: scanUrlsPanel.selectedFolder = modelData
+                // 选中态高亮：当前选中文件夹
+                highlighted: scanUrlsPanel.selectedFolder === modelData
+
                 // Don't need a highlight or hover effects
                 // 列表项无需悬停高亮效果
                 hoverEnabled: false
                 down: false
 
-                // 主标题只显示文件夹名（去掉末尾斜杠后取最后一段）
-                text: {
-                    var strippedPath = String(modelData).replace(/\/+$/, "");
-                    return strippedPath.split('/').pop()
-                }
+                // 主标题只显示文件夹名（路径解析在 C++ WallpaperModel 实现）
+                text: htmlWallpaper.wallpapers.folderName(modelData)
                 // Subtitle: the path to the folder
-                // 副标题显示父目录路径
-                subtitle: {
-                    var strippedPath = String(modelData).replace(/\/+$/, "");
-                    return strippedPath.replace(/\/[^\/]*$/, '');;
-                }
+                // 副标题显示父目录路径（路径解析在 C++ WallpaperModel 实现）
+                subtitle: htmlWallpaper.wallpapers.parentPath(modelData)
 
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.smallSpacing
@@ -127,17 +138,18 @@ ColumnLayout {
                         subtitle: baseListItem.subtitle
                     }
 
-                    // 从扫描列表移除该文件夹：走 config 层 removeScanPath（持久化
-                    // cfg_ScanPaths），由 scanPaths 绑定同步 ListView 与解析器重扫
+                    // 从扫描列表移除该文件夹：走 config 层 removeScanUrls（持久化
+                    // cfg_ScanUrlss），由 scanUrls 绑定同步 ListView 与解析器重扫
                     QQC2.ToolButton {
                         icon.name: "edit-delete-remove-symbolic"
                         text: i18nd("plasma_wallpaper_org.kde.image", "Remove Folder")
                         display: QQC2.Button.IconOnly
                         onClicked: {
-                                                   
-                            const p = String(baseListItem.modelData);
-                            const list = scanPaths.filter(x => String(x) !== p);
-                            scanPaths = list;
+                            // 删除的是当前选中文件夹 → 回退到"全部"
+                            if (scanUrlsPanel.selectedFolder === String(baseListItem.modelData)) {
+                                scanUrlsPanel.selectedFolder = "";
+                            }
+                            htmlWallpaper.removeScanUrl(String(baseListItem.modelData));
                         }
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text
@@ -162,7 +174,7 @@ ColumnLayout {
             Kirigami.PlaceholderMessage {
                 anchors.centerIn: parent
                 width: parent.width - (Kirigami.Units.largeSpacing * 4)
-                visible: scanPathsView.count === 0
+                visible: scanUrlsView.count === 0
                 text: i18nd("plasma_wallpaper_org.kde.image", "There are no wallpaper locations configured")
             }
         }

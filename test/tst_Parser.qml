@@ -13,7 +13,7 @@ import com.github.moon_haze.htmlwallpaper
  * WallpaperController（C++）单元测试。
  *
  * 覆盖异步扫描流程（QtConcurrent worker 枚举根目录下各子目录的 *.html 入口）
- * 与 scanPaths 路径管理。fixtures 位于 test/data/wallpapers/
+ * 与 scanUrls 路径管理。fixtures 位于 test/data/wallpapers/
  * （aurora / matrix / missing-entry / neon / nova / offline 被收录；
  *   fetch / paramfallback 无 html 被过滤）。
  */
@@ -45,35 +45,35 @@ TestCase {
         }
     }
 
-    // —— 扫描路径（scanPaths）——
+    // —— 扫描路径（scanUrls）——
 
-    // 直接赋值 scanPaths 生效（数据源就是它本身，无中间模型）
-    function test_scanPaths_assign() {
-        parser.scanPaths = ["file:///a", "file:///b"];
-        compare(parser.scanPaths.length, 2);
-        compare(String(parser.scanPaths[0]), "file:///a");
-        compare(String(parser.scanPaths[1]), "file:///b");
+    // 直接赋值 scanUrls 生效（数据源就是它本身，无中间模型）
+    function test_scanUrls_assign() {
+        parser.scanUrls = ["file:///a", "file:///b"];
+        compare(parser.scanUrls.length, 2);
+        compare(String(parser.scanUrls[0]), "file:///a");
+        compare(String(parser.scanUrls[1]), "file:///b");
     }
 
-    function test_scanPaths_addRemove() {
-        // scanPaths 默认带一个扫描路径，先清空从无开始
-        parser.scanPaths = [];
-        compare(parser.scanPaths.length, 0, "初始无扫描路径");
+    function test_scanUrls_addRemove() {
+        // scanUrls 默认带一个扫描路径，先清空从无开始
+        parser.scanUrls = [];
+        compare(parser.scanUrls.length, 0, "初始无扫描路径");
 
         parser.addScanPath("file:///a");
         parser.addScanPath("file:///b/");
-        compare(parser.scanPaths.length, 2);
-        compare(String(parser.scanPaths[0]), "file:///a");
-        compare(String(parser.scanPaths[1]), "file:///b/");
+        compare(parser.scanUrls.length, 2);
+        compare(String(parser.scanUrls[0]), "file:///a");
+        compare(String(parser.scanUrls[1]), "file:///b/");
 
         // 重复路径去重
         parser.addScanPath("file:///a");
-        compare(parser.scanPaths.length, 2, "重复路径应被拒绝");
+        compare(parser.scanUrls.length, 2, "重复路径应被拒绝");
 
         // 删除
         parser.removeScanPath("file:///a");
-        compare(parser.scanPaths.length, 1);
-        compare(String(parser.scanPaths[0]), "file:///b/");
+        compare(parser.scanUrls.length, 1);
+        compare(String(parser.scanUrls[0]), "file:///b/");
     }
 
 
@@ -81,7 +81,7 @@ TestCase {
 
     function test_scanCollectsWebWallpapers() {
         scanSpy.target = parser;
-        parser.scanPaths = [fixtureDir];
+        parser.scanUrls = [fixtureDir];
         parser.scan();
         // 注意：SignalSpy.wait() 超时会自动 FAIL 并终止测试，成功时返回 undefined，
         // 不能用 verify(wait(...))；wait 只作事件循环驱动，结果看 count

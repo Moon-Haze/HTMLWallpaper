@@ -82,6 +82,12 @@ public:
     /** 分组数。 */
     Q_INVOKABLE int groupCount() const;
 
+    /** 扫描根 URL → 显示用文件夹名（去末尾斜杠后取最后一段）。 */
+    Q_INVOKABLE QString folderName(const QString &url) const;
+
+    /** 扫描根 URL → 父目录路径（去末尾斜杠后去掉最后一段；根路径返回空）。 */
+    Q_INVOKABLE QString parentPath(const QString &url) const;
+
     // —— 自治扫描 ——
     /** 后台扫描 roots 下各壁纸目录并按 root 分组填充模型；完成后发 scanFinished。 */
     Q_INVOKABLE void scan(const QStringList &roots);

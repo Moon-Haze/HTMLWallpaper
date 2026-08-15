@@ -19,18 +19,18 @@
 
 ## 决策记录
 
-| 决策点 | 结论 |
-|---|---|
-| 扫描工作流 | 一次性全量扫(scan(roots) 一次后台扫完),结果按 root 分组返回,完成后逐 key addEntries |
-| UI 分组展示 | 本次不做,存储层分组 + 预留接口,UI 仍为单一扁平网格 |
-| `byKey` 语义 | 由"按条目 source 返回单 item"改为"按扫描路径返回整组 QList<WallpaperItem*>" |
-| `indexOf(source)` | 保留原语义(按 html 文件找扁平行号) |
-| 新增接口 | `keys()`(保序)、`groupCount()` |
-| 扁平顺序 | `QHash` + `m_groupOrder` 保序,`m_flat` 扁平视图缓存(扁平 API O(1)) |
-| `m_indexByKey` | 删除(byKey 改语义后冗余,indexOf 改遍历) |
-| 生命周期 | `WallpaperItem*` 由 Model 显式所有,addEntries 覆盖 / clear 时 `qDeleteAll`;parent 仍为 model(指针存活期保证) |
-| `ScanResult` 结构 | `projects` 扁平列表改为 `QList<ScanGroup>`(key + entries),保序 |
-| `WallpaperItem` 拷贝语义 | 删除拷贝构造 / `operator=`(指针化后不再需要) |
+| 决策点                   | 结论                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| 扫描工作流               | 一次性全量扫(scan(roots) 一次后台扫完),结果按 root 分组返回,完成后逐 key addEntries                          |
+| UI 分组展示              | 本次不做,存储层分组 + 预留接口,UI 仍为单一扁平网格                                                           |
+| `byKey` 语义             | 由"按条目 source 返回单 item"改为"按扫描路径返回整组 QList<WallpaperItem*>"                                  |
+| `indexOf(source)`        | 保留原语义(按 html 文件找扁平行号)                                                                           |
+| 新增接口                 | `keys()`(保序)、`groupCount()`                                                                               |
+| 扁平顺序                 | `QHash` + `m_groupOrder` 保序,`m_flat` 扁平视图缓存(扁平 API O(1))                                           |
+| `m_indexByKey`           | 删除(byKey 改语义后冗余,indexOf 改遍历)                                                                      |
+| 生命周期                 | `WallpaperItem*` 由 Model 显式所有,addEntries 覆盖 / clear 时 `qDeleteAll`;parent 仍为 model(指针存活期保证) |
+| `ScanResult` 结构        | `projects` 扁平列表改为 `QList<ScanGroup>`(key + entries),保序                                               |
+| `WallpaperItem` 拷贝语义 | 删除拷贝构造 / `operator=`(指针化后不再需要)                                                                 |
 
 ## 存储结构(wallpapermodel.h)
 
@@ -123,11 +123,11 @@ config.qml onScanUrlsChanged → controller.scan()
 
 ## 影响面
 
-| 文件 | 改动 |
-|---|---|
-| `plugin/wallpapermodel.h` | 保留 m_items 声明,新增 m_groupOrder/m_flat,删 m_indexByKey,改 byKey 签名,加 keys/groupCount |
-| `plugin/wallpapermodel.cpp` | 重写 addEntries/clear/count/data/get/indexOf/scan,删 setEntries |
-| `plugin/wallpaperentry.h` | ScanResult → QList<ScanGroup> |
-| `plugin/wallpaperitem.h` | 删拷贝构造 / operator= |
-| `test/tst_WallpaperListModel.qml` | 回归 + 新增分组/覆盖用例 |
-| `test/tst_Smoke.qml` | 修 ScanPathsPanel 残留引用 |
+| 文件                              | 改动                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------- |
+| `plugin/wallpapermodel.h`         | 保留 m_items 声明,新增 m_groupOrder/m_flat,删 m_indexByKey,改 byKey 签名,加 keys/groupCount |
+| `plugin/wallpapermodel.cpp`       | 重写 addEntries/clear/count/data/get/indexOf/scan,删 setEntries                             |
+| `plugin/wallpaperentry.h`         | ScanResult → QList<ScanGroup>                                                               |
+| `plugin/wallpaperitem.h`          | 删拷贝构造 / operator=                                                                      |
+| `test/tst_WallpaperListModel.qml` | 回归 + 新增分组/覆盖用例                                                                    |
+| `test/tst_Smoke.qml`              | 修 ScanPathsPanel 残留引用                                                                  |

@@ -11,9 +11,6 @@ import org.kde.plasma.plasmoid
  * 由 plasmashell 在每次应用壁纸时实例化一个 WallpaperItem。
  * 核心职责：用 QtWebEngine（WebEngineView）渲染用户配置的本地 / 远程 HTML
  * 页面，并把它铺满整个桌面作为壁纸；同时处理证书、加载失败等边界情况。
- *
- * 页面入口取自配置项 SelectWallpaper（纯 URL，不带参数），支持拖放本地
- * .html 文件直接设为壁纸；配置变化时按入口重新加载页面。
  */
 WallpaperItem {
     id: wallpaper
@@ -22,39 +19,18 @@ WallpaperItem {
     property bool loadFailed: false
     property string loadErrorString: ""
 
-    // 入口页面（纯 URL，不带 query），取自配置
-    property string _displayPage: ""
-
-    // 设置页面 URL（初始加载 / SelectWallpaper 变化 / 拖放共用）
-    function _applyUrl(): void {
-        webView.url = wallpaper._displayPage;
-    }
-
     // 支持拖放：把本地 .html 文件拖到桌面，直接设为壁纸
     onOpenUrlRequested: (url) => {
         wallpaper.configuration.SelectWallpaper = url;
         wallpaper.configuration.writeConfig();
-        wallpaper._displayPage = String(url);
-        wallpaper._applyUrl();
-    }
-
-    // 监听配置变化：入口页变化 → 重新加载
-    Connections {
-        target: wallpaper.configuration
-        function onValueChanged(key: string) {
-            if (key === "SelectWallpaper") {
-                wallpaper._displayPage = wallpaper.configuration.SelectWallpaper || "";
-                wallpaper._applyUrl();
-            }
-        }
     }
 
     // 承载壁纸 HTML 页面的 WebEngine 视图
     WebEngineView {
         id: webView
         anchors.fill: parent
-        // 不指定 profile，使用 QtWebEngine 默认 profile
-        // url 由 _applyUrl() 赋值（SelectWallpaper），不直接绑定
+        // 加载用户配置的页面地址（可为本地 file:// 或远程 https://）
+        url: wallpaper.configuration.SelectWallpaper
         // 缩放因子，对应配置项中的 ZoomFactor
         zoomFactor: wallpaper.configuration.ZoomFactor
         // 页面渲染前先铺黑底，避免闪烁 / 出现白屏
@@ -72,11 +48,11 @@ WallpaperItem {
         settings.playbackRequiresUserGesture: false
         // 监听页面加载状态：失败时记录错误信息，成功后清除失败标志
         onLoadingChanged: function (loadRequest) {
-            if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
-                wallpaper.loadFailed = false
-            } else if (loadRequest.status === WebEngineView.LoadFailedStatus) {
+            if (loadRequest.status === WebEngineView.LoadFailedStatus) {
                 wallpaper.loadFailed = true
                 wallpaper.loadErrorString = loadRequest.errorString
+            } else if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
+                wallpaper.loadFailed = false
             }
         }
     }
@@ -94,14 +70,8 @@ WallpaperItem {
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
             color: "white"
-            text: i18nd("plasma_wallpaper_com.github.moon_haze.htmlwallpaper",
+            text: i18nd("plasma_wallpaper_com.github.Moon-Haze.htmlwallpaper",
                         "无法加载页面：\n%1\n\n请检查 URL 或网络连接。").arg(wallpaper.loadErrorString)
         }
-    }
-
-    // 首次加载：从配置取入口后显示
-    Component.onCompleted: {
-        wallpaper._displayPage = wallpaper.configuration.SelectWallpaper || "";
-        wallpaper._applyUrl();
     }
 }

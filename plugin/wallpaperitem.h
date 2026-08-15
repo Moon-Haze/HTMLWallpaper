@@ -30,13 +30,34 @@ class WallpaperItem : public QObject
 public:
     explicit WallpaperItem(const WallpaperEntry &entry, QObject *parent = nullptr);
 
-    QString name() const { return m_entry.name(); }
-    QString title() const { return m_entry.title(); }
-    QString path() const { return m_entry.path(); }
-    QString file() const { return m_entry.file(); }
-    QString source() const { return m_entry.source(); }
-    QString display() const { return m_entry.display(); }
-    QString preview() const { return m_entry.preview(); }
+    QString name() const
+    {
+        return m_entry.name();
+    }
+    QString title() const
+    {
+        return m_entry.title();
+    }
+    QString path() const
+    {
+        return m_entry.path();
+    }
+    QString file() const
+    {
+        return m_entry.file();
+    }
+    QString source() const
+    {
+        return m_entry.source();
+    }
+    QString display() const
+    {
+        return m_entry.display();
+    }
+    QString preview() const
+    {
+        return m_entry.preview();
+    }
 
 private:
     WallpaperEntry m_entry; // 数据层（唯一数据来源）

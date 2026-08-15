@@ -30,9 +30,12 @@ KCM.GridDelegate {
     property QtObject htmlWallpaper: null
     
     // 标记为"待删除"的项半透明显示（HTML 模式模型无此 role，恒为不透明）
+    // 注：pendingDeletion 在 WallpaperModel/WallpaperItem/mock 三态下均为
+    // undefined，无需 modelData 兜底；保持单路径避免 QAbstractListModel 下
+    // 空 modelData 的属性访问。
     opacity: model.pendingDeletion ? 0.5 : 1
 
-    text: model.title
+    text: model.title ?? modelData.title
 
     // —— 缩略图内容 ——
     thumbnail: Rectangle {
@@ -56,7 +59,7 @@ KCM.GridDelegate {
             asynchronous: true
             retainWhileLoading: true
             cache: false
-            source: model.preview
+            source: model.preview ?? modelData.preview
             // 加载完成淡入，避免占位图标硬切
             opacity: status === Image.Ready ? 1 : 0
             Behavior on opacity {
