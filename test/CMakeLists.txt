@@ -39,7 +39,7 @@ if(BUILD_TESTING)
     # C++ 数据层单测（QTest）：编译 plugin 下纯数据层源文件，不依赖 QML/KF6。
     # qt_add_executable 自动开启 AUTOMOC（WallpaperEntry 无 Q_OBJECT；测试类
     # 自身带 Q_OBJECT，经 #include "tst_wallpaperproject.moc" 生成 moc）。
-    find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Test)
+    find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Test Concurrent)
     qt_add_executable(tst_wallpaperproject tst_wallpaperproject.cpp)
     target_sources(tst_wallpaperproject PRIVATE
         ../plugin/wallpaperentry.cpp
@@ -50,6 +50,20 @@ if(BUILD_TESTING)
     add_test(NAME tst_wallpaperproject COMMAND tst_wallpaperproject)
     # WORKING_DIRECTORY 设为 tests/ 目录，让 data/wallpapers fixtures 相对路径可用
     set_tests_properties(tst_wallpaperproject PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+
+    # WallpaperModel 分组存储单测：编译模型 + 数据层 + 门面，链接 QtConcurrent。
+    qt_add_executable(tst_wallpapermode tst_wallpapermode.cpp)
+    target_sources(tst_wallpapermode PRIVATE
+        ../plugin/wallpapermodel.cpp
+        ../plugin/wallpaperitem.cpp
+        ../plugin/wallpaperentry.cpp
+    )
+    target_include_directories(tst_wallpapermode PRIVATE ../plugin)
+    target_link_libraries(tst_wallpapermode PRIVATE Qt6::Test Qt6::Core Qt6::Concurrent)
+    add_test(NAME tst_wallpapermode COMMAND tst_wallpapermode)
+    set_tests_properties(tst_wallpapermode PROPERTIES
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 endif()
