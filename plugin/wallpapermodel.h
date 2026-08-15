@@ -32,7 +32,8 @@ class QFutureWatcher;
  * 扁平视图缓存（对外的 rowCount/data/get 直接索引）。addEntries(key, ...)
  * 替换 key 对应整组（同 key 覆盖）；scan() 后台一次性扫完所有 root，
  * 完成后 clear() + 逐组 addEntries。byKey(key) 返回整组，keys() 返回保序
- * 分组列表，为将来 UI 分组 / 局部重扫预留。
+ * 分组列表，为将来 UI 分组 / 局部重扫预留。byKey() 返回的指针随模型条目
+ * 生命周期：下一次 scan()/addEntries(key)/clear() 使旧组失效，须重新获取。
  */
 class WallpaperModel : public QAbstractListModel
 {
@@ -58,8 +59,8 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    /** 替换 key（扫描根 URL）对应整组条目；同 key 覆盖（先 delete 旧组指针）。
-     *  主线程调用；每次完整重置模型。 */
+    /** 替换 key（扫描根 URL）对应整组条目；同 key 覆盖时先 delete 旧组全部
+     *  WallpaperItem* 再建新组。主线程调用；每次完整重置模型。 */
     Q_INVOKABLE void addEntries(const QString &key, const QList<WallpaperEntry> &wallpapers);
 
     void clear();
@@ -70,7 +71,9 @@ public:
     /** 按条目 source（html 文件 URL）返回扁平行号；未找到返回 -1。 */
     Q_INVOKABLE int indexOf(const QString &source) const;
 
-    /** 按扫描路径（归一化 URL）返回该组全部 WallpaperItem*；不存在返回空列表。 */
+    /** 按扫描路径（归一化 URL）返回该组全部 WallpaperItem*；不存在返回空列表。
+     *  注意：返回的裸指针快照在下一次 scan()/addEntries(key)/clear() 前有效
+     *  （届时旧组被 delete），跨重扫持有须重新调用 byKey()。 */
     Q_INVOKABLE QList<WallpaperItem *> byKey(const QString &key);
 
     /** 保序的分组 key（扫描根 URL）列表。 */

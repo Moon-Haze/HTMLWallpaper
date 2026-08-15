@@ -16,7 +16,7 @@
  * 直接构造无效 WallpaperEntry()（目录探测的空条目）验证分组/覆盖/清空等
  * 纯结构逻辑，不依赖文件系统。覆盖测试用 QPointer 断言旧指针已 delete。
  */
-class tst_wallpapermode : public QObject
+class tst_wallpapermodel : public QObject
 {
     Q_OBJECT
 
@@ -26,7 +26,7 @@ private Q_SLOTS:
     void clearEmptiesAll();
 };
 
-void tst_wallpapermode::addEntriesGroupsByKey()
+void tst_wallpapermodel::addEntriesGroupsByKey()
 {
     WallpaperModel model;
     QList<WallpaperEntry> groupA;
@@ -48,7 +48,7 @@ void tst_wallpapermode::addEntriesGroupsByKey()
     QCOMPARE(model.byKey(QStringLiteral("file:///root/nope")).size(), 0);
 }
 
-void tst_wallpapermode::addEntriesOverwritesSameKey()
+void tst_wallpapermodel::addEntriesOverwritesSameKey()
 {
     WallpaperModel model;
     QList<WallpaperEntry> first;
@@ -69,10 +69,10 @@ void tst_wallpapermode::addEntriesOverwritesSameKey()
     QCOMPARE(model.count(), 1);
     QCOMPARE(model.groupCount(), 1);
     // 旧 WallpaperItem 应已被 delete（QPointer 变 null）
-    QVERIFY(survivor.isNull() || survivor->parent() != &model);
+    QVERIFY(survivor.isNull());
 }
 
-void tst_wallpapermode::clearEmptiesAll()
+void tst_wallpapermodel::clearEmptiesAll()
 {
     WallpaperModel model;
     QList<WallpaperEntry> entries;
@@ -88,5 +88,5 @@ void tst_wallpapermode::clearEmptiesAll()
     QCOMPARE(model.keys().size(), 0);
 }
 
-QTEST_MAIN(tst_wallpapermode)
-#include "tst_wallpapermode.moc"
+QTEST_MAIN(tst_wallpapermodel)
+#include "tst_wallpapermodel.moc"

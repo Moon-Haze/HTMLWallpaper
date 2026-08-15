@@ -10,7 +10,6 @@
 
 #include <QDir>
 #include <QFutureWatcher>
-#include <QtAlgorithms>
 #include <QtConcurrent>
 #include <QUrl>
 
@@ -39,7 +38,10 @@ ScanResult scanWallpapers(const QStringList &roots)
                 group.entries.append(entry);
             }
         }
-        result.groups.append(group);
+        // 存在但无壁纸子目录的空根不进分组（否则 keys()/groupCount() 会含空组）
+        if (!group.entries.isEmpty()) {
+            result.groups.append(group);
+        }
     }
     return result;
 }
@@ -117,7 +119,9 @@ void WallpaperModel::addEntries(const QString &key, const QList<WallpaperEntry> 
     beginResetModel();
     auto it = m_items.find(normKey);
     if (it != m_items.end()) {
-        qDeleteAll(it.value()); // 释放旧组所有 WallpaperItem*（QObject parent 为本模型）
+        for (WallpaperItem *p : it.value()) {
+            delete p; // 释放旧组所有 WallpaperItem*（QObject parent 为本模型）
+        }
         it.value().clear();
     }
     QList<WallpaperItem *> &group = m_items[normKey];
@@ -135,7 +139,9 @@ void WallpaperModel::clear()
 {
     beginResetModel();
     for (auto it = m_items.begin(); it != m_items.end(); ++it) {
-        qDeleteAll(it.value());
+        for (WallpaperItem *p : it.value()) {
+            delete p;
+        }
     }
     m_items.clear();
     m_groupOrder.clear();

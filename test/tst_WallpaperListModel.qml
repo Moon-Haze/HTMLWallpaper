@@ -24,6 +24,8 @@ TestCase {
     property url fixtureDir: Qt.resolvedUrl("data/wallpapers")
     // 第二个扫描根：red / blue 两个壁纸目录
     property url extraDir: Qt.resolvedUrl("data/extra")
+    // 空扫描根：存在但无壁纸子目录，不应产生分组
+    property url emptyDir: Qt.resolvedUrl("data/empty")
     // 每个测试函数独立创建的控制器实例
     property var htmlWallpaper: null
 
@@ -48,7 +50,7 @@ TestCase {
 
     // 扫描 fixture 并等待 scanFinished,返回 wallpapers 模型
     function scanWallpapers() {
-        htmlWallpaper.scanUrls = [fixtureDir];
+        htmlWallpaper.scanPaths = [fixtureDir];
         htmlWallpaper.scan();
         scanSpy.wait(5000);
         verify(scanSpy.count > 0, "scanFinished 未在 5s 内发出");
@@ -108,7 +110,7 @@ TestCase {
 
     // 扫描 [fixtureDir, extraDir] 两个根并等待 scanFinished
     function scanMultiRoots() {
-        htmlWallpaper.scanUrls = [fixtureDir, extraDir];
+        htmlWallpaper.scanPaths = [fixtureDir, extraDir];
         htmlWallpaper.scan();
         scanSpy.wait(5000);
         verify(scanSpy.count > 0, "scanFinished 未在 5s 内发出");
@@ -151,5 +153,17 @@ TestCase {
         compare(model.indexOf(String(model.get(0).source)), 0, "aurora 行号应为 0");
         compare(model.indexOf(String(model.get(6).source)), 6, "blue 行号应为 6");
         compare(model.indexOf("file:///nonexistent.html"), -1, "不存在 source 应返回 -1");
+    }
+
+    // 空扫描根（存在但无壁纸子目录）不产生分组
+    function test_emptyRootNotGrouped() {
+        htmlWallpaper.scanPaths = [fixtureDir, extraDir, emptyDir];
+        htmlWallpaper.scan();
+        scanSpy.wait(5000);
+        verify(scanSpy.count > 0, "scanFinished 未在 5s 内发出");
+        const model = htmlWallpaper.wallpapers;
+        compare(model.count, 8, "空根不影响壁纸总数");
+        compare(model.groupCount(), 2, "空根不应产生分组");
+        compare(model.keys().length, 2, "空根不应进 keys");
     }
 }

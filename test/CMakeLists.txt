@@ -54,16 +54,16 @@ if(BUILD_TESTING)
     )
 
     # WallpaperModel 分组存储单测：编译模型 + 数据层 + 门面，链接 QtConcurrent。
-    qt_add_executable(tst_wallpapermode tst_wallpapermode.cpp)
-    target_sources(tst_wallpapermode PRIVATE
+    qt_add_executable(tst_wallpapermodel tst_wallpapermodel.cpp)
+    target_sources(tst_wallpapermodel PRIVATE
         ../plugin/wallpapermodel.cpp
         ../plugin/wallpaperitem.cpp
         ../plugin/wallpaperentry.cpp
     )
-    target_include_directories(tst_wallpapermode PRIVATE ../plugin)
-    target_link_libraries(tst_wallpapermode PRIVATE Qt6::Test Qt6::Core Qt6::Concurrent)
-    add_test(NAME tst_wallpapermode COMMAND tst_wallpapermode)
-    set_tests_properties(tst_wallpapermode PROPERTIES
+    target_include_directories(tst_wallpapermodel PRIVATE ../plugin)
+    target_link_libraries(tst_wallpapermodel PRIVATE Qt6::Test Qt6::Core Qt6::Concurrent)
+    add_test(NAME tst_wallpapermodel COMMAND tst_wallpapermodel)
+    set_tests_properties(tst_wallpapermodel PROPERTIES
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 endif()

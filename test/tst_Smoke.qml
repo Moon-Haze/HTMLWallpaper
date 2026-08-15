@@ -76,8 +76,8 @@ TestCase {
         verify(compiles("view/WallpaperDelegate.qml"), "WallpaperDelegate 应可编译");
     }
 
-    function test_scanUrlsPanel_compiles() {
-        verify(compiles("view/ScanUrlsPanel.qml"), "ScanUrlsPanel 应可编译");
+    function test_slideshowComponent_compiles() {
+        verify(compiles("view/ScanPathsPanel.qml"), "ScanPathsPanel 应可编译");
     }
 
     function test_parser_compiles() {
@@ -92,8 +92,8 @@ TestCase {
         verify(compiles("view/AddFolderDialog.qml"), "AddFolderDialog 应可编译");
     }
 
-    // —— 字符串数组 model 的 delegate 语义（scanUrls 作 model 用 modelData 防回归）——
-    // scanUrls 是 QStringList，QML 里即字符串数组；字符串数组作 model 时
+    // —— 字符串数组 model 的 delegate 语义（scanPaths 作 model 用 modelData 防回归）——
+    // scanPaths 是 QStringList，QML 里即字符串数组；字符串数组作 model 时
     // modelData 直接是元素值（没有 path role，model.path 是 undefined）。
     // 此测试固化该语义，防止将来误用 model.path 导致 delegate 拿不到路径。
     function test_stringArrayModel_usesModelData() {
