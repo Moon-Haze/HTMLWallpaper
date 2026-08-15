@@ -23,8 +23,8 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
  * 支持增删与在文件管理器中打开目录；未配置目录时显示空态提示。
  *
  * 数据源是 config.qml 注入的 WallpaperController（C++）单实例：
- *   目录列表 ← htmlWallpaper.scanPaths；壁纸网格 ← htmlWallpaper.wallpapers
- *   （WallpaperModel）。
+ *   目录列表 ← htmlWallpaper.scanPaths；壁纸网格 ← htmlWallpaper.modelFor/allModel
+ *   （每文件夹一个 WallpaperModel）。
  * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_ScanPaths 持久化，
  * 由 scanPaths 绑定同步 htmlWallpaper → 重扫）。
  *
@@ -42,6 +42,34 @@ ColumnLayout {
     // 暴露内部列表与"全部"入口供集成测试驱动真实交互（只读引用，不参与生产行为）
     property alias folderList: scanPathsView
     property alias allTab: allAction
+
+    // —— 顶部动作 ——
+    // header 内引用；根级定义使 property alias allTab 合法（header 内嵌 id 对根不可见）。
+    // Kirigami.Action 非 Item，不参与 ColumnLayout 布局。
+    Kirigami.Action {
+        id: allAction
+        icon.name: "all-wallpapers-symbolic"
+        text: i18ndc("plasma_wallpaper_org.kde.image", "@action switch to look all wallpapers", "All")
+        Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "All")
+        // highlighted: scanPathsPanel.selectedFolder.length === 0
+        onTriggered: scanPathsPanel.selectedFolder = ""
+    }
+
+    Kirigami.Action {
+        id: addFolderAction
+        icon.name: "list-add-symbolic"
+        text: i18ndc("plasma_wallpaper_org.kde.image", "@action button the thing being added is a folder", "Add…")
+        Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Add Folder…")
+        onTriggered: {
+            const dialogComponent = Qt.createComponent("AddFolderDialog.qml");
+            dialogComponent.createObject(scanPathsPanel, {
+                addScanPath: (path) => {
+                    htmlWallpaper.addScanPath(String(path));
+                }
+            });
+            dialogComponent.destroy();
+        }
+    }
 
     Kirigami.Separator {
         Layout.fillWidth: true
@@ -71,34 +99,11 @@ ColumnLayout {
                 width: scanPathsView.width
                 text: i18nd("plasma_wallpaper_org.kde.image", "Folders")
                 actions: [
-                    Kirigami.Action {
-                        id: allAction
-                        icon.name: "all-wallpapers-symbolic"
-                        text: i18ndc("plasma_wallpaper_org.kde.image", "@action switch to look all wallpapers", "All")
-                        Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "All")
-                        // highlighted: scanPathsPanel.selectedFolder.length === 0
-                        onTriggered:scanPathsPanel.selectedFolder = ""
-                    },
-                    Kirigami.Action {
-                        icon.name: "list-add-symbolic"
-                        text: i18ndc("plasma_wallpaper_org.kde.image", "@action button the thing being added is a folder", "Add…")
-                        Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "Add Folder…")
-                        onTriggered:{
-                            const dialogComponent = Qt.createComponent("AddFolderDialog.qml");
-                            // 只注入对话框所需的最小依赖：两个回调，不暴露 config 根对象。
-                            // addScanPath 实现在 config.qml（改 cfg_ScanPaths 才持久化）；
-                            // 完成后这里通知 config 层刷新缩略图 / 标记配置变更
-                            dialogComponent.createObject(scanPathsPanel, {
-                                addScanPath: (path) => {
-                                    htmlWallpaper.addScanPath(String(path));
-                                }
-                            });
-                            dialogComponent.destroy();
-                        }
-                    }
+                    allAction,
+                    addFolderAction
                 ]
             }
-            
+
             delegate: Kirigami.SubtitleDelegate {
                 id: baseListItem
                 // 字符串数组 model：modelData 直接是路径字符串
@@ -116,11 +121,11 @@ ColumnLayout {
                 hoverEnabled: false
                 down: false
 
-                // 主标题只显示文件夹名（路径解析在 C++ WallpaperModel 实现）
-                text: htmlWallpaper.wallpapers.folderName(modelData)
+                // 主标题只显示文件夹名（路径解析在 C++ WallpaperController 实现）
+                text: htmlWallpaper.folderName(modelData)
                 // Subtitle: the path to the folder
-                // 副标题显示父目录路径（路径解析在 C++ WallpaperModel 实现）
-                subtitle: htmlWallpaper.wallpapers.parentPath(modelData)
+                // 副标题显示父目录路径（路径解析在 C++ WallpaperController 实现）
+                subtitle: htmlWallpaper.parentPath(modelData)
 
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.smallSpacing

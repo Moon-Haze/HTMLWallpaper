@@ -52,29 +52,24 @@ Item {
 
     // 当前选中的扫描根 key（"" = 全部）。由调用方 config.qml 注入绑定。
     property string activeFolder: ""
-    // 当前网格 model：全部 → htmlWallpaper.wallpapers；单组 → byKey(activeFolder)
+    // 当前网格 model：全部 → controller.allModel()（懒建合并）；单文件夹 → controller.modelFor(activeFolder)
     property var gridModel: null
 
     // 依 activeFolder 重新计算 gridModel，并滚回顶部、清空选中高亮
     function refreshModel() {
-        const walls = htmlWallpaper && htmlWallpaper.wallpapers ? htmlWallpaper.wallpapers : null;
-        if (!walls) {
+        if (!htmlWallpaper) {
             gridModel = null;
             return;
         }
-        gridModel = activeFolder.length === 0 ? walls : walls.byKey(activeFolder);
+        gridModel = activeFolder.length === 0
+            ? htmlWallpaper.allModel()
+            : htmlWallpaper.modelFor(activeFolder);
         wallpapersGrid.view.currentIndex = -1;
         wallpapersGrid.view.positionViewAtIndex(0, ListView.Beginning);
     }
 
     onActiveFolderChanged: refreshModel()
     onHtmlWallpaperChanged: refreshModel()
-
-    // 重扫保护：WallpaperModel beginResetModel 时旧 byKey 快照失效，重算 gridModel
-    Connections {
-        target: htmlWallpaper && htmlWallpaper.wallpapers ? htmlWallpaper.wallpapers : null
-        function onModelReset() { refreshModel(); }
-    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -129,10 +124,10 @@ Item {
                     // 点击行为：htmlWallpaper && model.path 时响应——设置
                     // selectWallpaper = model.file，并让当前项高亮跟随点击项
                     onClicked: {
-                        if (htmlWallpaper && (model.path ?? modelData.path)) {
-                            htmlWallpaper.selectWallpaper = model.file ?? modelData.file;
+                        if (htmlWallpaper && model.path) {
+                            htmlWallpaper.selectWallpaper = model.file;
                             wallpapersGrid.view.currentIndex = index;
-                            console.log("Selected wallpaper:", model.file ?? modelData.file, "at index", index);
+                            console.log("Selected wallpaper:", model.file, "at index", index);
                         }
                     }
                 }

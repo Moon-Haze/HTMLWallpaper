@@ -33,9 +33,10 @@ KCM.GridDelegate {
     // 注：pendingDeletion 在 WallpaperModel/WallpaperItem/mock 三态下均为
     // undefined，无需 modelData 兜底；保持单路径避免 QAbstractListModel 下
     // 空 modelData 的属性访问。
+    // view.model 恒为真 QAbstractListModel，role 直接可用，不再需要 modelData 双路径。
     opacity: model.pendingDeletion ? 0.5 : 1
 
-    text: model.title ?? modelData.title
+    text: model.title
 
     // —— 缩略图内容 ——
     thumbnail: Rectangle {
@@ -59,7 +60,7 @@ KCM.GridDelegate {
             asynchronous: true
             retainWhileLoading: true
             cache: false
-            source: model.preview ?? modelData.preview
+            source: model.preview
             // 加载完成淡入，避免占位图标硬切
             opacity: status === Image.Ready ? 1 : 0
             Behavior on opacity {
