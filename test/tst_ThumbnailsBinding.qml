@@ -18,9 +18,9 @@ import QtTest
  *   - 面板 view.model 连到外层 allModel()；
  *   - root 自身无 htmlWallpaper 属性（裸标识符会遮蔽外层 id 的根因）。
  *
- * 环境注意：htmlWallpaper 用 mock（QtObject 声明 selectWallpaper 属性 +
- * modelFor/allModel 返回的 ListModel）；KDeclarative 国际化函数在
- * qmltestrunner 不可用，用同名 property 注入 mock。
+ * 环境注意：htmlWallpaper 用 mock（modelFor/allModel 返回的 ListModel，
+ * 其声明 selectedIndex 属性模拟 C++ WallpaperModel 选中状态）；KDeclarative
+ * 国际化函数在 qmltestrunner 不可用，用同名 property 注入 mock。
  */
 TestCase {
     id: testCase

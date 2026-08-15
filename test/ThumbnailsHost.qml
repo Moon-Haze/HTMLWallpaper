@@ -30,11 +30,12 @@ ColumnLayout {
     // 模拟 config.qml 外层控制器（WallpaperController { id: htmlWallpaper }）
     QtObject {
         id: htmlWallpaper
-        property string selectWallpaper: ""
+        // 选中壁纸状态：ListModel 的 selectedIndex（mock 模拟 model 层属性）
         // 单文件夹 model：ListModel（真 model，role 可用）。
         // QtObject 无 default property，ListModel 需用 property 声明（否则
         // 直接作子对象会报 "Cannot assign to non-existent default property"）。
         property ListModel modelA: ListModel {
+            property int selectedIndex: -1
             ListElement { name: "a"; title: "a"; path: "file:///a.html"; file: "file:///a.html"; preview: "" }
         }
         // 新架构：modelFor/allModel 返回该文件夹 model

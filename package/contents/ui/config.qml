@@ -35,8 +35,6 @@ ColumnLayout {
     // property alias wallpaper: mainView.wallpaper
     property alias cfg_ScanPaths: htmlWallpaper.scanPaths
 
-    property alias cfg_SelectWallpaper: htmlWallpaper.selectWallpaper
-
     spacing: 0
 
     // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下含 *.html 的壁纸子目录，

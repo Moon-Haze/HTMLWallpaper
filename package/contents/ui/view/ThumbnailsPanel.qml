@@ -15,9 +15,10 @@ import org.kde.kirigami as Kirigami
 /**
  * HTML 壁纸缩略图网格（com.github.moon_haze.htmlwallpaper 模式中栏）。
  *
- * 展示 htmlWallpaper.wallpapers（C++ WallpaperModel）缩略图网格；点击某项
- * 应用该壁纸（htmlWallpaper.selectWallpaper = model.file）并使当前项高亮
- * （wallpapersGrid.view.currentIndex = index，见 WallpaperDelegate.onClicked）。
+ * 展示 gridModel（C++ WallpaperModel 单文件夹 或 AllWallpapersModel 合并）
+ * 缩略图网格；点击某项把选中壁纸状态写入
+ * view.model.selectedIndex = index（选中行，选中态纯 UI 不落盘）并使当前
+ * 项高亮（wallpapersGrid.view.currentIndex = index，见 WallpaperDelegate.onClicked）。
  */
 Item {
     id: thumbnails
@@ -65,6 +66,11 @@ Item {
             ? htmlWallpaper.allModel()
             : htmlWallpaper.modelFor(activeFolder);
         wallpapersGrid.view.currentIndex = -1;
+        // 选中态与 currentIndex 对齐：切组后清掉残留高亮。typeof 守卫兼容
+        // 测试 mock 的 JS 数组（数组无 selectedIndex 属性）。
+        if (gridModel && typeof gridModel.selectedIndex !== "undefined") {
+            gridModel.selectedIndex = -1;
+        }
         wallpapersGrid.view.positionViewAtIndex(0, ListView.Beginning);
     }
 
@@ -121,11 +127,12 @@ Item {
                     htmlWallpaper: thumbnails.htmlWallpaper
                     // 计算缩略图采样尺寸：太小会糊，按屏幕 1/8 起，下限一档
                     previewSize: thumbnails.previewSize
-                    // 点击行为：htmlWallpaper && model.path 时响应——设置
-                    // selectWallpaper = model.file，并让当前项高亮跟随点击项
+                    // 点击行为：htmlWallpaper && model.path 时响应——把选中行写入
+                    // view.model.selectedIndex（合并 model 跨源转发到所属文件夹源），
+                    // 并让当前项高亮跟随点击项
                     onClicked: {
                         if (htmlWallpaper && model.path) {
-                            htmlWallpaper.selectWallpaper = model.file;
+                            wallpapersGrid.view.model.selectedIndex = index;
                             wallpapersGrid.view.currentIndex = index;
                             console.log("Selected wallpaper:", model.file, "at index", index);
                         }

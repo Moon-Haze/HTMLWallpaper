@@ -38,7 +38,6 @@ ColumnLayout {
     // 模拟 config.qml 外层控制器（新架构：modelFor/allModel）
     QtObject {
         id: htmlWallpaper
-        property string selectWallpaper: ""
         // scanPaths：两个扫描根
         property var scanPaths: ["file:///root/a", "file:///root/b"]
 
