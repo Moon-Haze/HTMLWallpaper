@@ -4,7 +4,10 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+#include <QDir>
+#include <QFile>
 #include <QPointer>
+#include <QTemporaryDir>
 #include <QtTest>
 
 #include "wallpapermodel.h"
@@ -122,15 +125,25 @@ void tst_wallpapermodel::mergeAggregatesAcrossSources()
     QList<WallpaperEntry> ea, eb;
     ea.append(WallpaperEntry());
     ea.append(WallpaperEntry());
-    eb.append(WallpaperEntry());
+    // 给源 b 填真实目录探测出的有效条目（name = 目录名 "b"），使跨源定位断言
+    // 真正验证 AllWallpapersModel::data 的 remaining 递减逻辑（非空值可区分越界）。
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    const QString dirB = QDir(tmp.path()).filePath(QStringLiteral("b"));
+    QVERIFY(QDir().mkpath(dirB));
+    QFile index(dirB + QStringLiteral("/index.html"));
+    QVERIFY(index.open(QIODevice::WriteOnly));
+    index.write("<!doctype html>");
+    index.close();
+    eb.append(WallpaperEntry(WallpaperPath::toUrl(dirB)));
     modelA.addEntries(ea);
     modelB.addEntries(eb);
 
     AllWallpapersModel merged;
     merged.setSources({&modelA, &modelB});
     QCOMPARE(merged.rowCount(), 3);
-    // 跨源定位：行 0/1 在 A，行 2 在 B（返回空字符串而非越界空）
-    QCOMPARE(merged.data(merged.index(2, 0), WallpaperModel::NameRole).toString(), QString());
+    // 跨源定位：行 0/1 在 A，行 2 在 B——返回 B 的非空 name 而非越界空
+    QCOMPARE(merged.data(merged.index(2, 0), WallpaperModel::NameRole).toString(), QStringLiteral("b"));
     // roles 对齐
     QCOMPARE(merged.roleNames().value(WallpaperModel::TitleRole), QByteArray("title"));
 

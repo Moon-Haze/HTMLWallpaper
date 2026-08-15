@@ -5,6 +5,8 @@
 */
 
 #include <QDir>
+#include <QFile>
+#include <QTemporaryDir>
 #include <QtTest>
 
 #include "allwallpapersmodel.h"
@@ -26,6 +28,7 @@ private Q_SLOTS:
     void modelForCreatesOnePerFolder();
     void allModelAggregatesAcrossSources();
     void scanPopulatesEachFolderModel();
+    void scanClearsGhostEntriesWhenFolderEmptied();
     void releaseStaleModelsDropsRemovedFolders();
     void releaseStaleModelsWithAllModelAttached();
     void folderNameAndParentPath();
@@ -59,15 +62,25 @@ void tst_wallpapercontroller::allModelAggregatesAcrossSources()
     QList<WallpaperEntry> ea, eb;
     ea.append(WallpaperEntry());
     ea.append(WallpaperEntry());
-    eb.append(WallpaperEntry());
+    // 给源 b 填真实目录探测出的有效条目（name = "b"），使跨源定位断言真正验证
+    // AllWallpapersModel::data 的 remaining 递减逻辑（非空值可区分越界空）。
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    const QString dirB = QDir(tmp.path()).filePath(QStringLiteral("b"));
+    QVERIFY(QDir().mkpath(dirB));
+    QFile index(dirB + QStringLiteral("/index.html"));
+    QVERIFY(index.open(QIODevice::WriteOnly));
+    index.write("<!doctype html>");
+    index.close();
+    eb.append(WallpaperEntry(WallpaperPath::toUrl(dirB)));
     a->addEntries(ea);
     b->addEntries(eb);
 
     QAbstractItemModel *all = c.allModel();
     QVERIFY(all != nullptr);
     QCOMPARE(all->rowCount(), 3);
-    // 跨源定位：行 2 落在源 b（返回空字符串而非越界空）
-    QCOMPARE(all->data(all->index(2, 0), WallpaperModel::NameRole).toString(), QString());
+    // 跨源定位：行 2 落在源 b，返回其非空 name 而非越界空
+    QCOMPARE(all->data(all->index(2, 0), WallpaperModel::NameRole).toString(), QStringLiteral("b"));
     // 缓存同一实例
     QCOMPARE(c.allModel(), all);
 }
@@ -82,6 +95,30 @@ void tst_wallpapercontroller::scanPopulatesEachFolderModel()
     // 扫描完成：modelFor 该 root 返回的 model 应被填充（fixtures 收录 6 个）
     WallpaperModel *m = c.modelFor(fixture);
     QTRY_COMPARE_WITH_TIMEOUT(m->count(), 6, 5000);
+}
+
+void tst_wallpapercontroller::scanClearsGhostEntriesWhenFolderEmptied()
+{
+    WallpaperController c;
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    const QString root = tmp.path();
+    const QString wallADir = QDir(root).filePath(QStringLiteral("wallA"));
+    QVERIFY(QDir().mkpath(wallADir));
+    QFile index(wallADir + QStringLiteral("/index.html"));
+    QVERIFY(index.open(QIODevice::WriteOnly));
+    index.write("<!doctype html>");
+    index.close();
+
+    c.setScanPaths({root});
+    c.scan();
+    // 首次扫描：root 下 wallA 一个壁纸
+    QTRY_COMPARE_WITH_TIMEOUT(c.modelFor(root)->count(), 1, 5000);
+
+    // 删除 wallA 子目录后重扫：空文件夹应清空旧壁纸，不再残留幽灵条目
+    QVERIFY(QDir(wallADir).removeRecursively());
+    c.scan();
+    QTRY_COMPARE_WITH_TIMEOUT(c.modelFor(root)->count(), 0, 5000);
 }
 
 void tst_wallpapercontroller::releaseStaleModelsDropsRemovedFolders()

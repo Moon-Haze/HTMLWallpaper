@@ -142,8 +142,20 @@ void WallpaperController::scan()
             for (const auto &failure : result.failures) {
                 Q_EMIT scanFailed(failure.first, failure.second);
             }
+            // 本次产生数据的文件夹 key 集合（归一化后与 m->key() 可比）。
+            QSet<QString> updatedKeys;
             for (const auto &group : result.groups) {
+                updatedKeys.insert(normalizeKey(group.key));
                 obtainModel(group.key)->addEntries(group.entries);
+            }
+            // 对仍在 scanPaths、但本次未产生 group 的文件夹（目录被删空或被删除，
+            // 或存在但无任何 *.html 入口）显式清空，避免旧壁纸残留成幽灵条目。
+            // 即将被 releaseStaleModels 删除的 stale model 也走 clear 无害，
+            // 统一覆盖"目录删空"与"目录删除→failures 分支"两种情况。
+            for (WallpaperModel *m : m_models) {
+                if (!updatedKeys.contains(m->key())) {
+                    m->clear();
+                }
             }
             // 合并 model 保活复用：先重挂最新源（此刻旧源全部存活，
             // setSources 内 disconnect 安全），再清理已移除文件夹的 model，
