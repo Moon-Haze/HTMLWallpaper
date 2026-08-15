@@ -33,7 +33,8 @@ config.qml onScanPathsChanged → controller.scan()
   → controller 后台 scanWallpapers(scanPaths)（一次扫全部，按 root 归组返回）
   → 每组结果 → modelFor(group.key)->addEntries(group.entries)
   → 各 model 独立 modelReset；controller 发 scanFinished
-  → scan 完成时销毁缓存的合并 model（下回 allModel() 懒建，保证源最新）
+  → scan 完成时 releaseStaleModels + 若已建合并 model 则 setSources 重挂最新源
+    （保活复用，QML 引用无悬空；未建则保持未建——懒建语义不变）
 
 QML 切换：ScanPathsPanel 标签 → activeFolder（"" = 全部）
   → ThumbnailsPanel.refreshModel():
@@ -138,7 +139,7 @@ private:
 };
 ```
 
-- **扫描编排上移**：`scanWallpapers`（现位于 wallpapermodel.cpp 匿名命名空间）移至 controller.cpp；`ScanResult/ScanGroup`（wallpaperentry.h）不动。单 `QFutureWatcher` 后台扫全部 roots，`finished` 回调中逐组 `modelFor(group.key)->addEntries(group.entries)`，再 `releaseStaleModels(scanPaths)` 清理已删文件夹的 model，最后 `delete m_allModel; m_allModel = nullptr;`（使合并 model 源保持最新），发 `scanFinished`。
+- **扫描编排上移**：`scanWallpapers`（现位于 wallpapermodel.cpp 匿名命名空间）移至 controller.cpp；`ScanResult/ScanGroup`（wallpaperentry.h）不动。单 `QFutureWatcher` 后台扫全部 roots，`finished` 回调中逐组 `modelFor(group.key)->addEntries(group.entries)`，再 `releaseStaleModels(scanPaths)` 清理已删文件夹的 model，最后若 `m_allModel` 已建（用户点过"全部"）则 `setSources(m_models)` 重挂最新源（保活复用，避免 QML 引用悬空——销毁重建会在 QML 正持引用时留下悬空指针；未建则不动，懒建语义保持），发 `scanFinished`。
 - **命名保持**：`scanPaths / addScanPath / removeScanPath` 沿用当前生产命名，**不改名**（`Q_PROPERTY WallpaperModel *wallpapers` 删除，改为 `modelFor`/`allModel`）。
 - `folderName / parentPath` 从 WallpaperModel 移入 controller（URL 工具，与单个 model 无关）。
 - `scanInProgress / scanFinished / scanFailed` 信号保留（controller 原转发自 WallpaperModel，现直接持有）。
@@ -191,7 +192,7 @@ function refreshModel() {
 }
 ```
 
-- **删除** `Connections onModelReset`：model 实例常驻，`modelReset` 由 GridView 自动响应；`onActiveFolderChanged`/`onHtmlWallpaperChanged` 触发重算即可。
+- **删除** `Connections onModelReset`：model 实例常驻，`modelReset` 由 GridView 自动响应；`onActiveFolderChanged`/`onHtmlWallpaperChanged` 触发重算即可。全部模式无需监听 scanFinished——合并 model 自身转发各源 modelReset，scan 后 controller 对缓存实例 `setSources` 重挂源，GridView 自动刷新。
 - `refreshModel` 中"滚回顶部 + 清高亮"保留（切换标签语义）。
 
 ### WallpaperDelegate.qml
@@ -232,7 +233,7 @@ config.qml onScanPathsChanged → controller.scan()
   → controller.scanWallpapers(scanPaths)：后台按 root 归组，保序返回 ScanResult.groups
   → finished：逐组 modelFor(key)->addEntries(group.entries)
               → releaseStaleModels（删已移除文件夹的 model）
-              → 销毁合并 model 缓存 → scanFinished
+              → 若已建合并 model 则 setSources 重挂最新源 → scanFinished
   → 各 WallpaperModel 独立 beginResetModel/endResetModel
 
 中栏：点击左栏标签 → selectedFolder → config 绑定 → activeFolder
