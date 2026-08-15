@@ -31,15 +31,15 @@ void WallpaperController::setSelectWallpaper(const QString &wallpaper)
     Q_EMIT selectWallpaperChanged();
 }
 
-QStringList WallpaperController::scanUrls() const
+QStringList WallpaperController::scanPaths() const
 {
-    return m_scanUrls;
+    return m_scanPaths;
 }
 
-void WallpaperController::setScanUrls(const QStringList &urls)
+void WallpaperController::setScanPaths(const QStringList &urls)
 {
-    m_scanUrls = urls;
-    Q_EMIT scanUrlsChanged();
+    m_scanPaths = urls;
+    Q_EMIT scanPathsChanged();
 }
 
 WallpaperModel *WallpaperController::wallpapers() const
@@ -47,26 +47,26 @@ WallpaperModel *WallpaperController::wallpapers() const
     return m_wallpapers;
 }
 
-bool WallpaperController::addScanUrl(const QString &url)
+bool WallpaperController::addScanPath(const QString &url)
 {
-    if (m_scanUrls.contains(url)) {
+    if (m_scanPaths.contains(url)) {
         return false;
     }
-    m_scanUrls.append(url);
-    Q_EMIT scanUrlsChanged();
+    m_scanPaths.append(url);
+    Q_EMIT scanPathsChanged();
     return true;
 }
 
-void WallpaperController::removeScanUrl(const QString &url)
+void WallpaperController::removeScanPath(const QString &url)
 {
-    if (!m_scanUrls.contains(url)) {
+    if (!m_scanPaths.contains(url)) {
         return;
     }
-    m_scanUrls.removeAll(url);
-    Q_EMIT scanUrlsChanged();
+    m_scanPaths.removeAll(url);
+    Q_EMIT scanPathsChanged();
 }
 
 void WallpaperController::scan()
 {
-    m_wallpapers->scan(m_scanUrls);
+    m_wallpapers->scan(m_scanPaths);
 }

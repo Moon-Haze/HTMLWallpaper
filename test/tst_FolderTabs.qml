@@ -90,8 +90,8 @@ TestCase {
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
         compare(host.thumbnails.view.model.length, 1);
 
-        // 触发固定"全部"标签点击 → selectedFolder 置空
-        host.scanUrlsView.allTab.clicked();
+        // 触发 header 的"全部"动作 → selectedFolder 置空
+        host.scanUrlsView.allTab.triggered();
         compare(host.scanUrlsView.selectedFolder, "");
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
         compare(host.thumbnails.view.model, host.htmlWallpaperController.wallpapers);

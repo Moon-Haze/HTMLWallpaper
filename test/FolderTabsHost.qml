@@ -14,7 +14,7 @@ import "../package/contents/ui/view" as View
 /**
  * 模拟 config.qml 的左栏-中栏联动结构，用于验证标签切换。
  *
- * 复刻 config.qml 关键结构：根内声明控制器子对象，ScanUrlsPanel 与
+ * 复刻 config.qml 关键结构：根内声明控制器子对象，ScanPathsPanel 与
  * ThumbnailsPanel 并排，ThumbnailsPanel.activeFolder 绑定
  * scanUrlsView.selectedFolder（经 root 别名引用外层控制器避开同名遮蔽）。
  * 暴露 scanUrlsView/thumbnails 供测试断言。
@@ -22,7 +22,7 @@ import "../package/contents/ui/view" as View
 ColumnLayout {
     id: root
 
-    // offscreen 下显式尺寸：让 ScanUrlsPanel 内部 ListView 有布局空间、
+    // offscreen 下显式尺寸：让 ScanPathsPanel 内部 ListView 有布局空间、
     // 从而实例化 delegate（测试触发其 clicked 需要真实 delegate 实例）
     width: 800
     height: 400
@@ -69,13 +69,13 @@ ColumnLayout {
             return all;
         })()
 
-        function addScanUrl(url) { scanUrls.push(String(url)); }
-        function removeScanUrl(url) {
+        function addScanPath(url) { scanUrls.push(String(url)); }
+        function removeScanPath(url) {
             scanUrls = scanUrls.filter(function (u) { return u !== String(url); });
         }
     }
 
-    View.ScanUrlsPanel {
+    View.ScanPathsPanel {
         id: scanUrlsPanel
         Layout.preferredWidth: Kirigami.Units.gridUnit * 16
         Layout.preferredHeight: 320

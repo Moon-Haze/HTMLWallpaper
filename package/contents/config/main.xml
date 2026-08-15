@@ -18,7 +18,7 @@
       <default>false</default>
     </entry>
     <!-- 壁纸库扫描目录 -->
-    <entry name="ScanUrls" type="StringList">
+    <entry name="ScanPaths" type="StringList">
       <label>Directories to scan for HTML wallpapers</label>
       <default>file:///usr/share/html-wallpapers</default>
     </entry>

@@ -33,19 +33,19 @@ ColumnLayout {
     property alias htmlWallpaperController: htmlWallpaper
 
     // property alias wallpaper: mainView.wallpaper
-    property alias cfg_ScanUrls: htmlWallpaper.scanUrls
+    property alias cfg_ScanPaths: htmlWallpaper.scanPaths
 
     property alias cfg_SelectWallpaper: htmlWallpaper.selectWallpaper
 
     spacing: 0
 
     // —— HTML 壁纸解析器（C++ 后端）：扫描扫描目录下含 *.html 的壁纸子目录，
-    // 提供壁纸列表 / 参数表 / 预览。scanUrls 跟随 cfg_ScanPaths（扫描目录），
-    // 变化时触发重扫；scanUrls 本身即 QStringList，QML 侧直接作目录列表的 model。
+    // 提供壁纸列表 / 参数表 / 预览。ScanPaths 跟随 cfg_ScanPaths（扫描目录），
+    // 变化时触发重扫；ScanPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
     WallpaperController {
         id: htmlWallpaper
-        // 路径变化时重扫（数据源即 scanUrls，无需中间模型同步）
-        onScanUrlsChanged: {
+        // 路径变化时重扫（数据源即 ScanPaths，无需中间模型同步）
+        onScanPathsChanged: {
             htmlWallpaper.scan()
         }
 
@@ -76,14 +76,12 @@ ColumnLayout {
 
             anchors.fill: parent
 
-            // config 添加完文件夹 → 本信号 → 转发给 ThumbnailsPanel（滚动回顶）
-            signal wallpaperBrowseCompleted()
 
             spacing: 0
             
             // —— 左栏：扫描目录（文件夹）列表 ——
-            View.ScanUrlsPanel {
-                id: scanUrlsView
+            View.ScanPathsPanel {
+                id: scanPathsView
                 spacing: 0
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 16
                 htmlWallpaper: htmlWallpaper
@@ -99,7 +97,7 @@ ColumnLayout {
                 Layout.fillHeight: true
                 htmlWallpaper: root.htmlWallpaperController
                 // 标签联动：左栏选中文件夹 → 中栏显示对应壁纸组
-                activeFolder: scanUrlsView.selectedFolder
+                activeFolder: scanPathsView.selectedFolder
             }
         }
     }

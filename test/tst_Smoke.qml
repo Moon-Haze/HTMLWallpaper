@@ -34,11 +34,9 @@ TestCase {
     property var i18ndc: function (domain, context, text) { return text; }
 
     // AddFolderDialog 上下文 mock：其 onAccepted 调用 config 层（动态作用域里
-    // 的 root 即本 TestCase）的 addScanPath / wallpaperBrowseCompleted / 配置刷新。
+    // 的 root 即本 TestCase）的 addScanPath 配置刷新。
     property var root: ({
-        addScanPath: function (path) { testCase.addedPaths.push(String(path)); },
-        wallpaperBrowseCompleted: function () {},
-        configurationChanged: function () {}
+        addScanPath: function (path) { testCase.addedPaths.push(String(path)); }
     })
     property var addedPaths: []
 
