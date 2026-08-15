@@ -10,11 +10,7 @@
 
 WallpaperController::WallpaperController(QObject *parent)
     : QObject(parent)
-    , m_wallpapers(new WallpaperModel(this))
 {
-    connect(m_wallpapers, &WallpaperModel::scanFinished, this, &WallpaperController::scanFinished);
-    connect(m_wallpapers, &WallpaperModel::scanFailed, this, &WallpaperController::scanFailed);
-    connect(m_wallpapers, &WallpaperModel::scanInProgressChanged, this, &WallpaperController::scanInProgressChanged);
 }
 
 QString WallpaperController::selectWallpaper() const
@@ -42,11 +38,6 @@ void WallpaperController::setScanPaths(const QStringList &urls)
     Q_EMIT scanPathsChanged();
 }
 
-WallpaperModel *WallpaperController::wallpapers() const
-{
-    return m_wallpapers;
-}
-
 bool WallpaperController::addScanPath(const QString &url)
 {
     if (m_scanPaths.contains(url)) {
@@ -64,9 +55,4 @@ void WallpaperController::removeScanPath(const QString &url)
     }
     m_scanPaths.removeAll(url);
     Q_EMIT scanPathsChanged();
-}
-
-void WallpaperController::scan()
-{
-    m_wallpapers->scan(m_scanPaths);
 }

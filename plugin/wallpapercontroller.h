@@ -35,7 +35,6 @@ class WallpaperController : public QObject
 
     Q_PROPERTY(QString selectWallpaper READ selectWallpaper WRITE setSelectWallpaper NOTIFY selectWallpaperChanged)
     Q_PROPERTY(QStringList scanPaths READ scanPaths WRITE setScanPaths NOTIFY scanPathsChanged)
-    Q_PROPERTY(WallpaperModel *wallpapers READ wallpapers CONSTANT)
 
 public:
     explicit WallpaperController(QObject *parent = nullptr);
@@ -43,9 +42,7 @@ public:
     void setSelectWallpaper(const QString &wallpaper);
     QStringList scanPaths() const;
     void setScanPaths(const QStringList &urls);
-    WallpaperModel *wallpapers() const;
 
-    Q_INVOKABLE void scan();
     Q_INVOKABLE bool addScanPath(const QString &url);
     Q_INVOKABLE void removeScanPath(const QString &url);
 
@@ -59,5 +56,4 @@ Q_SIGNALS:
 private:
     QString m_selectWallpaper;
     QStringList m_scanPaths;
-    WallpaperModel *m_wallpapers = nullptr;
 };

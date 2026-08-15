@@ -8,68 +8,20 @@
 
 #include "wallpaperitem.h"
 
-#include <QDir>
-#include <QFutureWatcher>
-#include <QtConcurrent>
-#include <QUrl>
-
-namespace
+WallpaperModel::WallpaperModel(const QString &key, QObject *parent)
+    : QAbstractListModel(parent)
+    , m_key(key)
 {
-
-// 后台扫描 worker：只读 QDir + WallpaperEntry 构造，不触碰 QObject。
-// 按扫描根归组，保留 roots 遍历顺序。
-ScanResult scanWallpapers(const QStringList &roots)
-{
-    ScanResult result;
-    for (const QString &base : roots) {
-        const QString baseUrl = WallpaperPath::toUrl(base);
-        QDir dir(QUrl(baseUrl).toLocalFile());
-        if (!dir.exists()) {
-            result.failures.append({base, QStringLiteral("cannot list directory")});
-            continue;
-        }
-        ScanGroup group;
-        group.key = baseUrl;
-        const QStringList subdirs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
-        for (const QString &sub : subdirs) {
-            const QString dirUrl = WallpaperPath::pathJoin(baseUrl, sub);
-            WallpaperEntry entry(dirUrl);
-            if (entry.isValid()) {
-                group.entries.append(entry);
-            }
-        }
-        // 存在但无壁纸子目录的空根不进分组（否则 keys()/groupCount() 会含空组）
-        if (!group.entries.isEmpty()) {
-            result.groups.append(group);
-        }
-    }
-    return result;
 }
 
-} // namespace
-
-WallpaperModel::WallpaperModel(QObject *parent)
-    : QAbstractListModel(parent)
+QString WallpaperModel::key() const
 {
+    return m_key;
 }
 
 int WallpaperModel::count() const
 {
-    return m_flat.size();
-}
-
-bool WallpaperModel::scanInProgress() const
-{
-    return m_scanning;
-}
-
-void WallpaperModel::setScanInProgress(bool inProgress)
-{
-    if (m_scanning == inProgress) {
-        return;
-    }
-    m_scanning = inProgress;
-    Q_EMIT scanInProgressChanged();
+    return m_items.size();
 }
 
 int WallpaperModel::rowCount(const QModelIndex &parent) const
@@ -77,15 +29,15 @@ int WallpaperModel::rowCount(const QModelIndex &parent) const
     if (parent.isValid()) {
         return 0;
     }
-    return m_flat.size();
+    return m_items.size();
 }
 
 QVariant WallpaperModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() < 0 || index.row() >= m_flat.size()) {
+    if (!index.isValid() || index.row() < 0 || index.row() >= m_items.size()) {
         return {};
     }
-    auto item = m_flat.at(index.row());
+    auto item = m_items.at(index.row());
     switch (role) {
     case NameRole:
         return item->name();
@@ -113,54 +65,33 @@ QHash<int, QByteArray> WallpaperModel::roleNames() const
     };
 }
 
-void WallpaperModel::addEntries(const QString &key, const QList<WallpaperEntry> &wallpapers)
+void WallpaperModel::addEntries(const QList<WallpaperEntry> &wallpapers)
 {
-    const QString normKey = WallpaperPath::toUrl(key);
     beginResetModel();
-    auto it = m_items.find(normKey);
-    if (it != m_items.end()) {
-        for (WallpaperItem *p : it.value()) {
-            delete p; // 释放旧组所有 WallpaperItem*（QObject parent 为本模型）
-        }
-        it.value().clear();
+    for (WallpaperItem *p : m_items) {
+        delete p; // 释放旧条目（QObject parent = 本 model）
     }
-    QList<WallpaperItem *> &group = m_items[normKey];
+    m_items.clear();
     for (const WallpaperEntry &entry : wallpapers) {
-        group.append(new WallpaperItem(entry, this));
+        m_items.append(new WallpaperItem(entry, this));
     }
-    if (!m_groupOrder.contains(normKey)) {
-        m_groupOrder.append(normKey);
-    }
-    rebuildFlat();
     endResetModel();
 }
 
 void WallpaperModel::clear()
 {
     beginResetModel();
-    for (auto it = m_items.begin(); it != m_items.end(); ++it) {
-        for (WallpaperItem *p : it.value()) {
-            delete p;
-        }
+    for (WallpaperItem *p : m_items) {
+        delete p;
     }
     m_items.clear();
-    m_groupOrder.clear();
-    m_flat.clear();
     endResetModel();
-}
-
-void WallpaperModel::rebuildFlat()
-{
-    m_flat.clear();
-    for (const QString &key : m_groupOrder) {
-        m_flat += m_items.value(key);
-    }
 }
 
 int WallpaperModel::indexOf(const QString &source) const
 {
-    for (int i = 0; i < m_flat.size(); ++i) {
-        if (m_flat.at(i)->source() == source) {
+    for (int i = 0; i < m_items.size(); ++i) {
+        if (m_items.at(i)->source() == source) {
             return i;
         }
     }
@@ -169,68 +100,8 @@ int WallpaperModel::indexOf(const QString &source) const
 
 WallpaperItem *WallpaperModel::get(int i)
 {
-    if (i < 0 || i >= m_flat.size()) {
+    if (i < 0 || i >= m_items.size()) {
         return nullptr;
     }
-    return m_flat.at(i);
-}
-
-QList<WallpaperItem *> WallpaperModel::byKey(const QString &key)
-{
-    return m_items.value(WallpaperPath::toUrl(key));
-}
-
-QStringList WallpaperModel::keys() const
-{
-    return m_groupOrder;
-}
-
-int WallpaperModel::groupCount() const
-{
-    return m_items.size();
-}
-
-QString WallpaperModel::folderName(const QString &url) const
-{
-    // 与 wallpaperentry.cpp 的 basename 一致：去末尾斜杠后取最后一段
-    QString s = url;
-    while (s.endsWith(QLatin1Char('/'))) {
-        s.chop(1);
-    }
-    return s.mid(s.lastIndexOf(QLatin1Char('/')) + 1);
-}
-
-QString WallpaperModel::parentPath(const QString &url) const
-{
-    // 去末尾斜杠后去掉最后一段（保留父目录完整路径）
-    QString s = url;
-    while (s.endsWith(QLatin1Char('/'))) {
-        s.chop(1);
-    }
-    return s.left(s.lastIndexOf(QLatin1Char('/')));
-}
-
-void WallpaperModel::scan(const QStringList &roots)
-{
-    if (m_scanning) {
-        return;
-    }
-    setScanInProgress(true);
-    clear();
-
-    if (!m_watcher) {
-        m_watcher = new QFutureWatcher<ScanResult>(this);
-        QObject::connect(m_watcher, &QFutureWatcher<ScanResult>::finished, this, [this]() {
-            const ScanResult result = m_watcher->result();
-            for (const auto &failure : result.failures) {
-                Q_EMIT scanFailed(failure.first, failure.second);
-            }
-            for (const auto &group : result.groups) {
-                addEntries(group.key, group.entries);
-            }
-            setScanInProgress(false);
-            Q_EMIT scanFinished();
-        });
-    }
-    m_watcher->setFuture(QtConcurrent::run(scanWallpapers, roots));
+    return m_items.at(i);
 }

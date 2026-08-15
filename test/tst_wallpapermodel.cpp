@@ -11,93 +11,104 @@
 #include "wallpaperitem.h"
 
 /**
- * WallpaperModel 分组存储的 C++ 单测。
+ * WallpaperModel 单文件夹语义的 C++ 单测。
  *
- * 直接构造无效 WallpaperEntry()（目录探测的空条目）验证分组/覆盖/清空等
- * 纯结构逻辑，不依赖文件系统。覆盖测试用 QPointer 断言旧指针已 delete。
+ * 直接构造无效 WallpaperEntry()（目录探测的空条目）验证单文件夹的
+ * 整组替换/覆盖/清空/roles 等纯结构逻辑，不依赖文件系统。覆盖测试用
+ * QPointer 断言旧指针已 delete。
  */
 class tst_wallpapermodel : public QObject
 {
     Q_OBJECT
 
 private Q_SLOTS:
-    void addEntriesGroupsByKey();
-    void addEntriesOverwritesSameKey();
+    void keyRoundTrip();
+    void addEntriesReplacesAll();
+    void addEntriesOverwritesAll();
     void clearEmptiesAll();
-    void pathDisplayHelpers();
+    void dataRolesAndGet();
+    void indexOfNotFound();
 };
 
-void tst_wallpapermodel::addEntriesGroupsByKey()
+void tst_wallpapermodel::keyRoundTrip()
 {
-    WallpaperModel model;
-    QList<WallpaperEntry> groupA;
-    groupA.append(WallpaperEntry());
-    groupA.append(WallpaperEntry());
-    QList<WallpaperEntry> groupB;
-    groupB.append(WallpaperEntry());
-
-    model.addEntries(QStringLiteral("file:///root/a"), groupA);
-    model.addEntries(QStringLiteral("file:///root/b"), groupB);
-
-    QCOMPARE(model.count(), 3);
-    QCOMPARE(model.groupCount(), 2);
-    QCOMPARE(model.keys().size(), 2);
-    QCOMPARE(model.keys().at(0), QStringLiteral("file:///root/a"));
-    QCOMPARE(model.keys().at(1), QStringLiteral("file:///root/b"));
-    QCOMPARE(model.byKey(QStringLiteral("file:///root/a")).size(), 2);
-    QCOMPARE(model.byKey(QStringLiteral("file:///root/b")).size(), 1);
-    QCOMPARE(model.byKey(QStringLiteral("file:///root/nope")).size(), 0);
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    QCOMPARE(model.key(), QStringLiteral("file:///root/a"));
 }
 
-void tst_wallpapermodel::addEntriesOverwritesSameKey()
+void tst_wallpapermodel::addEntriesReplacesAll()
 {
-    WallpaperModel model;
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    QList<WallpaperEntry> entries;
+    entries.append(WallpaperEntry());
+    entries.append(WallpaperEntry());
+    model.addEntries(entries);
+    QCOMPARE(model.count(), 2);
+    QCOMPARE(model.rowCount(), 2);
+    QCOMPARE(model.rowCount(model.index(0, 0)), 0); // 无子项
+}
+
+void tst_wallpapermodel::addEntriesOverwritesAll()
+{
+    WallpaperModel model(QStringLiteral("file:///root/a"));
     QList<WallpaperEntry> first;
     first.append(WallpaperEntry());
     first.append(WallpaperEntry());
-    model.addEntries(QStringLiteral("file:///root/a"), first);
+    model.addEntries(first);
     QCOMPARE(model.count(), 2);
 
-    // 记录旧组指针，覆盖后应被 delete
-    QList<WallpaperItem *> oldGroup = model.byKey(QStringLiteral("file:///root/a"));
-    QPointer<WallpaperItem> survivor(oldGroup.at(0));
+    // 记录旧条目指针，整组覆盖后应被 delete
+    QPointer<WallpaperItem> survivor(model.get(0));
 
     QList<WallpaperEntry> second;
     second.append(WallpaperEntry());
-    model.addEntries(QStringLiteral("file:///root/a"), second); // 同 key 覆盖
+    model.addEntries(second); // 整组替换
 
-    // 同 key 覆盖后总数应为 1，分组数不变
     QCOMPARE(model.count(), 1);
-    QCOMPARE(model.groupCount(), 1);
-    // 旧 WallpaperItem 应已被 delete（QPointer 变 null）
     QVERIFY(survivor.isNull());
 }
 
 void tst_wallpapermodel::clearEmptiesAll()
 {
-    WallpaperModel model;
+    WallpaperModel model(QStringLiteral("file:///root/a"));
     QList<WallpaperEntry> entries;
     entries.append(WallpaperEntry());
-    model.addEntries(QStringLiteral("file:///root/a"), entries);
-    model.addEntries(QStringLiteral("file:///root/b"), entries);
-    QCOMPARE(model.count(), 2);
-    QCOMPARE(model.groupCount(), 2);
+    model.addEntries(entries);
+    QCOMPARE(model.count(), 1);
 
     model.clear();
     QCOMPARE(model.count(), 0);
-    QCOMPARE(model.groupCount(), 0);
-    QCOMPARE(model.keys().size(), 0);
+    QCOMPARE(model.rowCount(), 0);
 }
 
-void tst_wallpapermodel::pathDisplayHelpers()
+void tst_wallpapermodel::dataRolesAndGet()
 {
-    WallpaperModel model;
-    // 文件夹名：去末尾斜杠取最后一段
-    QCOMPARE(model.folderName(QStringLiteral("file:///home/user/wallpapers/aurora")), QStringLiteral("aurora"));
-    QCOMPARE(model.folderName(QStringLiteral("file:///home/user/wallpapers/aurora/")), QStringLiteral("aurora"));
-    // 父目录路径：去末尾斜杠去掉最后一段
-    QCOMPARE(model.parentPath(QStringLiteral("file:///home/user/wallpapers/aurora")), QStringLiteral("file:///home/user/wallpapers"));
-    QCOMPARE(model.parentPath(QStringLiteral("file:///home/user/wallpapers/aurora/")), QStringLiteral("file:///home/user/wallpapers"));
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    QList<WallpaperEntry> entries;
+    entries.append(WallpaperEntry());
+    model.addEntries(entries);
+
+    QVERIFY(model.get(0) != nullptr);
+    // 无效 WallpaperEntry 的各 role data 为空字符串
+    QCOMPARE(model.data(model.index(0, 0), WallpaperModel::NameRole).toString(), QString());
+    QCOMPARE(model.data(model.index(0, 0), WallpaperModel::TitleRole).toString(), QString());
+    QCOMPARE(model.data(model.index(0, 0), WallpaperModel::PathRole).toString(), QString());
+    QCOMPARE(model.data(model.index(0, 0), WallpaperModel::PreviewRole).toString(), QString());
+    QCOMPARE(model.data(model.index(0, 0), WallpaperModel::FileRole).toString(), QString());
+    // 越界安全
+    QCOMPARE(model.get(-1), nullptr);
+    QCOMPARE(model.get(5), nullptr);
+    QCOMPARE(model.data(model.index(5, 0), WallpaperModel::NameRole).toString(), QString());
+}
+
+void tst_wallpapermodel::indexOfNotFound()
+{
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    QList<WallpaperEntry> entries;
+    entries.append(WallpaperEntry());
+    model.addEntries(entries);
+    // 无效 WallpaperEntry source 为空，indexOf 查不到该 source
+    QCOMPARE(model.indexOf(QStringLiteral("file:///nonexistent.html")), -1);
 }
 
 QTEST_MAIN(tst_wallpapermodel)
