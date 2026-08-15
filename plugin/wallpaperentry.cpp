@@ -24,9 +24,12 @@ QString basename(const QString &url)
 QString findPreview(const QString &dirUrl)
 {
     static const QStringList candidates = {
-        QStringLiteral("preview.png"), QStringLiteral("preview.jpg"),
-        QStringLiteral("preview.jpeg"), QStringLiteral("preview.gif"),
-        QStringLiteral("preview.webp"), QStringLiteral("default.png"),
+        QStringLiteral("preview.png"),
+        QStringLiteral("preview.jpg"),
+        QStringLiteral("preview.jpeg"),
+        QStringLiteral("preview.gif"),
+        QStringLiteral("preview.webp"),
+        QStringLiteral("default.png"),
         QStringLiteral("thumbnail.png"),
     };
     const QString dir = QUrl(dirUrl).toLocalFile();
@@ -43,8 +46,10 @@ QString findEntry(const QString &dirUrl)
 {
     const QString dir = QUrl(dirUrl).toLocalFile();
     static const QStringList common = {
-        QStringLiteral("index.html"), QStringLiteral("index.htm"),
-        QStringLiteral("main.html"), QStringLiteral("main.htm"),
+        QStringLiteral("index.html"),
+        QStringLiteral("index.htm"),
+        QStringLiteral("main.html"),
+        QStringLiteral("main.htm"),
         QStringLiteral("start.html"),
     };
     for (const QString &c : common) {
@@ -52,8 +57,7 @@ QString findEntry(const QString &dirUrl)
             return WallpaperPath::pathJoin(dirUrl, c);
         }
     }
-    const QStringList html = QDir(dir).entryList(
-        {QStringLiteral("*.html"), QStringLiteral("*.htm")}, QDir::Files, QDir::Name);
+    const QStringList html = QDir(dir).entryList({QStringLiteral("*.html"), QStringLiteral("*.htm")}, QDir::Files, QDir::Name);
     if (!html.isEmpty()) {
         return WallpaperPath::pathJoin(dirUrl, html.first());
     }
@@ -82,9 +86,8 @@ QString pathJoin(const QString &a, const QString &b)
 }
 } // namespace WallpaperPath
 
-WallpaperEntry::WallpaperEntry(const QString &dirUrl)
+WallpaperEntry::WallpaperEntry(const QString &url)
 {
-    const QString url = WallpaperPath::toUrl(dirUrl);
     QDir dir(QUrl(url).toLocalFile());
     if (!dir.exists()) {
         return;
@@ -100,11 +103,35 @@ WallpaperEntry::WallpaperEntry(const QString &dirUrl)
     m_valid = true;
 }
 
-bool WallpaperEntry::isValid() const { return m_valid; }
-QString WallpaperEntry::name() const { return m_name; }
-QString WallpaperEntry::title() const { return m_name; }
-QString WallpaperEntry::path() const { return m_path; }
-QString WallpaperEntry::file() const { return m_file; }
-QString WallpaperEntry::source() const { return m_file; }
-QString WallpaperEntry::display() const { return m_name; }
-QString WallpaperEntry::preview() const { return m_preview; }
+bool WallpaperEntry::isValid() const
+{
+    return m_valid;
+}
+QString WallpaperEntry::name() const
+{
+    return m_name;
+}
+QString WallpaperEntry::title() const
+{
+    return m_name;
+}
+QString WallpaperEntry::path() const
+{
+    return m_path;
+}
+QString WallpaperEntry::file() const
+{
+    return m_file;
+}
+QString WallpaperEntry::source() const
+{
+    return m_file;
+}
+QString WallpaperEntry::display() const
+{
+    return m_name;
+}
+QString WallpaperEntry::preview() const
+{
+    return m_preview;
+}
