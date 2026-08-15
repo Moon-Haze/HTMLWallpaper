@@ -20,6 +20,8 @@ void AllWallpapersModel::setSources(const QList<WallpaperModel *> &sources)
         disconnect(src, &WallpaperModel::selectedIndexChanged, this, &AllWallpapersModel::onSourceSelectedIndexChanged);
     }
     m_sources = sources;
+    // 重挂后旧 lastChanged 源可能已释放或不再是源，先重置（getter 走兜底遍历）
+    m_lastChangedSource = nullptr;
     for (WallpaperModel *src : m_sources) {
         connect(src, &WallpaperModel::modelReset, this, &AllWallpapersModel::onSourceReset);
         connect(src, &WallpaperModel::selectedIndexChanged, this, &AllWallpapersModel::onSourceSelectedIndexChanged);
@@ -82,7 +84,14 @@ void AllWallpapersModel::onSourceReset()
 
 int AllWallpapersModel::selectedIndex() const
 {
-    // 实时聚合：遍历源顺序，返回首个非 -1 源映射回全局行
+    // 优先"最后变化的源"：直接操作源 model 制造多源选中时，getter 反映
+    // 最新一次写入，而非被首个非 -1 源的残留选中遮蔽（如 A==1 后再设
+    // B==0，应返回 B 的全局行而非 A 的）。该源需仍在挂载中且有选中。
+    if (m_lastChangedSource && m_sources.contains(m_lastChangedSource)
+            && m_lastChangedSource->selectedIndex() >= 0) {
+        return offsetOf(m_lastChangedSource) + m_lastChangedSource->selectedIndex();
+    }
+    // 兜底：单选不变量（合并 setter 写路径保证）下遍历首个非 -1 源即可
     int offset = 0;
     for (const WallpaperModel *src : m_sources) {
         const int local = src->selectedIndex();
@@ -92,6 +101,18 @@ int AllWallpapersModel::selectedIndex() const
         offset += src->rowCount();
     }
     return -1;
+}
+
+int AllWallpapersModel::offsetOf(const WallpaperModel *src) const
+{
+    int offset = 0;
+    for (const WallpaperModel *s : m_sources) {
+        if (s == src) {
+            break;
+        }
+        offset += s->rowCount();
+    }
+    return offset;
 }
 
 void AllWallpapersModel::setSelectedIndex(int globalIndex)
@@ -129,6 +150,8 @@ void AllWallpapersModel::setSelectedIndex(int globalIndex)
 
 void AllWallpapersModel::onSourceSelectedIndexChanged()
 {
+    // 记录最后变化的源，供 getter 优先返回（多源残留选中时反映最新写入）
+    m_lastChangedSource = qobject_cast<WallpaperModel *>(sender());
     // 源选中变化转发，缓存去重（setter 跨源切换时可能瞬时 emit -1 再终值，可接受）
     const int idx = selectedIndex();
     if (idx != m_selectedIndex) {

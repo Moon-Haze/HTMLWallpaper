@@ -35,7 +35,8 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    /** 全局扁平行号（跨源聚合，首个非 -1 源映射回全局行）。 */
+    /** 全局扁平行号：优先"最后变化源"的选中（映射回全局行）；否则兜底
+     *  遍历首个非 -1 源。单选不变量（写路径保证）下两者等价。 */
     int selectedIndex() const;
     /** 设置全局选中行；跨源定位到目标源并单选清空其它源。越界忽略。 */
     void setSelectedIndex(int globalIndex);
@@ -45,7 +46,9 @@ Q_SIGNALS:
 
 private:
     void onSourceReset();
-    void onSourceSelectedIndexChanged(); // 源选中变化转发（缓存去重）
+    void onSourceSelectedIndexChanged(); // 源选中变化转发（记录最后变化源 + 缓存去重）
+    int offsetOf(const WallpaperModel *src) const; // src 在 m_sources 前的行数偏移
     QList<WallpaperModel *> m_sources;
+    WallpaperModel *m_lastChangedSource = nullptr; // 最后变化的源（getter 优先返回）
     int m_selectedIndex = -1; // 聚合缓存，仅用于信号去重
 };

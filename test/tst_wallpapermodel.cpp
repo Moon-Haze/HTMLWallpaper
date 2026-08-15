@@ -289,9 +289,8 @@ void tst_wallpapermodel::mergeSelectedIndexGetterAggregates()
 
     modelA.setSelectedIndex(1);
     QCOMPARE(merged.selectedIndex(), 1);
-    // 单选不变量：切换源前清 A（正常写路径由 merged.setSelectedIndex 清他源；
-    // 此处直接操作源验证 getter 跨源聚合映射）
-    modelA.setSelectedIndex(-1);
+    // 直接设 B（第二源，offset=2）局部 0 → 全局 2：getter 应反映最后
+    // 变化的源（B），而非被首个非 -1 源（A）的残留选中遮蔽
     modelB.setSelectedIndex(0);
     QCOMPARE(merged.selectedIndex(), 2);
 }
