@@ -9,6 +9,8 @@
 
 #include "wallpapermodel.h"
 #include "wallpaperitem.h"
+#include "allwallpapersmodel.h"
+#include <QSignalSpy>
 
 /**
  * WallpaperModel 单文件夹语义的 C++ 单测。
@@ -28,6 +30,8 @@ private Q_SLOTS:
     void clearEmptiesAll();
     void dataRolesAndGet();
     void indexOfNotFound();
+    void mergeAggregatesAcrossSources();
+    void mergeResetsOnSourceReset();
 };
 
 void tst_wallpapermodel::keyRoundTrip()
@@ -109,6 +113,42 @@ void tst_wallpapermodel::indexOfNotFound()
     model.addEntries(entries);
     // 无效 WallpaperEntry source 为空，indexOf 查不到该 source
     QCOMPARE(model.indexOf(QStringLiteral("file:///nonexistent.html")), -1);
+}
+
+void tst_wallpapermodel::mergeAggregatesAcrossSources()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    WallpaperModel modelB(QStringLiteral("file:///root/b"));
+    QList<WallpaperEntry> ea, eb;
+    ea.append(WallpaperEntry());
+    ea.append(WallpaperEntry());
+    eb.append(WallpaperEntry());
+    modelA.addEntries(ea);
+    modelB.addEntries(eb);
+
+    AllWallpapersModel merged;
+    merged.setSources({&modelA, &modelB});
+    QCOMPARE(merged.rowCount(), 3);
+    // 跨源定位：行 0/1 在 A，行 2 在 B（返回空字符串而非越界空）
+    QCOMPARE(merged.data(merged.index(2, 0), WallpaperModel::NameRole).toString(), QString());
+    // roles 对齐
+    QCOMPARE(merged.roleNames().value(WallpaperModel::TitleRole), QByteArray("title"));
+
+    // 换源后行数随之变化
+    AllWallpapersModel merged2;
+    merged2.setSources({&modelB});
+    QCOMPARE(merged2.rowCount(), 1);
+}
+
+void tst_wallpapermodel::mergeResetsOnSourceReset()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    AllWallpapersModel merged;
+    merged.setSources({&modelA});
+
+    QSignalSpy resetSpy(&merged, &QAbstractItemModel::modelReset);
+    modelA.addEntries({WallpaperEntry()}); // 源重置 → 合并 model 也应 reset
+    QCOMPARE(resetSpy.count(), 1);
 }
 
 QTEST_MAIN(tst_wallpapermodel)

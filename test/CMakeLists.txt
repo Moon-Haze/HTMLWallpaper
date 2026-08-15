@@ -57,6 +57,7 @@ if(BUILD_TESTING)
     qt_add_executable(tst_wallpapermodel tst_wallpapermodel.cpp)
     target_sources(tst_wallpapermodel PRIVATE
         ../plugin/wallpapermodel.cpp
+        ../plugin/allwallpapersmodel.cpp
         ../plugin/wallpaperitem.cpp
         ../plugin/wallpaperentry.cpp
     )
