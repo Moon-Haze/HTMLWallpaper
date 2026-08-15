@@ -11,7 +11,7 @@
 #include <QString>
 #include <QStringList>
 
-// 通用路径工具（scanPaths 归一化 + 目录拼接），被 Controller 与数据层复用。
+// 通用路径工具（scanUrls 归一化 + 目录拼接），被 Controller 与数据层复用。
 namespace WallpaperPath
 {
 QString toUrl(const QString &path);
@@ -20,8 +20,13 @@ QString pathJoin(const QString &a, const QString &b);
 
 class WallpaperEntry;
 
+struct ScanGroup {
+    QString key;                       // 扫描根 URL（WallpaperPath::toUrl 归一化）
+    QList<WallpaperEntry> entries;     // 该根下探测到的壁纸
+};
+
 struct ScanResult {
-    QList<WallpaperEntry> projects; // 解析结果
+    QList<ScanGroup> groups;           // 按 roots 遍历顺序保序
     QList<QPair<QString, QString>> failures; // (path, error)
 };
 

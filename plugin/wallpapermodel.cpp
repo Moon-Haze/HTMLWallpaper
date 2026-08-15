@@ -10,15 +10,15 @@
 
 #include <QDir>
 #include <QFutureWatcher>
-#include <QHash>
-#include <QPair>
-#include <QUrl>
+#include <QtAlgorithms>
 #include <QtConcurrent>
+#include <QUrl>
 
 namespace
 {
 
 // 后台扫描 worker：只读 QDir + WallpaperEntry 构造，不触碰 QObject。
+// 按扫描根归组，保留 roots 遍历顺序。
 ScanResult scanWallpapers(const QStringList &roots)
 {
     ScanResult result;
@@ -29,14 +29,17 @@ ScanResult scanWallpapers(const QStringList &roots)
             result.failures.append({base, QStringLiteral("cannot list directory")});
             continue;
         }
+        ScanGroup group;
+        group.key = baseUrl;
         const QStringList subdirs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
         for (const QString &sub : subdirs) {
             const QString dirUrl = WallpaperPath::pathJoin(baseUrl, sub);
             WallpaperEntry entry(dirUrl);
             if (entry.isValid()) {
-                result.projects.append(entry);
+                group.entries.append(entry);
             }
         }
+        result.groups.append(group);
     }
     return result;
 }
@@ -50,7 +53,7 @@ WallpaperModel::WallpaperModel(QObject *parent)
 
 int WallpaperModel::count() const
 {
-    return m_items.size();
+    return m_flat.size();
 }
 
 bool WallpaperModel::scanInProgress() const
@@ -72,26 +75,26 @@ int WallpaperModel::rowCount(const QModelIndex &parent) const
     if (parent.isValid()) {
         return 0;
     }
-    return m_items.size();
+    return m_flat.size();
 }
 
 QVariant WallpaperModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() < 0 || index.row() >= m_items.size()) {
+    if (!index.isValid() || index.row() < 0 || index.row() >= m_flat.size()) {
         return {};
     }
-    auto &item = m_items.at(index.row());
+    auto item = m_flat.at(index.row());
     switch (role) {
     case NameRole:
-        return item.name();
+        return item->name();
     case TitleRole:
-        return item.title();
+        return item->title();
     case PathRole:
-        return item.path();
+        return item->path();
     case PreviewRole:
-        return item.preview();
+        return item->preview();
     case FileRole:
-        return item.file();
+        return item->file();
     default:
         return {};
     }
@@ -108,41 +111,50 @@ QHash<int, QByteArray> WallpaperModel::roleNames() const
     };
 }
 
-void WallpaperModel::setEntries(const QList<WallpaperEntry> &projects)
+void WallpaperModel::addEntries(const QString &key, const QList<WallpaperEntry> &wallpapers)
 {
+    const QString normKey = WallpaperPath::toUrl(key);
     beginResetModel();
-    m_items.clear();
-    m_indexByKey.clear();
-    m_items.reserve(projects.size());
-
-    for (int i = 0; i < projects.size(); ++i) {
-        m_items.append(WallpaperItem(projects.at(i), this));
-        m_indexByKey.insert(projects.at(i).source(), i);
+    auto it = m_items.find(normKey);
+    if (it != m_items.end()) {
+        qDeleteAll(it.value()); // 释放旧组所有 WallpaperItem*（QObject parent 为本模型）
+        it.value().clear();
     }
+    QList<WallpaperItem *> &group = m_items[normKey];
+    for (const WallpaperEntry &entry : wallpapers) {
+        group.append(new WallpaperItem(entry, this));
+    }
+    if (!m_groupOrder.contains(normKey)) {
+        m_groupOrder.append(normKey);
+    }
+    rebuildFlat();
     endResetModel();
-    Q_EMIT dataChanged(index(0, 0),
-                       index(qMax(0, m_items.size() - 1), 0),
-                       {
-                           NameRole,
-                           TitleRole,
-                           PathRole,
-                           PreviewRole,
-                           FileRole,
-                       });
 }
 
 void WallpaperModel::clear()
 {
     beginResetModel();
+    for (auto it = m_items.begin(); it != m_items.end(); ++it) {
+        qDeleteAll(it.value());
+    }
     m_items.clear();
-    m_indexByKey.clear();
+    m_groupOrder.clear();
+    m_flat.clear();
     endResetModel();
+}
+
+void WallpaperModel::rebuildFlat()
+{
+    m_flat.clear();
+    for (const QString &key : m_groupOrder) {
+        m_flat += m_items.value(key);
+    }
 }
 
 int WallpaperModel::indexOf(const QString &source) const
 {
-    for (int i = 0; i < m_items.size(); i++) {
-        if (m_items.at(i).source() == source) {
+    for (int i = 0; i < m_flat.size(); ++i) {
+        if (m_flat.at(i)->source() == source) {
             return i;
         }
     }
@@ -151,19 +163,25 @@ int WallpaperModel::indexOf(const QString &source) const
 
 WallpaperItem *WallpaperModel::get(int i)
 {
-    if (i < 0 || i >= m_items.size()) {
+    if (i < 0 || i >= m_flat.size()) {
         return nullptr;
     }
-    return &m_items[i];
+    return m_flat.at(i);
 }
 
-WallpaperItem *WallpaperModel::byKey(const QString &key)
+QList<WallpaperItem *> WallpaperModel::byKey(const QString &key)
 {
-    auto it = m_indexByKey.find(key);
-    if (it != m_indexByKey.end()) {
-        return &m_items[it.value()];
-    }
-    return nullptr;
+    return m_items.value(WallpaperPath::toUrl(key));
+}
+
+QStringList WallpaperModel::keys() const
+{
+    return m_groupOrder;
+}
+
+int WallpaperModel::groupCount() const
+{
+    return m_items.size();
 }
 
 void WallpaperModel::scan(const QStringList &roots)
@@ -181,7 +199,9 @@ void WallpaperModel::scan(const QStringList &roots)
             for (const auto &failure : result.failures) {
                 Q_EMIT scanFailed(failure.first, failure.second);
             }
-            setEntries(result.projects);
+            for (const auto &group : result.groups) {
+                addEntries(group.key, group.entries);
+            }
             setScanInProgress(false);
             Q_EMIT scanFinished();
         });

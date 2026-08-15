@@ -29,8 +29,6 @@ class WallpaperItem : public QObject
 
 public:
     explicit WallpaperItem(const WallpaperEntry &entry, QObject *parent = nullptr);
-    explicit WallpaperItem(const WallpaperItem &item, QObject *parent = nullptr);
-    WallpaperItem &operator=(const WallpaperItem &item);
 
     QString name() const { return m_entry.name(); }
     QString title() const { return m_entry.title(); }
