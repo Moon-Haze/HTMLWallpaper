@@ -15,12 +15,12 @@ import QtTest
  * ThumbnailsPanel 自身同名属性遮蔽成自引用（面板拿到 null，中栏网格为空）。
  * 此测试经 ThumbnailsHost（模拟 config.qml 嵌套结构）锁定修复后语义：
  *   - 面板 htmlWallpaper 非 null 且等于外层控制器；
- *   - 面板 view.model 连到外层 wallpapers；
+ *   - 面板 view.model 连到外层 allModel()；
  *   - root 自身无 htmlWallpaper 属性（裸标识符会遮蔽外层 id 的根因）。
  *
  * 环境注意：htmlWallpaper 用 mock（QtObject 声明 selectWallpaper 属性 +
- * wallpapers ListModel）；KDeclarative 国际化函数在 qmltestrunner 不可用，
- * 用同名 property 注入 mock。
+ * modelFor/allModel 返回的 ListModel）；KDeclarative 国际化函数在
+ * qmltestrunner 不可用，用同名 property 注入 mock。
  */
 TestCase {
     id: testCase
@@ -52,8 +52,8 @@ TestCase {
         // 修复写法下面板拿到外层控制器（非 null、非自引用）
         verify(host.panel.htmlWallpaper !== null, "修复写法下面板 htmlWallpaper 不应为 null");
         compare(host.panel.htmlWallpaper, host.htmlWallpaperController);
-        // 面板模型连到外层 wallpapers
-        compare(host.panel.view.model, host.htmlWallpaperController.wallpapers);
+        // 面板模型连到外层 allModel()
+        compare(host.panel.view.model, host.htmlWallpaperController.allModel());
 
         // 对照：root 自身无 htmlWallpaper 属性（裸 htmlWallpaper 会遮蔽外层 id）
         verify(host.htmlWallpaper === undefined,

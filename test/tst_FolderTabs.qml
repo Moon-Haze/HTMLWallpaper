@@ -10,13 +10,14 @@ import QtTest
 /**
  * 标签式分组展示集成测试：左栏点击标签 → 中栏缩略图视图切换。
  *
- * 锁定 config 层联动：
- *   - 默认选中"全部"：ThumbnailsPanel.gridModel === wallpapers（全部）
- *   - 点击文件夹标签 → activeFolder = 该 URL，gridModel === byKey(url)（单组）
- *   - 点击"全部"标签 → gridModel 切回全部
+ * 锁定 config 层联动（新架构 modelFor/allModel）：
+ *   - 默认选中"全部"：ThumbnailsPanel.view.model === allModel()（合并）
+ *   - 点击文件夹标签 → activeFolder = 该 URL，view.model === modelFor(url)
+ *   - 点击"全部"标签 → view.model 切回 allModel()
  *   - 切换标签后 view.currentIndex 复位为 -1（清高亮）
  *
- * 环境注意：htmlWallpaper 用 mock（JS 数组 wallpapers + byKey）；i18n 函数 mock。
+ * 环境注意：htmlWallpaper 用 mock（scanPaths 数组 + modelFor/allModel 缓存数组）；
+ * i18n 函数 mock。
  */
 TestCase {
     id: testCase
@@ -43,7 +44,7 @@ TestCase {
         verify(c.status === Component.Ready, "FolderTabsHost 加载失败: " + c.errorString());
         host = c.createObject(testCase);
         verify(host !== null, "host 实例化失败");
-        verify(waitForCondition(() => host.scanUrlsView !== null, 2000), "面板未就绪");
+        verify(waitForCondition(() => host.scanPathsView !== null, 2000), "面板未就绪");
         c.destroy();
     }
 
@@ -54,47 +55,46 @@ TestCase {
         }
     }
 
-    // 默认"全部"：gridModel 是 wallpapers 全量数组
+    // 默认"全部"：view.model 是 allModel() 返回的合并缓存数组
     function test_defaultShowsAll() {
-        // activeFolder 默认空 → gridModel 连 wallpapers
         compare(host.thumbnails.activeFolder, "");
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
-        // 全部模式下 gridModel 即 wallpapers 引用
-        compare(host.thumbnails.view.model, host.htmlWallpaperController.wallpapers);
+        // 全部模式下 view.model 即 allModel() 引用（缓存数组）
+        compare(host.thumbnails.view.model, host.htmlWallpaperController.allModel());
     }
 
     // 点击文件夹标签：触发 ListView delegate 的 clicked 信号（等价真实点击），
     // 锁定 onClicked: selectedFolder = modelData 这条链路；后续
     // activeFolder→gridModel 断言与绑定链验证（tst_FolderTabs 其余用例）一致。
     function test_clickFolderShowsGroup() {
-        const list = host.scanUrlsView.folderList;
-        verify(waitForCondition(() => list.count === 2, 2000), "scanUrls 未就绪");
+        const list = host.scanPathsView.folderList;
+        verify(waitForCondition(() => list.count === 2, 2000), "scanPaths 未就绪");
         list.currentIndex = 0;
         verify(waitForCondition(() => list.currentItem !== null, 2000), "文件夹 delegate 未实例化");
         list.currentItem.clicked();
-        compare(host.scanUrlsView.selectedFolder, "file:///root/a");
+        compare(host.scanPathsView.selectedFolder, "file:///root/a");
         compare(host.thumbnails.activeFolder, "file:///root/a");
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
-        // 单组模式：gridModel 应为 groupA（byKey("file:///root/a") 返回的数组）
+        // 单文件夹模式：view.model 应为 groupA（modelFor("file:///root/a") 返回的数组）
         compare(host.thumbnails.view.model.length, 2);
         compare(host.thumbnails.view.model[0].title, "a1");
     }
 
     // 点击"全部"标签 → 切回全部（先经真实点击选中某文件夹，再触发 allTab）
     function test_clickAllRestoresAll() {
-        const list = host.scanUrlsView.folderList;
+        const list = host.scanPathsView.folderList;
         list.currentIndex = 1;
         verify(waitForCondition(() => list.currentItem !== null, 2000), "文件夹 delegate 未实例化");
         list.currentItem.clicked();
-        compare(host.scanUrlsView.selectedFolder, "file:///root/b");
+        compare(host.scanPathsView.selectedFolder, "file:///root/b");
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
         compare(host.thumbnails.view.model.length, 1);
 
         // 触发 header 的"全部"动作 → selectedFolder 置空
-        host.scanUrlsView.allTab.triggered();
-        compare(host.scanUrlsView.selectedFolder, "");
+        host.scanPathsView.allTab.triggered();
+        compare(host.scanPathsView.selectedFolder, "");
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
-        compare(host.thumbnails.view.model, host.htmlWallpaperController.wallpapers);
+        compare(host.thumbnails.view.model, host.htmlWallpaperController.allModel());
         compare(host.thumbnails.view.model.length, 3);
     }
 
@@ -103,7 +103,7 @@ TestCase {
         host.thumbnails.view.currentIndex = 2;
         // 先固化前置：赋值确实生效（否则断言 -1 会退化为"本来就 -1"的弱自证）
         compare(host.thumbnails.view.currentIndex, 2);
-        host.scanUrlsView.selectedFolder = "file:///root/a";
+        host.scanPathsView.selectedFolder = "file:///root/a";
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
         compare(host.thumbnails.view.currentIndex, -1);
     }

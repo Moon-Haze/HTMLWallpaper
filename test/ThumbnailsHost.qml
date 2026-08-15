@@ -17,6 +17,9 @@ import "../package/contents/ui/view" as View
  * （htmlWallpaperController）暴露给 ThumbnailsPanel，验证组件内声明式
  * binding 下经别名引用能正确解析到外层控制器，而非被面板自身同名属性
  * 遮蔽成自引用 Binding loop。
+ *
+ * mock（htmlWallpaper）模拟新架构：单文件夹 ListModel（modelA）经
+ * modelFor/allModel 返回，供 ThumbnailsPanel 全部模式取全部数据。
  */
 ColumnLayout {
     id: root
@@ -28,16 +31,15 @@ ColumnLayout {
     QtObject {
         id: htmlWallpaper
         property string selectWallpaper: ""
-        // 模拟 WallpaperModel：JS 数组作 model，可挂 byKey/get 方法。
-        // byKey 返回整个数组（mock 简化：不分 key 返回不同组）。
-        property var wallpapers: (function () {
-            const all = [
-                { name: "a", title: "a", path: "file:///a.html", file: "file:///a.html", preview: "" }
-            ];
-            all.byKey = function (url) { return all; };
-            all.get = function (i) { return all[i]; };
-            return all;
-        })()
+        // 单文件夹 model：ListModel（真 model，role 可用）。
+        // QtObject 无 default property，ListModel 需用 property 声明（否则
+        // 直接作子对象会报 "Cannot assign to non-existent default property"）。
+        property ListModel modelA: ListModel {
+            ListElement { name: "a"; title: "a"; path: "file:///a.html"; file: "file:///a.html"; preview: "" }
+        }
+        // 新架构：modelFor/allModel 返回该文件夹 model
+        function modelFor(url) { return modelA; }
+        function allModel() { return modelA; }
     }
 
     // 暴露面板供测试断言

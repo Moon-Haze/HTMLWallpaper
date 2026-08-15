@@ -16,7 +16,8 @@ import QtTest
  * 不做反向同步：不验证 selectWallpaper 变化反向驱动高亮。
  *
  * 环境注意：htmlWallpaper 用 mock（QtObject 声明 selectWallpaper 属性 +
- * wallpapers JS 数组，挂 byKey/get 方法）。QML 属性 selectWallpaper 会自动
+ * modelFor/allModel 返回的 ListModel）。ListModel 是真 model，delegate 里
+ * model.path 等 role 可直接读（单路径）。QML 属性 selectWallpaper 会自动
  * 生成隐式 selectWallpaperChanged 信号，因此不能再显式声明同名 signal
  * （会触发 "Duplicate signal name" 解析错误）。
  */
@@ -34,24 +35,23 @@ TestCase {
     property var comp: null
 
     function init() {
-        // htmlWallpaper mock：selectWallpaper（可写属性）+ wallpapers（JS 数组，
-        // 挂 byKey/get；元素含 file/path/title/preview 字段，供 delegate 与
-        // onClicked 读取）。
+        // htmlWallpaper mock：selectWallpaper（可写属性）+ 单文件夹 ListModel
+        // （modelFor/allModel 返回；元素含 file/path/title/preview 字段，供
+        // delegate 与 onClicked 读取）。
         // 注意：createQmlObject 内联对象体成员必须以换行分隔。
         htmlWallpaper = Qt.createQmlObject(
             'import QtQuick;'
             + '\nQtObject {'
             + '\n  property string selectWallpaper: ""'
-            + '\n  property var wallpapers: (function () {'
-            + '\n    const all = ['
-            + '\n      { name: "a", title: "a", path: "file:///a.html", file: "file:///a.html", preview: "" },'
-            + '\n      { name: "b", title: "b", path: "file:///b.html", file: "file:///b.html", preview: "" },'
-            + '\n      { name: "c", title: "c", path: "file:///c.html", file: "file:///c.html", preview: "" }'
-            + '\n    ];'
-            + '\n    all.byKey = function (url) { return all; };'
-            + '\n    all.get = function (i) { return all[i]; };'
-            + '\n    return all;'
-            + '\n  })()'
+            // QtObject 无 default property，ListModel 需用 property 声明（否则
+            // 直接作子对象会报 "Cannot assign to non-existent default property"）。
+            + '\n  property ListModel modelA: ListModel {'
+            + '\n    ListElement { name: "a"; title: "a"; path: "file:///a.html"; file: "file:///a.html"; preview: "" }'
+            + '\n    ListElement { name: "b"; title: "b"; path: "file:///b.html"; file: "file:///b.html"; preview: "" }'
+            + '\n    ListElement { name: "c"; title: "c"; path: "file:///c.html"; file: "file:///c.html"; preview: "" }'
+            + '\n  }'
+            + '\n  function modelFor(url) { return modelA; }'
+            + '\n  function allModel() { return modelA; }'
             + '\n}',
             testCase);
         verify(htmlWallpaper !== null, "htmlWallpaper mock 实例化失败");
@@ -101,12 +101,12 @@ TestCase {
     function test_clickDelegate_setsSelectWallpaperAndIndex() {
         // 初始 selectWallpaper 为空；点击第 0 项
         clickIndex(0);
-        compare(htmlWallpaper.selectWallpaper, htmlWallpaper.wallpapers.get(0).file);
+        compare(htmlWallpaper.selectWallpaper, htmlWallpaper.allModel().get(0).file);
         compare(comp.view.currentIndex, 0);
 
         // 点击第 1 项 → 选中与高亮跟随点击项
         clickIndex(1);
-        compare(htmlWallpaper.selectWallpaper, htmlWallpaper.wallpapers.get(1).file);
+        compare(htmlWallpaper.selectWallpaper, htmlWallpaper.allModel().get(1).file);
         compare(comp.view.currentIndex, 1);
     }
 }
