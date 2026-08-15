@@ -9,10 +9,11 @@ import QtTest
 import com.github.moon_haze.htmlwallpaper
 
 /**
- * WallpaperListModel（C++）单元测试。
+ * 每文件夹一个 model 的多文件夹语义测试（C++ controller 集成）。
  *
- * 覆盖：扫描收录、get(i) 返回 WallpaperItem 元数据（name/title/file/preview 等）、
- * file 入口探测（missing-entry → real.html）、越界 get 安全返回 null。
+ * 覆盖：scan 后 modelFor(各扫描根) 返回对应文件夹 model（count/收录/入口
+ * 探测）；两个扫描根各自独立 model；全部视图 allModel 懒建缓存实例；删一个
+ * 扫描根后其 model 被释放。
  * fixtures 位于 test/data/wallpapers/（aurora / matrix / missing-entry / neon /
  * nova / offline 被收录）。
  */
@@ -20,13 +21,8 @@ TestCase {
     id: testCase
     name: "WallpaperListModelTests"
 
-    // 指向 fixtures 根目录（本文件位于 test/ 下）
     property url fixtureDir: Qt.resolvedUrl("data/wallpapers")
-    // 第二个扫描根：red / blue 两个壁纸目录
     property url extraDir: Qt.resolvedUrl("data/extra")
-    // 空扫描根：存在但无壁纸子目录，不应产生分组
-    property url emptyDir: Qt.resolvedUrl("data/empty")
-    // 每个测试函数独立创建的控制器实例
     property var htmlWallpaper: null
 
     SignalSpy {
@@ -48,122 +44,66 @@ TestCase {
         }
     }
 
-    // 扫描 fixture 并等待 scanFinished,返回 wallpapers 模型
-    function scanWallpapers() {
-        htmlWallpaper.scanPaths = [fixtureDir];
+    // 扫描 fixtures 并等待 scanFinished
+    function scanAndWait(paths) {
+        htmlWallpaper.scanPaths = paths;
         htmlWallpaper.scan();
         scanSpy.wait(5000);
         verify(scanSpy.count > 0, "scanFinished 未在 5s 内发出");
-        compare(htmlWallpaper.wallpapers.count, 6, "期望 6 个壁纸，实际 " + htmlWallpaper.wallpapers.count);
-        return htmlWallpaper.wallpapers;
     }
 
-    // 扫描后按 name 排序：aurora 在首
+    // 单 root：modelFor(扫描根) 收录 6 个，get(i) 返回 WallpaperItem 元数据
     function test_scanCollectsWallpapers() {
-        const model = scanWallpapers();
+        scanAndWait([fixtureDir]);
+        const model = htmlWallpaper.modelFor(String(fixtureDir));
+        verify(model !== null, "modelFor 应返回 model");
         compare(model.count, 6);
         const first = model.get(0);
         verify(first !== null, "get(0) 不应为 null");
         compare(first.name, "aurora");
     }
 
-    // get(i) 返回 WallpaperItem：name/title/file 等基础元数据
-    function test_getReturnsItemMetadata() {
-        const model = scanWallpapers();
-        let aurora = null, matrix = null;
-        for (let i = 0; i < model.count; i++) {
-            const item = model.get(i);
-            if (item.name === "aurora") aurora = item;
-            if (item.name === "matrix") matrix = item;
-        }
-        verify(aurora !== null, "缺少 aurora");
-        verify(matrix !== null, "缺少 matrix");
-
-        // aurora：title = name，缺省入口用 index.html
+    // get(i) 返回 WallpaperItem：name/title/file 等基础元数据（从单 root model 取）
+    function test_scanCollectsMetadata() {
+        scanAndWait([fixtureDir]);
+        const model = htmlWallpaper.modelFor(String(fixtureDir));
+        const aurora = model.get(0);
+        verify(aurora !== null, "get(0) 不应为 null");
+        compare(aurora.name, "aurora");
         compare(aurora.title, "aurora");
         verify(aurora.file.endsWith("/data/wallpapers/aurora/index.html"), "file: " + aurora.file);
-
-        // matrix：入口为 main.html
+        const matrix = model.get(1);
         verify(matrix.file.endsWith("/data/wallpapers/matrix/main.html"), "matrix file: " + matrix.file);
-    }
-
-    // missing-entry 目录仅 real.html → 探测到 real.html
-    function test_fileFallbackWhenMissing() {
-        const model = scanWallpapers();
-        let missing = null;
-        for (let i = 0; i < model.count; i++) {
-            const item = model.get(i);
-            if (item.name === "missing-entry") missing = item;
-        }
-        verify(missing !== null, "缺少 missing-entry");
+        const missing = model.get(2);
         verify(missing.file.endsWith("/data/wallpapers/missing-entry/real.html"), "missing file 应自动探测: " + missing.file);
-        compare(missing.title, "missing-entry");
     }
 
-    // 越界 get 安全返回 null
-    function test_outOfBoundsGetReturnsNull() {
-        const model = scanWallpapers();
-        verify(model.get(-1) === null, "get(-1) 应为 null");
-        verify(model.get(model.count) === null, "get(count) 应为 null");
-        verify(model.get(model.count + 10) === null, "get(count+10) 应为 null");
+    // 多 root：各文件夹独立 model；allModel 聚合跨源总数
+    function test_multiRootIndependentModelsAndAggregate() {
+        scanAndWait([fixtureDir, extraDir]);
+        const m1 = htmlWallpaper.modelFor(String(fixtureDir));
+        const m2 = htmlWallpaper.modelFor(String(extraDir));
+        verify(m1 !== null && m2 !== null, "两个扫描根应有各自 model");
+        compare(m1.count, 6, "fixtureDir 应收录 6 个");
+        compare(m2.count, 2, "extraDir 应收录 2 个（red/blue）");
+
+        // 全部视图：allModel 懒建并缓存同一实例
+        // （聚合求和/跨源定位的 C++ 逻辑已由 tst_wallpapercontroller 覆盖）
+        const all1 = htmlWallpaper.allModel();
+        const all2 = htmlWallpaper.allModel();
+        verify(all1 !== null, "allModel 应返回合并 model");
+        compare(all1, all2, "allModel 应缓存同一实例（保活复用）");
     }
 
-    // 扫描 [fixtureDir, extraDir] 两个根并等待 scanFinished
-    function scanMultiRoots() {
-        htmlWallpaper.scanPaths = [fixtureDir, extraDir];
+    // 移除扫描根后：modelCount 下降（releaseStaleModels）
+    function test_removingRootDropsModel() {
+        scanAndWait([fixtureDir, extraDir]);
+        compare(htmlWallpaper.modelCount(), 2, "扫描两个根应有 2 个 model");
+
+        htmlWallpaper.scanPaths = [fixtureDir];
         htmlWallpaper.scan();
         scanSpy.wait(5000);
         verify(scanSpy.count > 0, "scanFinished 未在 5s 内发出");
-        return htmlWallpaper.wallpapers;
-    }
-
-    // 多 root 分组：keys 保序、groupCount、count 汇总、byKey 组内成员
-    function test_multiRootGrouping() {
-        const model = scanMultiRoots();
-        compare(model.count, 8, "期望 8 个壁纸(6+2)，实际 " + model.count);
-        compare(model.groupCount(), 2, "期望 2 个分组");
-
-        const keys = model.keys();
-        compare(keys.length, 2, "keys 应有 2 项");
-        compare(String(keys[0]), String(fixtureDir), "第一组应为 fixtureDir");
-        compare(String(keys[1]), String(extraDir), "第二组应为 extraDir");
-
-        // byKey 取整组
-        const groupA = model.byKey(fixtureDir);
-        verify(groupA !== null, "byKey(fixtureDir) 不应为 null");
-        compare(groupA.length, 6, "fixtureDir 组应含 6 个壁纸");
-        compare(String(groupA[0].name), "aurora", "fixtureDir 组第一个应为 aurora");
-
-        const groupB = model.byKey(extraDir);
-        compare(groupB.length, 2, "extraDir 组应含 2 个壁纸");
-        compare(String(groupB[0].name), "blue", "extraDir 组第一个应为 blue(字母序)");
-
-        // 不存在 key → 空数组
-        const missing = model.byKey("file:///nonexistent");
-        verify(missing !== null, "byKey 不存在 key 应返回空数组而非 null");
-        compare(missing.length, 0, "不存在 key 应返回空组");
-    }
-
-    // 扁平顺序：groupOrder 顺序 × 组内字母序；indexOf 仍按 source 命中
-    function test_flatOrderAcrossGroups() {
-        const model = scanMultiRoots();
-        compare(String(model.get(0).name), "aurora", "扁平第一个应为 aurora");
-        compare(String(model.get(6).name), "blue", "扁平第 7 个(索引 6)应为 blue");
-
-        compare(model.indexOf(String(model.get(0).source)), 0, "aurora 行号应为 0");
-        compare(model.indexOf(String(model.get(6).source)), 6, "blue 行号应为 6");
-        compare(model.indexOf("file:///nonexistent.html"), -1, "不存在 source 应返回 -1");
-    }
-
-    // 空扫描根（存在但无壁纸子目录）不产生分组
-    function test_emptyRootNotGrouped() {
-        htmlWallpaper.scanPaths = [fixtureDir, extraDir, emptyDir];
-        htmlWallpaper.scan();
-        scanSpy.wait(5000);
-        verify(scanSpy.count > 0, "scanFinished 未在 5s 内发出");
-        const model = htmlWallpaper.wallpapers;
-        compare(model.count, 8, "空根不影响壁纸总数");
-        compare(model.groupCount(), 2, "空根不应产生分组");
-        compare(model.keys().length, 2, "空根不应进 keys");
+        compare(htmlWallpaper.modelCount(), 1, "移除 extraDir 后其 model 应被释放");
     }
 }

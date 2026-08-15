@@ -67,4 +67,20 @@ if(BUILD_TESTING)
     set_tests_properties(tst_wallpapermodel PROPERTIES
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
+
+    # WallpaperController 多 model 容器 + 扫描编排单测。
+    qt_add_executable(tst_wallpapercontroller tst_wallpapercontroller.cpp)
+    target_sources(tst_wallpapercontroller PRIVATE
+        ../plugin/wallpapercontroller.cpp
+        ../plugin/wallpapermodel.cpp
+        ../plugin/allwallpapersmodel.cpp
+        ../plugin/wallpaperitem.cpp
+        ../plugin/wallpaperentry.cpp
+    )
+    target_include_directories(tst_wallpapercontroller PRIVATE ../plugin)
+    target_link_libraries(tst_wallpapercontroller PRIVATE Qt6::Test Qt6::Core Qt6::Concurrent)
+    add_test(NAME tst_wallpapercontroller COMMAND tst_wallpapercontroller)
+    set_tests_properties(tst_wallpapercontroller PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
 endif()
