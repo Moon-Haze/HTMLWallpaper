@@ -51,7 +51,10 @@ ColumnLayout {
         icon.name: "all-wallpapers-symbolic"
         text: i18ndc("plasma_wallpaper_org.kde.image", "@action switch to look all wallpapers", "All")
         Accessible.name: i18ndc("plasma_wallpaper_org.kde.image", "@action:button", "All")
-        // highlighted: scanPathsPanel.selectedFolder.length === 0
+        // 激活态语义：未选中任何文件夹（"全部"）时处于 checked 态。
+        // Kirigami.Action 无 highlighted 属性，用 checkable+checked 达成同语义（上游 plasma-workspace 同款）。
+        checkable: true
+        checked: scanPathsPanel.selectedFolder.length === 0
         onTriggered: scanPathsPanel.selectedFolder = ""
     }
 
