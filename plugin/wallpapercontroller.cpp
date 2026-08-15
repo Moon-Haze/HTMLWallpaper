@@ -145,12 +145,23 @@ void WallpaperController::scan()
             for (const auto &group : result.groups) {
                 obtainModel(group.key)->addEntries(group.entries);
             }
-            // 清理已移除文件夹的 model
-            releaseStaleModels(m_scanPaths);
-            // 合并 model 保活复用：已建则重挂最新源（QML 引用不悬空），未建不动
+            // 合并 model 保活复用：先重挂最新源（此刻旧源全部存活，
+            // setSources 内 disconnect 安全），再清理已移除文件夹的 model，
+            // 避免对已释放源解引用（use-after-free）。
             if (m_allModel) {
-                static_cast<AllWallpapersModel *>(m_allModel)->setSources(m_models);
+                QSet<QString> keptKeys;
+                for (const QString &u : m_scanPaths) {
+                    keptKeys.insert(normalizeKey(WallpaperPath::toUrl(u)));
+                }
+                QList<WallpaperModel *> keptModels;
+                for (WallpaperModel *m : m_models) {
+                    if (keptKeys.contains(m->key())) {
+                        keptModels.append(m);
+                    }
+                }
+                static_cast<AllWallpapersModel *>(m_allModel)->setSources(keptModels);
             }
+            releaseStaleModels(m_scanPaths);
             setScanInProgress(false);
             Q_EMIT scanFinished();
         });

@@ -27,6 +27,7 @@ private Q_SLOTS:
     void allModelAggregatesAcrossSources();
     void scanPopulatesEachFolderModel();
     void releaseStaleModelsDropsRemovedFolders();
+    void releaseStaleModelsWithAllModelAttached();
     void folderNameAndParentPath();
 };
 
@@ -95,6 +96,29 @@ void tst_wallpapercontroller::releaseStaleModelsDropsRemovedFolders()
     c.scan();
     QTRY_COMPARE_WITH_TIMEOUT(c.modelCount(), 1, 5000);
     // 保活：仍可 modelFor(b)
+    QVERIFY(c.modelFor(QStringLiteral("file:///root/b")) != nullptr);
+}
+
+void tst_wallpapercontroller::releaseStaleModelsWithAllModelAttached()
+{
+    WallpaperController c;
+    c.modelFor(QStringLiteral("file:///root/a"));
+    c.modelFor(QStringLiteral("file:///root/b"));
+    QCOMPARE(c.modelCount(), 2);
+
+    // 先建合并 model（连接源），触发 use-after-free 修复路径：
+    // setSources 重挂源必须先于 releaseStaleModels 删除 stale model，
+    // 否则 disconnect 会解引用已释放源。
+    QAbstractItemModel *all = c.allModel();
+    QVERIFY(all != nullptr);
+
+    // scanPaths 只剩 b；scan 完成后 a 的 model 应被释放且无崩溃
+    c.setScanPaths({QStringLiteral("file:///root/b")});
+    c.scan();
+    QTRY_COMPARE_WITH_TIMEOUT(c.modelCount(), 1, 5000);
+
+    // 合并 model 仍存活且缓存同一实例；保留源 b 仍可 modelFor
+    QCOMPARE(c.allModel(), all);
     QVERIFY(c.modelFor(QStringLiteral("file:///root/b")) != nullptr);
 }
 
