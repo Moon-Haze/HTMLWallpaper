@@ -32,6 +32,7 @@ class WallpaperModel : public QAbstractListModel
     Q_OBJECT
     Q_PROPERTY(int count READ count CONSTANT)
     Q_PROPERTY(QString key READ key CONSTANT) // 本文件夹归一化 URL
+    Q_PROPERTY(int selectedIndex READ selectedIndex WRITE setSelectedIndex NOTIFY selectedIndexChanged)
 
 public:
     enum Roles {
@@ -62,7 +63,16 @@ public:
     /** 按条目 source（html 文件 URL）返回行号；未找到返回 -1。 */
     Q_INVOKABLE int indexOf(const QString &source) const;
 
+    /** 本文件夹选中行（-1 = 无选中）。越界（< -1 或 >= count）忽略。 */
+    int selectedIndex() const;
+    void setSelectedIndex(int index);
+
+Q_SIGNALS:
+    void selectedIndexChanged();
+
 private:
+    void resetSelectedIndexIfNeeded(); // 整组替换后清选中（仅原值非 -1 时 emit）
     QString m_key;                  // 本文件夹归一化 URL
     QList<WallpaperItem *> m_items; // 本文件夹的壁纸项（QObject parent = 本 model）
+    int m_selectedIndex = -1;       // 本文件夹选中行（-1 = 无选中）
 };

@@ -24,6 +24,7 @@
 class AllWallpapersModel : public QAbstractListModel
 {
     Q_OBJECT
+    Q_PROPERTY(int selectedIndex READ selectedIndex WRITE setSelectedIndex NOTIFY selectedIndexChanged)
 public:
     explicit AllWallpapersModel(QObject *parent = nullptr);
 
@@ -34,7 +35,17 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
+    /** 全局扁平行号（跨源聚合，首个非 -1 源映射回全局行）。 */
+    int selectedIndex() const;
+    /** 设置全局选中行；跨源定位到目标源并单选清空其它源。越界忽略。 */
+    void setSelectedIndex(int globalIndex);
+
+Q_SIGNALS:
+    void selectedIndexChanged();
+
 private:
     void onSourceReset();
+    void onSourceSelectedIndexChanged(); // 源选中变化转发（缓存去重）
     QList<WallpaperModel *> m_sources;
+    int m_selectedIndex = -1; // 聚合缓存，仅用于信号去重
 };

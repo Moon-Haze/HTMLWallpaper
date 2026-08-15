@@ -33,8 +33,19 @@ private Q_SLOTS:
     void clearEmptiesAll();
     void dataRolesAndGet();
     void indexOfNotFound();
+    void selectedIndexDefaultIsMinusOne();
+    void selectedIndexSetAndEmit();
+    void selectedIndexOutOfRangeIgnored();
+    void selectedIndexResetsOnAddEntries();
+    void selectedIndexResetsOnClear();
     void mergeAggregatesAcrossSources();
     void mergeResetsOnSourceReset();
+    void mergeSelectedIndexForwardsToSource();
+    void mergeSelectedIndexSingleSelectClearsOthers();
+    void mergeSelectedIndexGetterAggregates();
+    void mergeSelectedIndexMinusOneClearsAll();
+    void mergeSetSourcesRemountRecomputes();
+    void mergeSelectedIndexForwardsSourceSignal();
 };
 
 void tst_wallpapermodel::keyRoundTrip()
@@ -118,6 +129,69 @@ void tst_wallpapermodel::indexOfNotFound()
     QCOMPARE(model.indexOf(QStringLiteral("file:///nonexistent.html")), -1);
 }
 
+void tst_wallpapermodel::selectedIndexDefaultIsMinusOne()
+{
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    QCOMPARE(model.selectedIndex(), -1);
+}
+
+void tst_wallpapermodel::selectedIndexSetAndEmit()
+{
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    model.addEntries({WallpaperEntry(), WallpaperEntry()});
+    QSignalSpy spy(&model, &WallpaperModel::selectedIndexChanged);
+
+    model.setSelectedIndex(0);
+    QCOMPARE(model.selectedIndex(), 0);
+    QCOMPARE(spy.count(), 1);
+
+    // 同值幂等：不重复 emit
+    model.setSelectedIndex(0);
+    QCOMPARE(spy.count(), 1);
+
+    model.setSelectedIndex(-1);
+    QCOMPARE(model.selectedIndex(), -1);
+    QCOMPARE(spy.count(), 2);
+}
+
+void tst_wallpapermodel::selectedIndexOutOfRangeIgnored()
+{
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    model.addEntries({WallpaperEntry(), WallpaperEntry()});
+    QSignalSpy spy(&model, &WallpaperModel::selectedIndexChanged);
+
+    // 越上界（== count）与越下界（< -1）均忽略，值不变、无 emit
+    model.setSelectedIndex(2);
+    model.setSelectedIndex(-2);
+    QCOMPARE(model.selectedIndex(), -1);
+    QCOMPARE(spy.count(), 0);
+}
+
+void tst_wallpapermodel::selectedIndexResetsOnAddEntries()
+{
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    model.addEntries({WallpaperEntry()});
+    model.setSelectedIndex(0);
+    QSignalSpy spy(&model, &WallpaperModel::selectedIndexChanged);
+
+    // 整组替换后行号身份失效 → 清选中
+    model.addEntries({WallpaperEntry(), WallpaperEntry()});
+    QCOMPARE(model.selectedIndex(), -1);
+    QCOMPARE(spy.count(), 1);
+}
+
+void tst_wallpapermodel::selectedIndexResetsOnClear()
+{
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    model.addEntries({WallpaperEntry()});
+    model.setSelectedIndex(0);
+    QSignalSpy spy(&model, &WallpaperModel::selectedIndexChanged);
+
+    model.clear();
+    QCOMPARE(model.selectedIndex(), -1);
+    QCOMPARE(spy.count(), 1);
+}
+
 void tst_wallpapermodel::mergeAggregatesAcrossSources()
 {
     WallpaperModel modelA(QStringLiteral("file:///root/a"));
@@ -162,6 +236,115 @@ void tst_wallpapermodel::mergeResetsOnSourceReset()
     QSignalSpy resetSpy(&merged, &QAbstractItemModel::modelReset);
     modelA.addEntries({WallpaperEntry()}); // 源重置 → 合并 model 也应 reset
     QCOMPARE(resetSpy.count(), 1);
+}
+
+// A(2 行) + B(1 行)：全局扁平索引写跨源转发到对应源 model 的局部行
+void tst_wallpapermodel::mergeSelectedIndexForwardsToSource()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    WallpaperModel modelB(QStringLiteral("file:///root/b"));
+    modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
+    modelB.addEntries({WallpaperEntry()});
+    AllWallpapersModel merged;
+    merged.setSources({&modelA, &modelB});
+
+    // 行 0 落在 A 局部行 0
+    merged.setSelectedIndex(0);
+    QCOMPARE(modelA.selectedIndex(), 0);
+    QCOMPARE(merged.selectedIndex(), 0);
+    // 行 2 落在 B 局部行 0（偏移 2）
+    merged.setSelectedIndex(2);
+    QCOMPARE(modelB.selectedIndex(), 0);
+    QCOMPARE(merged.selectedIndex(), 2);
+}
+
+// 单选语义：设置新源选中时清空其它源选中
+void tst_wallpapermodel::mergeSelectedIndexSingleSelectClearsOthers()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    WallpaperModel modelB(QStringLiteral("file:///root/b"));
+    modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
+    modelB.addEntries({WallpaperEntry()});
+    AllWallpapersModel merged;
+    merged.setSources({&modelA, &modelB});
+
+    modelA.setSelectedIndex(1);
+    QCOMPARE(modelA.selectedIndex(), 1);
+    // 全局行 2 落在 B → A 选中被清空
+    merged.setSelectedIndex(2);
+    QCOMPARE(modelA.selectedIndex(), -1);
+    QCOMPARE(modelB.selectedIndex(), 0);
+    QCOMPARE(merged.selectedIndex(), 2);
+}
+
+// getter 实时聚合：首个非 -1 源映射回全局行
+void tst_wallpapermodel::mergeSelectedIndexGetterAggregates()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    WallpaperModel modelB(QStringLiteral("file:///root/b"));
+    modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
+    modelB.addEntries({WallpaperEntry()});
+    AllWallpapersModel merged;
+    merged.setSources({&modelA, &modelB});
+
+    modelA.setSelectedIndex(1);
+    QCOMPARE(merged.selectedIndex(), 1);
+    // 单选不变量：切换源前清 A（正常写路径由 merged.setSelectedIndex 清他源；
+    // 此处直接操作源验证 getter 跨源聚合映射）
+    modelA.setSelectedIndex(-1);
+    modelB.setSelectedIndex(0);
+    QCOMPARE(merged.selectedIndex(), 2);
+}
+
+void tst_wallpapermodel::mergeSelectedIndexMinusOneClearsAll()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    WallpaperModel modelB(QStringLiteral("file:///root/b"));
+    modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
+    modelB.addEntries({WallpaperEntry()});
+    AllWallpapersModel merged;
+    merged.setSources({&modelA, &modelB});
+
+    merged.setSelectedIndex(1);
+    QCOMPARE(merged.selectedIndex(), 1);
+    // -1 = 清除全部源选中
+    merged.setSelectedIndex(-1);
+    QCOMPARE(modelA.selectedIndex(), -1);
+    QCOMPARE(modelB.selectedIndex(), -1);
+    QCOMPARE(merged.selectedIndex(), -1);
+}
+
+// 重挂源后聚合值重算：保活源保留选中，删源丢失
+void tst_wallpapermodel::mergeSetSourcesRemountRecomputes()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    WallpaperModel modelB(QStringLiteral("file:///root/b"));
+    modelA.addEntries({WallpaperEntry()});
+    modelB.addEntries({WallpaperEntry()});
+    AllWallpapersModel merged;
+
+    modelA.setSelectedIndex(0);
+    merged.setSources({&modelA});
+    QCOMPARE(merged.selectedIndex(), 0);
+
+    // 换到 B（无选中）→ 聚合值回到 -1
+    merged.setSources({&modelB});
+    QCOMPARE(merged.selectedIndex(), -1);
+}
+
+// 源 selectedIndexChanged 转发到合并 model
+void tst_wallpapermodel::mergeSelectedIndexForwardsSourceSignal()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
+    AllWallpapersModel merged;
+    merged.setSources({&modelA});
+
+    QSignalSpy spy(&merged, &AllWallpapersModel::selectedIndexChanged);
+    modelA.setSelectedIndex(0);
+    modelA.setSelectedIndex(1);
+    modelA.setSelectedIndex(-1);
+    QCOMPARE(spy.count(), 3);
 }
 
 QTEST_MAIN(tst_wallpapermodel)

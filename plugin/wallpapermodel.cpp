@@ -76,6 +76,7 @@ void WallpaperModel::addEntries(const QList<WallpaperEntry> &wallpapers)
         m_items.append(new WallpaperItem(entry, this));
     }
     endResetModel();
+    resetSelectedIndexIfNeeded();
 }
 
 void WallpaperModel::clear()
@@ -86,6 +87,34 @@ void WallpaperModel::clear()
     }
     m_items.clear();
     endResetModel();
+    resetSelectedIndexIfNeeded();
+}
+
+// 整组替换后行号身份失效，清选中（仅原值非 -1 时通知，无变化不 emit）
+void WallpaperModel::resetSelectedIndexIfNeeded()
+{
+    if (m_selectedIndex != -1) {
+        m_selectedIndex = -1;
+        Q_EMIT selectedIndexChanged();
+    }
+}
+
+int WallpaperModel::selectedIndex() const
+{
+    return m_selectedIndex;
+}
+
+void WallpaperModel::setSelectedIndex(int index)
+{
+    // 越界忽略，保持不变式 selectedIndex ∈ [-1, count()-1]
+    if (index < -1 || index >= m_items.size()) {
+        return;
+    }
+    if (m_selectedIndex == index) {
+        return;
+    }
+    m_selectedIndex = index;
+    Q_EMIT selectedIndexChanged();
 }
 
 int WallpaperModel::indexOf(const QString &source) const

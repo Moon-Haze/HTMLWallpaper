@@ -32,6 +32,7 @@ private Q_SLOTS:
     void releaseStaleModelsDropsRemovedFolders();
     void releaseStaleModelsWithAllModelAttached();
     void folderNameAndParentPath();
+    void allModelSelectedIndexForwards();
 };
 
 void tst_wallpapercontroller::modelForReusesSameKey()
@@ -166,6 +167,25 @@ void tst_wallpapercontroller::folderNameAndParentPath()
     QCOMPARE(c.folderName(QStringLiteral("file:///home/user/wallpapers/aurora/")), QStringLiteral("aurora"));
     QCOMPARE(c.parentPath(QStringLiteral("file:///home/user/wallpapers/aurora")), QStringLiteral("file:///home/user/wallpapers"));
     QCOMPARE(c.parentPath(QStringLiteral("file:///home/user/wallpapers/aurora/")), QStringLiteral("file:///home/user/wallpapers"));
+}
+
+// controller 层集成：合并 model 的 selectedIndex 跨源转发 + 单选清他源
+void tst_wallpapercontroller::allModelSelectedIndexForwards()
+{
+    WallpaperController c;
+    WallpaperModel *a = c.modelFor(QStringLiteral("file:///root/a"));
+    WallpaperModel *b = c.modelFor(QStringLiteral("file:///root/b"));
+    a->addEntries({WallpaperEntry(), WallpaperEntry()});
+    b->addEntries({WallpaperEntry()});
+
+    auto *merged = static_cast<AllWallpapersModel *>(c.allModel());
+    QCOMPARE(merged->selectedIndex(), -1);
+
+    // 全局行 2 落在 B 局部 0；A 选中被清空
+    merged->setSelectedIndex(2);
+    QCOMPARE(merged->selectedIndex(), 2);
+    QCOMPARE(b->selectedIndex(), 0);
+    QCOMPARE(a->selectedIndex(), -1);
 }
 
 QTEST_MAIN(tst_wallpapercontroller)

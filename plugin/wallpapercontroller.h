@@ -21,7 +21,7 @@
  * @brief HTML 壁纸配置的 C++ 门面（QML 类型 WallpaperController）。
  *
  * 供配置界面（config.qml → ScanPathsPanel → ThumbnailsPanel）消费的
- * Controller：持有 scanPaths / selectWallpaper 属性与扫描编排，并为每个
+ * Controller：持有 scanPaths 属性与扫描编排，并为每个
  * 扫描根缓存一个单文件夹 WallpaperModel（QList<WallpaperModel *> m_models）。
  *
  * - modelFor(url)：url 对应文件夹的常驻 WallpaperModel*（key 归一化去重建）。
@@ -35,14 +35,11 @@ class WallpaperController : public QObject
     QML_ELEMENT
     QML_NAMED_ELEMENT(WallpaperController)
 
-    Q_PROPERTY(QString selectWallpaper READ selectWallpaper WRITE setSelectWallpaper NOTIFY selectWallpaperChanged)
     Q_PROPERTY(QStringList scanPaths READ scanPaths WRITE setScanPaths NOTIFY scanPathsChanged)
     Q_PROPERTY(bool scanInProgress READ scanInProgress NOTIFY scanInProgressChanged)
 
 public:
     explicit WallpaperController(QObject *parent = nullptr);
-    QString selectWallpaper() const;
-    void setSelectWallpaper(const QString &wallpaper);
     QStringList scanPaths() const;
     void setScanPaths(const QStringList &urls);
     bool scanInProgress() const;
@@ -62,7 +59,6 @@ public:
     Q_INVOKABLE QString parentPath(const QString &url) const;
 
 Q_SIGNALS:
-    void selectWallpaperChanged();
     void scanPathsChanged();
     void scanFinished();
     void scanFailed(const QString &path, const QString &error);
@@ -73,7 +69,6 @@ private:
     void releaseStaleModels(const QStringList &kept); // 销毁不在 kept 的 model
     void setScanInProgress(bool inProgress);
 
-    QString m_selectWallpaper;
     QStringList m_scanPaths;
     QList<WallpaperModel *> m_models; // 按 key 缓存（key = WallpaperPath::toUrl 归一化）
     QAbstractItemModel *m_allModel = nullptr; // 懒建合并 model（保活复用）

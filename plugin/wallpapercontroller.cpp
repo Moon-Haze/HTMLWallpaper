@@ -65,20 +65,6 @@ WallpaperController::WallpaperController(QObject *parent)
 {
 }
 
-QString WallpaperController::selectWallpaper() const
-{
-    return m_selectWallpaper;
-}
-
-void WallpaperController::setSelectWallpaper(const QString &wallpaper)
-{
-    if (m_selectWallpaper == wallpaper) {
-        return;
-    }
-    m_selectWallpaper = wallpaper;
-    Q_EMIT selectWallpaperChanged();
-}
-
 QStringList WallpaperController::scanPaths() const
 {
     return m_scanPaths;
