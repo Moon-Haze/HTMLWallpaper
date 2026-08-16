@@ -1,20 +1,22 @@
 # 每文件夹一个 WallpaperModel 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **设计转向注记（2026-08-16）**：本计划的"全部"视图原设想由懒建的合并 model `AllWallpapersModel` 提供（`setSources` 重挂源，见 Task 2）；该方案在后续 merge 阶段**放弃**（提交 `ec26817 refactor: 移除聚合模式语义`）。"全部"最终由独立 `WallpaperModel("ALL")` 承担（controller 构造即建、scan 时 `clear()` + 逐文件夹 `addEntries` 重建）。**Task 2（AllWallpapersModel 合并 model）未执行**；Task 1/3/4/5 实际落地，但接口形态有差异（见各 Task 注记）。最终设计见 [merge spec](../specs/2026-08-16-merge-allwallpapers-into-wallpapersmodel-design.md)。
 
-**Goal:** 把 WallpaperModel 从"单 model 内部分组存储多文件夹"改为"每文件夹一个独立 WallpaperModel 实例"，Controller 持多 model 容器并提供 `modelFor`/`allModel` 接口，"全部"视图由懒建的合并 model（AllWallpapersModel）提供。
+**Goal（最终采纳）：** 把 WallpaperModel 从"单 model 内部分组存储多文件夹"改为"每文件夹一个独立 WallpaperModel 实例"，Controller 持多 model 容器并提供 `modelFor`/`allModel` 接口；"全部"视图由独立 `WallpaperModel("ALL")`（构造即建、scan 重建）承担，controller 新增 `activeModel`/`activeIndex` 属性供 QML 绑定。
 
-**Architecture:** WallpaperModel 收敛为纯单文件夹数据容器（构造带 key、`addEntries` 整组替换）；扫描编排（`scanWallpapers` + QFutureWatcher）上移 WallpaperController；Controller 缓存每文件夹 model（`QList<WallpaperModel*>`），`allModel()` 懒建 AllWallpapersModel 聚合多源，scan 后对缓存实例 `setSources` 重挂源（保活复用，无悬空指针）；QML 中栏 `view.model` 恒为真 QAbstractListModel，移除 `modelData` 双路径兼容。
+**Architecture（最终采纳）：** WallpaperModel 收敛为纯单文件夹数据容器（构造带 key、`setEntries` 整组替换 + `addEntries` 追加 + `clear` + `get` 模板 + `selectedIndex`）；扫描编排（`scanWallpapers` + QFutureWatcher）上移 WallpaperController；Controller 缓存每文件夹 model（`QList<WallpaperModel*>`），`m_allModel` 为构造即建的独立 `WallpaperModel("ALL")`（保活复用，scan 时 `clear()` + `addEntries` 重建，无 `setSources`）；`activeModel` 初始指向 allModel、`activeIndex` 派生自其 `selectedIndex`；QML 中栏 `view.model`/`view.currentIndex` 直接绑 `activeModel`/`activeIndex`，移除 `modelData` 双路径兼容。
 
 **Tech Stack:** Qt6/QML/KF6（Kirigami/KCM.GridView）、QAbstractListModel、QFutureWatcher + QtConcurrent、qmltestrunner（Qt6 版 `/usr/lib/qt6/bin/qmltestrunner`）。
 
 ## Global Constraints
 
 - **命名保持 `scanPaths`**：生产已统一为 `scanPaths`/`addScanPath`/`removeScanPath`，本计划不引入 `scanUrls`；仅把测试层残留的 `scanUrls` 引用统一为 `scanPaths`（tst_Parser.qml、FolderTabsHost.qml、tst_FolderTabs.qml、wallpaperentry.h 注释）。
-- **WallpaperModel 单文件夹语义**：构造 `WallpaperModel(const QString &key, QObject *parent = nullptr)`；`addEntries(const QList<WallpaperEntry> &)` 单参整组替换；删除 `byKey/keys/groupCount/folderName/parentPath/scan/scanInProgress` 及其存储（m_items QHash/m_groupOrder/m_flat/m_scanning/m_watcher）。
-- **Controller 接口**：`Q_INVOKABLE WallpaperModel *modelFor(const QString &url)`（key 归一化去重建）、`Q_INVOKABLE QAbstractItemModel *allModel()`（懒建缓存）、`Q_INVOKABLE QString folderName/parentPath(const QString&)`、`Q_PROPERTY bool scanInProgress`；私有 `obtainModel`/`releaseStaleModels`。
-- **AllWallpapersModel**：`setSources(QList<WallpaperModel*>)` 重挂源（断开旧源连接）+ 自身 reset；任一源 `modelReset` → 自身整体 reset。
-- **合并 model 保活复用**：scan 完成后对已建的 `m_allModel` 调 `setSources(m_models)` 重挂最新源，**不销毁重建**（QML 正持引用时销毁会悬空）；未建则不动（懒建语义）。
+- **WallpaperModel 单文件夹语义（落地修订）**：构造 `WallpaperModel(const QString &key, QObject *parent = nullptr)`；`setEntries(const QList<WallpaperEntry> &)` 整组替换、`addEntries` 追加、`clear` 清空；删除 `byKey/keys/groupCount/folderName/parentPath/scan/scanInProgress` 及其存储（m_items QHash/m_groupOrder/m_flat/m_scanning/m_watcher）；roles 四字段（name/path/preview/file），无 `indexOf`；新增 `selectedIndex`/`setSelectedIndex`/`setSelectedIndexOfFile` 与 `get` 模板。
+- **Controller 接口（落地修订）**：`Q_INVOKABLE WallpaperModel *modelFor(const QString &url)`（key 归一化去重建）、`Q_INVOKABLE WallpaperModel *allModel()`（构造即建、保活复用）、`Q_INVOKABLE QString folderName/parentPath(const QString&)`、`Q_PROPERTY bool scanInProgress`、`Q_PROPERTY WallpaperModel *activeModel`、`Q_PROPERTY int activeIndex`；私有 `obtainModel`/`releaseStaleModels`。
+- **"全部"汇总（落地形态）**：由独立 `WallpaperModel("ALL")` 承担（非 AllWallpapersModel），scan 时 `clear()` + 逐文件夹 `addEntries` 重建；不引入 `setSources`/`m_isAggregate`。
+- **合并 model 保活复用（落地形态）**：`m_allModel` 构造即建、不销毁重建（QML 正持引用时销毁会悬空）；`activeModel` 初始指向 allModel，`releaseStaleModels` 释放 activeModel 时置空并 emit。
 - **QML 单路径**：`view.model` 恒为真 QAbstractListModel，delegate/onClicked 只用 `model.xxx`，删除 `?? modelData.xxx`。
 - **中文注释、中文 commit message**；每步 TDD：先写/改测试 → 验证失败 → 实现 → 验证通过 → commit。
 - 构建命令：`cmake --build /home/swix/Code/QtProjects/HTMLWallpaper/build`
@@ -24,7 +26,13 @@
 
 ---
 
-### Task 1: WallpaperModel 单文件夹化 + controller 编译适配
+### Task 1: WallpaperModel 单文件夹化 + controller 编译适配（落地，接口有差异）
+
+> **落地差异注记**：本任务执行完毕，但接口形态与最终实现有差异——
+> - "整组替换"最终命名为 `setEntries`（本任务写作 `addEntries` 单参整组替换），并另加 `addEntries`（追加末尾）与 `clear`（清空）。
+> - `indexOf` 未落地（删除）；roles 为四字段（name/path/preview/file），无第五字段。
+> - 新增 `get` 模板（`get<R>(i)` / `get<R>()`）与 `selectedIndex`/`setSelectedIndex`/`setSelectedIndexOfFile`。
+> 详见 [wallpapermodel.h](../../plugin/wallpapermodel.h) 与 merge spec"类设计"。
 
 **Files:**
 - Modify: `plugin/wallpapermodel.h`
@@ -420,7 +428,11 @@ git commit -m "refactor: WallpaperModel 单文件夹化(构造带 key/整组替�
 
 ---
 
-### Task 2: AllWallpapersModel 合并 model
+### Task 2: AllWallpapersModel 合并 model（未执行）
+
+> **未执行（设计转向放弃聚合模式）**：本任务描述的 `AllWallpapersModel` 类与 `setSources`
+> 聚合合并在 merge 阶段**放弃**（提交 `ec26817`），文件从未创建/已删除。"全部"视图最终由
+> 独立 `WallpaperModel("ALL")` 承担（见 Task 3 注记与 merge spec）。下文保留原文供追溯，可跳过。
 
 **Files:**
 - Create: `plugin/allwallpapersmodel.h`
@@ -644,7 +656,18 @@ git commit -m "feat: AllWallpapersModel 多源合并 model(跨源定位/源 rese
 
 ---
 
-### Task 3: WallpaperController 扫描编排上移 + 多 model 容器 + 命名统一
+### Task 3: WallpaperController 扫描编排上移 + 多 model 容器 + 命名统一（落地，接口有差异）
+
+> **落地差异注记**：本任务执行完毕，但 controller 接口与 scan 流程与最终实现有差异——
+> - `allModel()` 返回 `WallpaperModel *`（非 `QAbstractItemModel *`），且**构造即建**（成员初始化
+>   `new WallpaperModel(QStringLiteral("ALL"), this)`），非懒建。
+> - 新增 `activeModel`（`WallpaperModel *`）与 `activeIndex`（`int`）Q_PROPERTY；`activeModel`
+>   初始指向 allModel。
+> - scan 流程不调用 `setSources`；改为 `m_allModel->clear()` + 逐文件夹 `addEntries` 重建，
+>   并对非 activeModel 的 model 与 allModel 调 `setSelectedIndexOfFile` 恢复选中（详见
+>   [wallpapercontroller.cpp](../../plugin/wallpapercontroller.cpp) 的 `scan()`）。
+> - 无 `AllWallpapersModel` 依赖（Step 1/2 中的 `#include "allwallpapersmodel.h"` 与
+>   `QAbstractItemModel *m_allModel` 与最终不符）。
 
 **Files:**
 - Modify: `plugin/wallpapercontroller.h`
@@ -1416,18 +1439,33 @@ git commit -m "feat: 扫描编排上移 controller + modelFor/allModel 多 model
 
 ---
 
-### Task 4: QML 生产层改造
+### Task 4: QML 生产层改造（落地，形态有差异）
+
+> **落地差异注记**：本任务执行完毕，但最终落地形态与下文步骤不同——中栏改为直接绑 controller
+> 的 `activeModel`/`activeIndex`（`view.model: wallpaperController.activeModel`、
+> `view.currentIndex: wallpaperController.activeIndex`），**删除了 `gridModel` 属性与
+> `refreshModel()`**；delegate 点击写 `wallpaperController.activeIndex = index`（不再写
+> `selectWallpaper`）；role 从 `model.title` 改为 `model.name`；`config.qml` 新增
+> `cfg_SelectWallpaper` 别名与 `onScanPathsChanged: scan()`。当前形态见
+> [ThumbnailsPanel.qml](../../package/contents/ui/view/ThumbnailsPanel.qml) /
+> [ScanPathsPanel.qml](../../package/contents/ui/view/ScanPathsPanel.qml)。
 
 **Files:**
 - Modify: `package/contents/ui/view/ThumbnailsPanel.qml`
 - Modify: `package/contents/ui/view/WallpaperDelegate.qml`
 - Modify: `package/contents/ui/view/ScanPathsPanel.qml`
+- Modify: `package/contents/ui/config.qml`
 
 **Interfaces:**
-- Consumes: Task 3 的 `modelFor`/`allModel`/`folderName`/`parentPath`。
+- Consumes: Task 3 的 `modelFor`/`allModel`/`folderName`/`parentPath` 与新增 `activeModel`/`activeIndex`。
 - Produces: 生产 QML 全链路新语义。Task 5 的测试 mock 对齐此形态。
 
 - [ ] **Step 1: `package/contents/ui/view/ThumbnailsPanel.qml`——gridModel 改 allModel()/modelFor()、删 Connections、onClicked 单路径**
+
+> **落地（与下文不同）：** 最终删除 `gridModel`/`refreshModel`，`view.model: wallpaperController.activeModel`
+> + `view.currentIndex: wallpaperController.activeIndex`；`Connections onModelReset` 删除；delegate
+> `onClicked` 写 `wallpaperController.activeIndex = index`（经 `required property QtObject wallpaperController`
+> 注入）。下文 Step 1 代码为原始设想（保留供追溯）。
 
 三处修改：
 
@@ -1476,6 +1514,10 @@ git commit -m "feat: 扫描编排上移 controller + modelFor/allModel 多 model
 
 - [ ] **Step 2: `package/contents/ui/view/WallpaperDelegate.qml`——去 modelData 双路径**
 
+> **落地（与下文不同）：** 最终 `text: model.name`（role 从 `title` 改 `name`）、`source: model.preview`
+> 单路径；`onClicked` 由 ThumbnailsPanel 的 delegate 绑定写 `activeIndex`。`?? modelData.xxx`
+> 双路径删除。
+
 两处：
 
 (1) `text: model.title ?? modelData.title` → `text: model.title`
@@ -1485,6 +1527,12 @@ git commit -m "feat: 扫描编排上移 controller + modelFor/allModel 多 model
 同时把文件头注释"pendingDeletion 在 WallpaperModel/WallpaperItem/mock 三态下均为 undefined，无需 modelData 兜底"保留（依然成立），并可加一行说明"view.model 恒为真 QAbstractListModel，role 直接可用，不再需要 modelData 双路径"。
 
 - [ ] **Step 3: `package/contents/ui/view/ScanPathsPanel.qml`——修复 allTab alias 编译错误 + folderName 改 controller**
+
+> **落地（与下文不同）：** 最终 `allAction` 用 `checkable: true` + `checked: selectedFolder.length === 0`
+> （Kirigami.Action 无 highlighted）；onTriggered 写 `wallpaperController.activeModel = wallpaperController.allModel()`；
+> 文件夹 delegate onClicked 写 `wallpaperController.activeModel = wallpaperController.modelFor(modelData)`；
+> folderName/parentPath 调用改 `wallpaperController.`（去掉 `wallpapers.`）。Step 3 代码为原始设想
+> （`allTab` alias 修复保留落地，其余形态以下文为准）。
 
 (1) 修复 alias：把 `allAction` 与 Add… action 从 `header` 内嵌提升到根 `ColumnLayout`（scanPathsPanel）作用域。在 `Kirigami.Separator` 之前插入两个 `Kirigami.Action`（非 Item，不参与 ColumnLayout 布局）：
 
@@ -1562,7 +1610,14 @@ git commit -m "feat: 中栏 modelFor/allModel 切换 + 去 modelData 双路径 +
 
 ---
 
-### Task 5: QML 测试同步 + 全量回归
+### Task 5: QML 测试同步 + 全量回归（落地，形态有差异）
+
+> **落地差异注记**：mock 最终以 `wallpaperController` 命名（非 `htmlWallpaper`），并新增
+> `activeModel` 属性（默认 `allModel()`，由 ScanPathsPanel 点击驱动）；`FolderTabsHost` 暴露
+> `wallpaperControllerController` 别名，ThumbnailsPanel 经 `wallpaperController` 注入绑
+> `activeModel`/`activeIndex`（不再有 `activeFolder` 联动）。**已知遗留：** `tst_FolderTabs` /
+> `tst_ThumbnailsHighlight` 在 HEAD 失败（activeModel/activeIndex 绑定层问题：activeIndex mock
+> 缺失 / activeModel 绑定循环），与 C++ 数据层改动无关。
 
 **Files:**
 - Modify: `test/FolderTabsHost.qml`
@@ -1572,8 +1627,8 @@ git commit -m "feat: 中栏 modelFor/allModel 切换 + 去 modelData 双路径 +
 - Modify: `test/tst_ThumbnailsHighlight.qml`
 
 **Interfaces:**
-- Consumes: Task 4 的生产 QML（modelFor/allModel/folderName 形态）。
-- Produces: 全仓测试绿。
+- Consumes: Task 4 的生产 QML（activeModel/activeIndex + modelFor/allModel/folderName 形态）。
+- Produces: 全仓测试绿（除已知遗留的 activeModel/activeIndex 绑定用例）。
 
 - [ ] **Step 1: 重写 `test/FolderTabsHost.qml`——scanPaths 命名 + modelFor/allModel mock**
 
@@ -2075,7 +2130,7 @@ TestCase {
 cd /home/swix/Code/QtProjects/HTMLWallpaper/build && ctest
 ```
 
-Expected: 10/10 PASS（tst_FolderTabs / tst_Parser / tst_Smoke / tst_WallpaperListModel 恢复）。
+Expected: C++ 单测全 PASS；QML 测试已知遗留——`tst_FolderTabs`/`tst_ThumbnailsHighlight` 在 HEAD 失败（activeModel/activeIndex 绑定层问题），与 C++ 数据层改动无关。
 
 - [ ] **Step 7: Commit**
 

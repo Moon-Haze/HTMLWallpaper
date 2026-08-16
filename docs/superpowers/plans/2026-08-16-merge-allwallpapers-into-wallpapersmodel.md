@@ -1,25 +1,30 @@
 # AllWallpapersModel 并入 WallpaperModel 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **设计转向注记（2026-08-16）**：本计划原设想的聚合模式（`setSources()` 单类双模式、`m_isAggregate` / `m_lastChangedSource` 跨源转发、聚合下 `get`/`indexOf` 跨源定位）在实现中**已放弃**（提交 `ec26817 refactor: 移除聚合模式语义`）。`WallpaperModel` 保持纯单文件夹语义；"全部"汇总由独立 `WallpaperModel("ALL")` 承担（构造即建、scan 时 `clear()` + 逐文件夹 `addEntries` 重建）。**Task 1–3 未执行**；实际改动集中在 Task 4（实现形态与原文不同，见下）。最终设计见 [merge spec](../specs/2026-08-16-merge-allwallpapers-into-wallpapersmodel-design.md)。
 
-**Goal:** 将 `AllWallpapersModel` 的聚合能力并入 `WallpaperModel`（单类双模式），删除 `AllWallpapersModel` 类与文件，controller 接口收紧为 `WallpaperModel *`。
+**Goal（最终采纳）：** 删除 `AllWallpapersModel`；"全部"视图退化为独立 `WallpaperModel("ALL")`，scan 用 `clear()` + `addEntries` 重建内容；controller 接口收紧为 `WallpaperModel *`（`allModel()` / `activeModel`），并新增 `activeIndex` 属性。
 
-**Architecture:** `WallpaperModel` 增加聚合模式（`setSources()` 启用，`m_isAggregate` 恒定为 true）：`rowCount/data/count` 跨源求和与透传，`selectedIndex` 做全局行换算与跨源转发（含 `lastChangedSource`），`get/indexOf` 跨源定位。逻辑从 `AllWallpapersModel` 原样搬移，行为零回归。
+**Architecture（最终采纳）：** 不引入聚合模式。`WallpaperModel` 保持纯单文件夹语义（`setEntries` 整组替换 / `addEntries` 追加 / `clear` / `get` 模板 / `selectedIndex`）。controller 的 `m_allModel` 为构造即建的独立 `WallpaperModel(QStringLiteral("ALL"))`，保活复用；scan 时先 `clear()` 再逐文件夹 `addEntries` 重建汇总内容。`activeModel` 初始指向 allModel，`activeIndex` 派生自 activeModel 的 `selectedIndex`，QML `ThumbnailsPanel` 直接绑定。
 
 **Tech Stack:** Qt6 / C++ / QAbstractListModel / CMake（Ninja preset `native`） / QTest。
 
 ## Global Constraints
 
-- **QML 生产层零改动**（`package/contents/ui/**` 不动）。
-- 行为等价：黄金标准是现有 `AllWallpapersModel` 的全部测试语义，搬移后必须逐项保持。
-- 聚合模式由 `setSources()` 启用后恒定；聚合模式下 `addEntries`/`clear` 非法调用被忽略。
-- 聚合 model 的 `key()` 返回空字符串（构造时传 `QString()`）。
+- **QML 生产层联动改动**：`ThumbnailsPanel.qml` 绑 `activeModel` / `activeIndex`、`ScanPathsPanel.qml` 由标签点击驱动 `setActiveModel`（All → `allModel()`）、`config.qml` 加 `cfg_SelectWallpaper` 别名（见 Task 4）。
+- 行为等价：单文件夹视图、全部视图、scan 重扫与选中恢复的既有语义必须保持。
+- `selectedIndex` 为单 model 本地行（-1 = 无选中），越界忽略、等值不 emit；叶子和"全部"走同一套代码路径。
 - **工作树前置**：执行前 `git status` 中 `plugin/wallpapermodel.h/.cpp`、`test/tst_wallpapermodel.cpp` 等存在用户未提交改动（selectedIndex 下沉系列）。执行本计划会改动这些文件，提交时务必只 `git add` 本计划相关改动；若无法分离，先与用户确认现有未提交改动的处理方式（单独提交或暂存），不得一并提交。
 - 构建：`cmake --build build`；测试：`ctest --test-dir build -R <name> --output-on-failure`（全量：`ctest --test-dir build`）。
 
 ---
 
-### Task 1: WallpaperModel 聚合数据访问层
+### Task 1: WallpaperModel 聚合数据访问层（未执行）
+
+> **未执行（设计转向放弃聚合模式）**：本节描述的 `setSources()` / `m_isAggregate` / `onSourceReset`
+> 聚合数据访问层最终未实现。实际 `count`/`rowCount`/`data` 仅走 `m_items`，"全部"汇总复用
+> 同一实现（独立 allModel 实例），无跨源分支。下文保留原文供追溯，可跳过。
 
 **Files:**
 - Modify: `plugin/wallpapermodel.h`（聚合成员与 `setSources`/`isAggregate`/`onSourceReset` 声明）
@@ -210,7 +215,11 @@ git commit -m "feat: WallpaperModel 增加聚合模式数据访问层(setSources
 
 ---
 
-### Task 2: 聚合模式选中转发
+### Task 2: 聚合模式选中转发（未执行）
+
+> **未执行（设计转向放弃聚合模式）**：`m_lastChangedSource` / `offsetOf` / `onSourceSelectedIndexChanged`
+> 跨源选中转发未实现。实际选中语义为单 model 本地行（`setSelectedIndex` 越界忽略、等值不 emit），
+> controller 的 `activeIndex` 属性派生自 activeModel 的 `selectedIndex`。下文保留原文供追溯，可跳过。
 
 **Files:**
 - Modify: `plugin/wallpapermodel.h`（`m_lastChangedSource`、`onSourceSelectedIndexChanged`、`offsetOf` 声明）
@@ -483,7 +492,11 @@ git commit -m "feat: WallpaperModel 聚合模式选中转发(全局行换算+单
 
 ---
 
-### Task 3: 聚合模式 get/indexOf 与 addEntries/clear 防御
+### Task 3: 聚合模式 get/indexOf 与 addEntries/clear 防御（未执行）
+
+> **未执行（设计转向放弃聚合模式）**：聚合 `get`/`indexOf` 跨源定位与 `addEntries`/`clear`
+> 聚合防御未实现。`get` 仅本地越界判空（越界返回 `nullptr`）；`addEntries`/`clear` 无聚合分支
+> （allModel 为独立实例，正常接收追加/清空）。下文保留原文供追溯，可跳过。
 
 **Files:**
 - Modify: `plugin/wallpapermodel.cpp`（`get`/`indexOf` 聚合分支；`addEntries`/`clear` 聚合防御）
@@ -662,18 +675,22 @@ git commit -m "feat: WallpaperModel 聚合模式 get/indexOf 跨源定位，addE
 
 ---
 
-### Task 4: 删除 AllWallpapersModel，controller 接口收紧
+### Task 4: 删除 AllWallpapersModel，controller 收紧为独立 allModel 重建（实际执行）
 
 **Files:**
 - Delete: `plugin/allwallpapersmodel.h`、`plugin/allwallpapersmodel.cpp`
-- Modify: `plugin/wallpapercontroller.h`（`allModel`/`activeModel` 类型收紧）
-- Modify: `plugin/wallpapercontroller.cpp`（去 include、去 static_cast、聚合构造用 `WallpaperModel`）
+- Modify: `plugin/wallpapermodel.h/.cpp`（setEntries/addEntries/clear/get 模板/selectedIndex 维护，聚合无关）
+- Modify: `plugin/wallpapercontroller.h`（`allModel`/`activeModel` 类型收紧、新增 `activeIndex`）
+- Modify: `plugin/wallpapercontroller.cpp`（去 include、去 static_cast、scan 重建 allModel）
 - Modify: `plugin/CMakeLists.txt`、`test/CMakeLists.txt`（移除 allwallpapersmodel.cpp）
-- Test: `test/tst_wallpapermodel.cpp`（删 `#include "allwallpapersmodel.h"`）、`test/tst_wallpapercontroller.cpp`（删 include、去 static_cast）
+- Modify: `package/contents/ui/config.qml`（cfg_SelectWallpaper 别名、onScanPathsChanged: scan）
+- Modify: `package/contents/ui/view/ThumbnailsPanel.qml`（`view.model: activeModel`、`view.currentIndex: activeIndex`）
+- Modify: `package/contents/ui/view/ScanPathsPanel.qml`（标签点击 → `setActiveModel`；All → `allModel()`）
+- Test: `test/tst_wallpapermodel.cpp`、`test/tst_wallpapercontroller.cpp`（删 include、去 static_cast、增 activeModel/activeIndex 用例）
 
 **Interfaces:**
-- Consumes: Task 1/2 的 `WallpaperModel` 聚合能力（controller 的 `m_allModel` 直接调 `setSources`）。
-- Produces: `WallpaperController::allModel()` 返回 `WallpaperModel *`、`activeModel` 属性与访问器返回 `WallpaperModel *`。QML 层无改动。
+- Consumes: 既有 `WallpaperModel` 单文件夹 API（`setEntries`/`addEntries`/`clear`/`get` 模板/`selectedIndex`/`setSelectedIndexOfFile`）。
+- Produces: `WallpaperController::allModel()` 返回 `WallpaperModel *`（构造即建、保活复用）、`activeModel`/`activeIndex` Q_PROPERTY（`WallpaperModel *` / `int`）。QML 层绑定上述属性。
 
 - [ ] **Step 1: 收紧 controller 头文件**
 
@@ -681,22 +698,25 @@ git commit -m "feat: WallpaperModel 聚合模式 get/indexOf 跨源定位，addE
 
 ```cpp
     Q_PROPERTY(WallpaperModel *activeModel READ activeModel WRITE setActiveModel NOTIFY activeModelChanged) // 类型收紧
+    Q_PROPERTY(int activeIndex READ activeIndex WRITE setActiveIndex NOTIFY activeIndexChanged) // 新增：activeModel.selectedIndex 派生
 ```
 
 ```cpp
-    /** 当前活动壁纸集合（nullptr = 尚未设置；由 ScanPathsPanel 点击驱动）。 */
+    /** 当前活动壁纸集合（初始指向 allModel；由 ScanPathsPanel 点击驱动）。 */
     WallpaperModel *activeModel() const;
     void setActiveModel(WallpaperModel *model);
+    int activeIndex() const;
+    void setActiveIndex(int index);
 ```
 
 ```cpp
-    /** 返回懒建的聚合 model（全部文件夹聚合）；scan 后缓存实例重挂最新源。 */
+    /** 返回"全部"汇总 model（构造即建、保活复用；scan 时 clear + addEntries 重建）。 */
     Q_INVOKABLE WallpaperModel *allModel();
 ```
 
 ```cpp
-    WallpaperModel *m_allModel = nullptr; // 懒建聚合 model（保活复用）
-    WallpaperModel *m_activeModel = nullptr; // 当前活动壁纸集合（防悬空见 releaseStaleModels）
+    WallpaperModel *m_allModel = new WallpaperModel(QStringLiteral("ALL"), this); // 构造即建，保活复用
+    WallpaperModel *m_activeModel = m_allModel; // 当前活动壁纸集合（防悬空见 releaseStaleModels）
 ```
 
 同步更新 `m_activeModel` 相关的 `releaseStaleModels` 注释引用即可（类型即 `WallpaperModel *`）。
@@ -707,19 +727,31 @@ git commit -m "feat: WallpaperModel 聚合模式 get/indexOf 跨源定位，addE
 
 删除 `#include "allwallpapersmodel.h"`。
 
-`scan()` 的 lambda 中 `static_cast<AllWallpapersModel *>(m_allModel)->setSources(keptModels);` 改为：
+`scan()` 的 lambda 中不再 `setSources` 重挂，改整表重建（先清空再逐文件夹追加，防重扫重复/幽灵条目）：
 
 ```cpp
-            m_allModel->setSources(keptModels);
+            // 汇总 model（"全部"标签）构造即建；每次 scan 重建内容
+            m_allModel->clear();
+            QSet<QString> updatedKeys;
+            for (const auto &group : result.groups) {
+                updatedKeys.insert(normalizeKey(group.key));
+                WallpaperModel *model = obtainModel(group.key);
+                model->setEntries(group.entries);     // 叶子：整组覆盖
+                m_allModel->addEntries(group.entries); // 全部：逐组追加累计
+            }
+            // 仍在 scanPaths 但本次无 group 的文件夹显式 clear（防幽灵，含 failures 分支）
+            // ...（对 m_models 中未更新者 clear）
+            // 恢复选中：先缓存 selectWallpaper()，再对非 activeModel 的 model
+            // 与 allModel 调 setSelectedIndexOfFile
+            // ...
+            releaseStaleModels(m_scanPaths);
 ```
 
-`allModel()` 中 `auto *merged = new AllWallpapersModel(this);` 改为：
+`allModel()` 不再懒建（成员已初始化 `new WallpaperModel(QStringLiteral("ALL"), this)`），直接返回 `m_allModel`。
 
-```cpp
-        auto *merged = new WallpaperModel(QString(), this); // 聚合 model，key 为空
-```
+`setActiveModel` / `setActiveIndex`：等值忽略、按序 emit；`activeIndex` 读写转发到 activeModel 的 `selectedIndex`。
 
-`setActiveModel` 实现保持逻辑不变（签名已是 `WallpaperModel *model`）。
+`releaseStaleModels`：释放的正是 `m_activeModel` 时置空并 `Q_EMIT activeModelChanged()`（防 QML 悬空）。
 
 - [ ] **Step 3: 删除类文件与构建条目**
 
@@ -735,27 +767,26 @@ git rm plugin/allwallpapersmodel.h plugin/allwallpapersmodel.cpp
 
 - [ ] **Step 4: 更新测试文件**
 
-`test/tst_wallpapermodel.cpp`：删除 `#include "allwallpapersmodel.h"`（其余已在 Task 1-3 迁移完毕）。
+`test/tst_wallpapermodel.cpp`：删除 `#include "allwallpapersmodel.h"`；`setEntries`/`addEntries`/`clear`/`selectedIndex` 用例按单文件夹语义维护（无聚合用例）。
 
-`test/tst_wallpapercontroller.cpp`：
-- 删除 `#include "allwallpapersmodel.h"`
-- `allModelSelectedIndexForwards` 中 `auto *merged = static_cast<AllWallpapersModel *>(c.allModel());` 改为：
+`test/tst_wallpapercontroller.cpp`：删除 `#include "allwallpapersmodel.h"`；不再有 `static_cast<AllWallpapersModel *>` 引用。用例为实际落地的形态：
 
 ```cpp
-    auto *merged = c.allModel(); // 已收紧为 WallpaperModel *
+    // activeModel 基本读写 + 信号发射（默认指向"全部"汇总 model；同值幂等不重复 emit）
+    void tst_wallpapercontroller::activeModelRoundTrip()
+    // releaseStaleModels 释放活动文件夹 model → activeModel 同步置空并 emit（防悬空）
+    void tst_wallpapercontroller::activeModelClearedOnStaleRelease()
 ```
-
-（`allModelAggregatesAcrossSources` 中 `QAbstractItemModel *all = c.allModel();` 与 `releaseStaleModelsWithAllModelAttached` 中 `QAbstractItemModel *all = c.allModel();` 的向上转型赋值仍合法，无需改动。）
 
 - [ ] **Step 5: 全量构建与测试（绿）**
 
 Run: `cmake --build build && ctest --test-dir build --output-on-failure`
-Expected: PASS——全部 C++ 单测（`tst_wallpaperproject`/`tst_wallpapermodel`/`tst_wallpapercontroller`）与 QML 测试通过；无 `AllWallpapersModel` 残留引用（可 `grep -rn AllWallpapersModel plugin test` 复核为空，仅剩计划/设计文档提及）。
+Expected: PASS——全部 C++ 单测（`tst_wallpaperproject`/`tst_wallpapermodel`/`tst_wallpapercontroller`）通过；无 `AllWallpapersModel` 残留引用（可 `grep -rn AllWallpapersModel plugin test` 复核为空，仅剩计划/设计文档提及）。QML 测试已知遗留：`tst_FolderTabs`/`tst_ThumbnailsHighlight` 在 HEAD 失败（activeModel/activeIndex 绑定层问题），与 C++ 数据层改动无关。
 
 - [ ] **Step 6: 提交**
 
 ```bash
-git add plugin/wallpapercontroller.h plugin/wallpapercontroller.cpp plugin/CMakeLists.txt test/CMakeLists.txt test/tst_wallpapermodel.cpp test/tst_wallpapercontroller.cpp
+git add plugin/wallpapermodel.h plugin/wallpapermodel.cpp plugin/wallpapercontroller.h plugin/wallpapercontroller.cpp plugin/CMakeLists.txt test/CMakeLists.txt test/tst_wallpapermodel.cpp test/tst_wallpapercontroller.cpp package/contents/ui/config.qml package/contents/ui/view/ThumbnailsPanel.qml package/contents/ui/view/ScanPathsPanel.qml
 git commit -m "refactor: 删除 AllWallpapersModel，controller 接口收紧为 WallpaperModel"
 ```
 
@@ -763,6 +794,7 @@ git commit -m "refactor: 删除 AllWallpapersModel，controller 接口收紧为 
 
 ## 自审记录
 
-- **Spec 覆盖**：数据访问（Task 1）、选中转发（Task 2）、get/indexOf 与防御（Task 3）、删除类+controller 收紧+构建/测试清理（Task 4）逐项对应设计文档"文件改动"与"测试策略"。
-- **占位符**：所有步骤含完整代码，无 TBD/TODO。
-- **类型一致性**：`setSources(QList<WallpaperModel *>)`、`selectedIndex()` 全局行、`offsetOf`、`allModel()` 返回 `WallpaperModel *` 在各任务间一致；测试里聚合 model 统一用 `WallpaperModel merged(QString());` 构造。
+- **Spec 覆盖**：删除 AllWallpapersModel、allModel/activeModel 收紧为 `WallpaperModel *`、activeIndex 新增、scan 重建 allModel、QML 绑定切换（ThumbnailsPanel/ScanPathsPanel/config），逐项对应 merge spec"文件改动"与"测试策略"。
+- **转向记录**：Task 1–3 聚合模式未执行（提交 `ec26817` 放弃，原文保留供追溯）；Task 4 为本计划实际落地形态（独立 allModel 重建，非聚合重挂）。
+- **占位符**：所有步骤含完整代码/命令，无 TBD/TODO。
+- **类型一致性**：`allModel()`/`activeModel` 均返回 `WallpaperModel *`；`activeIndex` 派生自 activeModel 的 `selectedIndex`，QML 绑 `view.currentIndex`；`setEntries`/`addEntries`/`clear`/`selectedIndex` 语义与 merge spec"关键语义"表一致。
