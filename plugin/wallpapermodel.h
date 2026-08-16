@@ -56,6 +56,9 @@ public:
 
     void clear();
 
+    /** 切换为聚合模式：合并多个单文件夹 model 为扁平视图（原 AllWallpapersModel）。 */
+    void setSources(const QList<WallpaperModel *> &sources);
+
     /** 兼容原 ListModel：返回第 i 项属性门面对象；越界返回 nullptr。 */
     Q_INVOKABLE WallpaperItem *get(int i);
 
@@ -74,4 +77,8 @@ private:
     QString m_key; // 本文件夹归一化 URL
     QList<WallpaperItem *> m_items; // 本文件夹的壁纸项（QObject parent = 本 model）
     int m_selectedIndex = -1; // 本文件夹选中行（-1 = 无选中）
+    bool isAggregate() const;            // setSources 启用后恒定 true
+    void onSourceReset();                // 任一源 modelReset → 自身整体 reset
+    QList<WallpaperModel *> m_sources;   // 聚合：源叶子列表
+    bool m_isAggregate = false;          // setSources 调用后置 true
 };

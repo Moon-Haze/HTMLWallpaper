@@ -198,8 +198,6 @@ void tst_wallpapermodel::mergeAggregatesAcrossSources()
     QList<WallpaperEntry> ea, eb;
     ea.append(WallpaperEntry());
     ea.append(WallpaperEntry());
-    // 给源 b 填真实目录探测出的有效条目（name = 目录名 "b"），使跨源定位断言
-    // 真正验证 AllWallpapersModel::data 的 remaining 递减逻辑（非空值可区分越界）。
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
     const QString dirB = QDir(tmp.path()).filePath(QStringLiteral("b"));
@@ -212,14 +210,13 @@ void tst_wallpapermodel::mergeAggregatesAcrossSources()
     modelA.addEntries(ea);
     modelB.addEntries(eb);
 
-    AllWallpapersModel merged;
+    WallpaperModel merged(QString{});
     merged.setSources({&modelA, &modelB});
     QCOMPARE(merged.rowCount(), 3);
-    // 跨源定位：行 0/1 在 A，行 2 在 B——返回 B 的非空 name 而非越界空
+    QCOMPARE(merged.count(), 3); // 聚合模式 count 与 rowCount 一致
     QCOMPARE(merged.data(merged.index(2, 0), WallpaperModel::NameRole).toString(), QStringLiteral("b"));
 
-    // 换源后行数随之变化
-    AllWallpapersModel merged2;
+    WallpaperModel merged2(QString{});
     merged2.setSources({&modelB});
     QCOMPARE(merged2.rowCount(), 1);
 }
@@ -227,11 +224,11 @@ void tst_wallpapermodel::mergeAggregatesAcrossSources()
 void tst_wallpapermodel::mergeResetsOnSourceReset()
 {
     WallpaperModel modelA(QStringLiteral("file:///root/a"));
-    AllWallpapersModel merged;
+    WallpaperModel merged(QString{});
     merged.setSources({&modelA});
 
     QSignalSpy resetSpy(&merged, &QAbstractItemModel::modelReset);
-    modelA.addEntries({WallpaperEntry()}); // 源重置 → 合并 model 也应 reset
+    modelA.addEntries({WallpaperEntry()}); // 源重置 → 聚合 model 也应 reset
     QCOMPARE(resetSpy.count(), 1);
 }
 

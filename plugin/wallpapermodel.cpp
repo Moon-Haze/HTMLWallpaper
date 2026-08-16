@@ -21,7 +21,7 @@ QString WallpaperModel::key() const
 
 int WallpaperModel::count() const
 {
-    return m_items.size();
+    return rowCount();
 }
 
 int WallpaperModel::rowCount(const QModelIndex &parent) const
@@ -29,12 +29,37 @@ int WallpaperModel::rowCount(const QModelIndex &parent) const
     if (parent.isValid()) {
         return 0;
     }
+    if (m_isAggregate) {
+        int total = 0;
+        for (const WallpaperModel *src : m_sources) {
+            total += src->rowCount();
+        }
+        return total;
+    }
     return m_items.size();
 }
 
 QVariant WallpaperModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() < 0 || index.row() >= m_items.size()) {
+    if (!index.isValid() || index.row() < 0) {
+        return {};
+    }
+    if (m_isAggregate) {
+        if (index.row() >= rowCount()) {
+            return {};
+        }
+        // remaining 递减跨源定位（原 AllWallpapersModel 逻辑）
+        int remaining = index.row();
+        for (const WallpaperModel *src : m_sources) {
+            const int count = src->rowCount();
+            if (remaining < count) {
+                return src->data(src->index(remaining, 0), role);
+            }
+            remaining -= count;
+        }
+        return {};
+    }
+    if (index.row() >= m_items.size()) {
         return {};
     }
     auto item = m_items.at(index.row());
@@ -85,6 +110,31 @@ void WallpaperModel::clear()
     m_items.clear();
     endResetModel();
     resetSelectedIndexIfNeeded();
+}
+
+bool WallpaperModel::isAggregate() const
+{
+    return m_isAggregate;
+}
+
+void WallpaperModel::setSources(const QList<WallpaperModel *> &sources)
+{
+    for (WallpaperModel *src : m_sources) {
+        disconnect(src, &WallpaperModel::modelReset, this, &WallpaperModel::onSourceReset);
+    }
+    m_sources = sources;
+    m_isAggregate = true;
+    for (WallpaperModel *src : m_sources) {
+        connect(src, &WallpaperModel::modelReset, this, &WallpaperModel::onSourceReset);
+    }
+    beginResetModel();
+    endResetModel();
+}
+
+void WallpaperModel::onSourceReset()
+{
+    beginResetModel();
+    endResetModel();
 }
 
 // 整组替换后行号身份失效，清选中（仅原值非 -1 时通知，无变化不 emit）
