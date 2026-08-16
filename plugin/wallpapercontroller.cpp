@@ -81,7 +81,14 @@ void WallpaperController::setSelectWallpaper(const QString &wallpaper)
 
 int WallpaperController::activeIndex() const
 {
-    return m_activeModel ? m_activeModel->currentIndex() : -1;
+    if (!m_activeModel) {
+        return -1;
+    }
+    // activeModel 可能是 WallpaperModel 或 AllWallpapersModel，两者均暴露
+    // selectedIndex 属性；动态读取，避免依赖具体类型（Task 4 收紧为
+    // WallpaperModel * 后可简化为直接 selectedIndex()）。
+    const QVariant v = m_activeModel->property("selectedIndex");
+    return v.isValid() ? v.toInt() : -1;
 }
 
 QAbstractItemModel *WallpaperController::activeModel() const
