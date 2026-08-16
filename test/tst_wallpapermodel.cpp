@@ -390,7 +390,7 @@ void tst_wallpapermodel::mergeIndexOfCrossesSources()
     QCOMPARE(merged.indexOf(QStringLiteral("file:///nonexistent.html")), -1);
 }
 
-// 聚合模式是只读视图：addEntries/clear 非法调用被忽略
+// 聚合模式是只读视图：addEntries/clear 非法调用被忽略（无 modelReset 副作用）
 void tst_wallpapermodel::mergeRejectsAddEntriesAndClear()
 {
     WallpaperModel modelA(QStringLiteral("file:///root/a"));
@@ -399,10 +399,11 @@ void tst_wallpapermodel::mergeRejectsAddEntriesAndClear()
     merged.setSources({&modelA});
     QCOMPARE(merged.rowCount(), 2);
 
+    QSignalSpy spy(&merged, &QAbstractItemModel::modelReset);
     merged.addEntries({WallpaperEntry()});
-    QCOMPARE(merged.rowCount(), 2);
+    QCOMPARE(spy.count(), 0);
     merged.clear();
-    QCOMPARE(merged.rowCount(), 2);
+    QCOMPARE(spy.count(), 0);
     QCOMPARE(modelA.rowCount(), 2);
 }
 
