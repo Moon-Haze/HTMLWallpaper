@@ -4,6 +4,11 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+/** @file wallpapercontroller.cpp
+ * WallpaperController 实现：后台并发扫描（QtConcurrent）、按扫描根缓存
+ * 文件夹 model、"全部"汇总 model 重建、选中行同步与 stale model 清理。
+ */
+
 #include "wallpapercontroller.h"
 #include "wallpapermodel.h"
 
@@ -63,6 +68,7 @@ ScanResult scanWallpapers(const QStringList &roots)
 WallpaperController::WallpaperController(QObject *parent)
     : QObject(parent)
 {
+    // activeModel 初始即指向 allModel()，保证属性始终非空、无悬空风险。
 }
 
 QString WallpaperController::selectWallpaper() const
@@ -72,6 +78,7 @@ QString WallpaperController::selectWallpaper() const
 
 void WallpaperController::setSelectWallpaper(const QString &paper)
 {
+    // 按 file 定位 activeModel 的选中行（未命中忽略），再统一发属性变化信号
     if (m_activeModel) {
         m_activeModel->setSelectedIndexOfFile(paper);
     }
@@ -142,7 +149,7 @@ int WallpaperController::modelCount() const
 bool WallpaperController::addScanPath(const QString &url)
 {
     if (m_scanPaths.contains(url)) {
-        return false;
+        return false; // 去重：已存在不重复添加
     }
     m_scanPaths.append(url);
     Q_EMIT scanPathsChanged();
@@ -152,7 +159,7 @@ bool WallpaperController::addScanPath(const QString &url)
 void WallpaperController::removeScanPath(const QString &url)
 {
     if (!m_scanPaths.contains(url)) {
-        return;
+        return; // 不存在则无操作
     }
     m_scanPaths.removeAll(url);
     Q_EMIT scanPathsChanged();
@@ -211,13 +218,14 @@ void WallpaperController::scan()
 
 WallpaperModel *WallpaperController::obtainModel(const QString &url)
 {
+    // key 与 m_models 中现有 model 均按同一规则归一化，保证按 key 去重
     const QString key = normalizeKey(WallpaperPath::toUrl(url));
     for (WallpaperModel *m : m_models) {
         if (m->key() == key) {
             return m;
         }
     }
-    auto *model = new WallpaperModel(key, this);
+    auto *model = new WallpaperModel(key, this); // 未命中 → 新建并缓存
     m_models.append(model);
     return model;
 }

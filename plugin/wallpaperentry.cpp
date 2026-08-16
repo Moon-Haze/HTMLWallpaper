@@ -4,6 +4,11 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+/** @file wallpaperentry.cpp
+ * 目录探测实现：给定目录 URL，选 *.html 入口、探测预览图、取目录名，
+ * 组装为 WallpaperEntry 值类型；另有 WallpaperPath 工具函数。
+ */
+
 #include "wallpaperentry.h"
 
 #include <QDir>
@@ -12,6 +17,7 @@
 
 namespace
 {
+// 目录名：去末尾斜杠后取最后一段（与 controller.folderName 一致）。
 QString basename(const QString &url)
 {
     QString s = url;
@@ -21,6 +27,7 @@ QString basename(const QString &url)
     return s.mid(s.lastIndexOf(QLatin1Char('/')) + 1);
 }
 
+// 预览图探测：按常用名候选顺序查找 <dir>/ 下已存在的预览图。
 QString findPreview(const QString &dirUrl)
 {
     static const QStringList candidates = {
@@ -90,7 +97,7 @@ WallpaperEntry::WallpaperEntry(const QString &url)
 {
     QDir dir(QUrl(url).toLocalFile());
     if (!dir.exists()) {
-        return;
+        return; // 目录缺失 → 保持无效标记
     }
     const QString entry = findEntry(url);
     if (entry.isEmpty()) {
