@@ -42,15 +42,16 @@ class WallpaperController : public QObject
     Q_PROPERTY(bool scanInProgress READ scanInProgress NOTIFY scanInProgressChanged)
     // 当前活动壁纸集合（单文件夹或"全部"汇总 WallpaperModel*）
     Q_PROPERTY(WallpaperModel *activeModel READ activeModel WRITE setActiveModel NOTIFY activeModelChanged)
-    Q_PROPERTY(int activeIndex READ activeIndex NOTIFY activeIndexChanged)
+    Q_PROPERTY(int activeIndex READ activeIndex WRITE setActiveIndex NOTIFY activeIndexChanged)
 
 public:
     explicit WallpaperController(QObject *parent = nullptr);
 
     QString selectWallpaper() const;
-    void setSelectWallpaper(const QString &wallpaper);
+    void setSelectWallpaper(const QString &paper);
 
     int activeIndex() const;
+    void setActiveIndex(int index);
 
     QStringList scanPaths() const;
     void setScanPaths(const QStringList &urls);
@@ -87,7 +88,6 @@ private:
     void releaseStaleModels(const QStringList &kept); // 销毁不在 kept 的 model
     void setScanInProgress(bool inProgress);
 
-    QString m_selectWallpaper;
     QStringList m_scanPaths;
 
     QList<WallpaperModel *> m_models;

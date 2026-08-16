@@ -24,6 +24,7 @@ private Q_SLOTS:
     void addEntriesAppends();
     void clearEmptiesAll();
     void dataRolesAndGet();
+    void getRTemplateByRole();
     void selectedIndexDefaultIsMinusOne();
     void selectedIndexSetAndEmit();
     void selectedIndexOutOfRangeIgnored();
@@ -74,6 +75,22 @@ void tst_wallpapermodel::dataRolesAndGet()
     QCOMPARE(model.get(-1), nullptr);
     QCOMPARE(model.get(5), nullptr);
     QCOMPARE(model.data(model.index(5, 0), WallpaperModel::NameRole).toString(), QString());
+}
+
+void tst_wallpapermodel::getRTemplateByRole()
+{
+    WallpaperModel model(QStringLiteral("file:///root/a"));
+    model.addEntries({WallpaperEntry()});
+
+    // 无效 WallpaperEntry 的各字段为空；模板按角色取到对应字段值
+    QCOMPARE(model.get<WallpaperModel::FileRole>(0), QString());
+    QCOMPARE(model.get<WallpaperModel::NameRole>(0), QString());
+    QCOMPARE(model.get<WallpaperModel::PathRole>(0), QString());
+    QCOMPARE(model.get<WallpaperModel::PreviewRole>(0), QString());
+
+    // 越界返回空 QVariant（不崩溃）
+    QVERIFY(model.get<WallpaperModel::FileRole>(-1).isNull());
+    QVERIFY(model.get<WallpaperModel::FileRole>(5).isNull());
 }
 
 void tst_wallpapermodel::selectedIndexDefaultIsMinusOne()

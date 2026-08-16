@@ -91,11 +91,5 @@ ColumnLayout {
             }
         }
     }
-
-    // 关闭配置页时清理内部预览标记
-    Component.onDestruction: {
-        if (wallpaper.configuration)
-            wallpaper.configuration.PreviewImage = "null";
-    }
     
 }

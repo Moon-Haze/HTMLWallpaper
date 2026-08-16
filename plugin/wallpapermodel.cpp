@@ -101,6 +101,14 @@ void WallpaperModel::clear()
     endResetModel();
 }
 
+WallpaperItem *WallpaperModel::get(int i)
+{
+    if (i < 0 || i >= m_items.size()) {
+        return nullptr;
+    }
+    return m_items.at(i);
+}
+
 int WallpaperModel::selectedIndex() const
 {
     return m_selectedIndex;
@@ -118,10 +126,12 @@ void WallpaperModel::setSelectedIndex(int index)
     Q_EMIT selectedIndexChanged();
 }
 
-WallpaperItem *WallpaperModel::get(int i)
+void WallpaperModel::setSelectedIndexOfFile(const QString &file)
 {
-    if (i < 0 || i >= m_items.size()) {
-        return nullptr;
+    for (int i = 0; i < m_items.size(); ++i) {
+        if (m_items.at(i)->file() == file) {
+            setSelectedIndex(i);
+            return;
+        }
     }
-    return m_items.at(i);
 }

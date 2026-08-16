@@ -5,6 +5,7 @@
 */
 
 #include "wallpapercontroller.h"
+#include "wallpapermodel.h"
 
 #include <QDir>
 #include <QFutureWatcher>
@@ -12,6 +13,7 @@
 #include <QString>
 #include <QUrl>
 #include <QtConcurrent>
+#include <qvariant.h>
 namespace
 {
 
@@ -65,24 +67,29 @@ WallpaperController::WallpaperController(QObject *parent)
 
 QString WallpaperController::selectWallpaper() const
 {
-    return m_selectWallpaper;
+    return m_activeModel ? m_activeModel->get<WallpaperModel::FileRole>() : QString();
 }
 
-void WallpaperController::setSelectWallpaper(const QString &wallpaper)
+void WallpaperController::setSelectWallpaper(const QString &paper)
 {
-    if (m_selectWallpaper == wallpaper) {
-        return;
+    if (m_activeModel) {
+        m_activeModel->setSelectedIndexOfFile(paper);
     }
-    m_selectWallpaper = wallpaper;
     Q_EMIT selectWallpaperChanged();
 }
 
 int WallpaperController::activeIndex() const
 {
-    if (!m_activeModel) {
-        return -1;
+    return m_activeModel ? m_activeModel->selectedIndex() : -1; // 触发聚合 getter，优先返回最后变化源的选中行
+}
+
+void WallpaperController::setActiveIndex(int index)
+{
+    if (m_activeModel) {
+        m_activeModel->setSelectedIndex(index);
     }
-    return m_activeModel->selectedIndex(); // 触发聚合 getter，优先返回最后变化源的选中行
+    Q_EMIT activeIndexChanged();
+    Q_EMIT selectWallpaperChanged();
 }
 
 WallpaperModel *WallpaperController::activeModel() const
@@ -96,8 +103,10 @@ void WallpaperController::setActiveModel(WallpaperModel *model)
         return;
     }
     m_activeModel = model;
+
     Q_EMIT activeModelChanged();
     Q_EMIT activeIndexChanged(); // 触发聚合 getter，优先返回最后变化源的选中行
+    Q_EMIT selectWallpaperChanged();
 }
 
 QStringList WallpaperController::scanPaths() const
@@ -181,6 +190,15 @@ void WallpaperController::scan()
             for (WallpaperModel *m : m_models) {
                 if (!updatedKeys.contains(m->key())) {
                     m->clear();
+                }
+            }
+            QString selectWallpaper = this->selectWallpaper(); // 先缓存，避免扫描后清空选中行，导致幽灵条目残留
+            if (m_activeModel != m_allModel) {
+                m_allModel->setSelectedIndexOfFile(selectWallpaper); // 扫描后清空选中行，避免残留幽灵条目
+            }
+            for (WallpaperModel *model : m_models) {
+                if (model != m_activeModel) {
+                    model->setSelectedIndexOfFile(selectWallpaper); // 扫描后清空选中行，避免残留幽灵条目
                 }
             }
             releaseStaleModels(m_scanPaths);

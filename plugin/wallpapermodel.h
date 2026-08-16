@@ -9,6 +9,7 @@
 #include <QAbstractListModel>
 #include <QList>
 #include <QString>
+#include <qcontainerfwd.h>
 #include <qobject.h>
 #include <qtmetamacros.h>
 
@@ -62,9 +63,35 @@ public:
     /** 兼容原 ListModel：返回第 i 项属性门面对象；越界返回 nullptr。 */
     Q_INVOKABLE WallpaperItem *get(int i);
 
-    /** 本文件夹选中行（-1 = 无选中）。越界（< -1 或 >= count）忽略。 */
+    template<Roles R>
+    QString get(int i) const
+    {
+        if (i < 0 || i >= m_items.size()) {
+            return QString();
+        }
+        switch (R) {
+        case NameRole:
+            return m_items.at(i)->name();
+        case PathRole:
+            return m_items.at(i)->path();
+        case PreviewRole:
+            return m_items.at(i)->preview();
+        case FileRole:
+            return m_items.at(i)->file();
+        }
+        return QString();
+    }
+    template<Roles R>
+    QString get() const
+    {
+        return get<R>(m_selectedIndex);
+    }
+
     int selectedIndex() const;
+
     void setSelectedIndex(int index);
+
+    void setSelectedIndexOfFile(const QString &file);
 
 Q_SIGNALS:
     void selectedIndexChanged();
