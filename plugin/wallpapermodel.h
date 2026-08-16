@@ -79,6 +79,9 @@ private:
     int m_selectedIndex = -1; // 本文件夹选中行（-1 = 无选中）
     bool isAggregate() const;            // setSources 启用后恒定 true
     void onSourceReset();                // 任一源 modelReset → 自身整体 reset
+    void onSourceSelectedIndexChanged(); // 源选中变化转发（记录最后变化源 + 缓存去重）
+    int offsetOf(const WallpaperModel *src) const; // src 在 m_sources 前的行数偏移
+    WallpaperModel *m_lastChangedSource = nullptr; // 最后变化的源（getter 优先返回）
     QList<WallpaperModel *> m_sources;   // 聚合：源叶子列表
     bool m_isAggregate = false;          // setSources 调用后置 true
 };

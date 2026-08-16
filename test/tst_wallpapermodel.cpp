@@ -239,7 +239,7 @@ void tst_wallpapermodel::mergeSelectedIndexForwardsToSource()
     WallpaperModel modelB(QStringLiteral("file:///root/b"));
     modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
     modelB.addEntries({WallpaperEntry()});
-    AllWallpapersModel merged;
+    WallpaperModel merged(QString{});
     merged.setSources({&modelA, &modelB});
 
     // 行 0 落在 A 局部行 0
@@ -259,7 +259,7 @@ void tst_wallpapermodel::mergeSelectedIndexSingleSelectClearsOthers()
     WallpaperModel modelB(QStringLiteral("file:///root/b"));
     modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
     modelB.addEntries({WallpaperEntry()});
-    AllWallpapersModel merged;
+    WallpaperModel merged(QString{});
     merged.setSources({&modelA, &modelB});
 
     modelA.setSelectedIndex(1);
@@ -278,7 +278,7 @@ void tst_wallpapermodel::mergeSelectedIndexGetterAggregates()
     WallpaperModel modelB(QStringLiteral("file:///root/b"));
     modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
     modelB.addEntries({WallpaperEntry()});
-    AllWallpapersModel merged;
+    WallpaperModel merged(QString{});
     merged.setSources({&modelA, &modelB});
 
     modelA.setSelectedIndex(1);
@@ -295,7 +295,7 @@ void tst_wallpapermodel::mergeSelectedIndexMinusOneClearsAll()
     WallpaperModel modelB(QStringLiteral("file:///root/b"));
     modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
     modelB.addEntries({WallpaperEntry()});
-    AllWallpapersModel merged;
+    WallpaperModel merged(QString{});
     merged.setSources({&modelA, &modelB});
 
     merged.setSelectedIndex(1);
@@ -314,7 +314,7 @@ void tst_wallpapermodel::mergeSetSourcesRemountRecomputes()
     WallpaperModel modelB(QStringLiteral("file:///root/b"));
     modelA.addEntries({WallpaperEntry()});
     modelB.addEntries({WallpaperEntry()});
-    AllWallpapersModel merged;
+    WallpaperModel merged(QString{});
 
     modelA.setSelectedIndex(0);
     merged.setSources({&modelA});
@@ -330,10 +330,10 @@ void tst_wallpapermodel::mergeSelectedIndexForwardsSourceSignal()
 {
     WallpaperModel modelA(QStringLiteral("file:///root/a"));
     modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
-    AllWallpapersModel merged;
+    WallpaperModel merged(QString{});
     merged.setSources({&modelA});
 
-    QSignalSpy spy(&merged, &AllWallpapersModel::selectedIndexChanged);
+    QSignalSpy spy(&merged, &WallpaperModel::selectedIndexChanged);
     modelA.setSelectedIndex(0);
     modelA.setSelectedIndex(1);
     modelA.setSelectedIndex(-1);
