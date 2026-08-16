@@ -65,6 +65,39 @@ WallpaperController::WallpaperController(QObject *parent)
 {
 }
 
+QString WallpaperController::selectWallpaper() const
+{
+    return m_selectWallpaper;
+}
+
+void WallpaperController::setSelectWallpaper(const QString &wallpaper)
+{
+    if (m_selectWallpaper == wallpaper) {
+        return;
+    }
+    m_selectWallpaper = wallpaper;
+    Q_EMIT selectWallpaperChanged();
+}
+
+int WallpaperController::activeIndex() const
+{
+    return m_activeModel ? m_activeModel->currentIndex() : -1;
+}
+
+QAbstractItemModel *WallpaperController::activeModel() const
+{
+    return m_activeModel;
+}
+
+void WallpaperController::setActiveModel(QAbstractItemModel *model)
+{
+    if (m_activeModel == model) {
+        return;
+    }
+    m_activeModel = model;
+    Q_EMIT activeModelChanged();
+}
+
 QStringList WallpaperController::scanPaths() const
 {
     return m_scanPaths;
@@ -202,7 +235,12 @@ void WallpaperController::releaseStaleModels(const QStringList &kept)
         keptKeys.insert(normalizeKey(WallpaperPath::toUrl(u)));
     }
     for (int i = m_models.size() - 1; i >= 0; --i) {
-        if (!keptKeys.contains(m_models.at(i)->key())) {
+        WallpaperModel *m = m_models.at(i);
+        if (!keptKeys.contains(m->key())) {
+            // 释放的正是当前活动文件夹 model → 同步置空，防 activeModel 悬空
+            if (m_activeModel == m) {
+                m_activeModel = nullptr;
+            }
             delete m_models.takeAt(i);
         }
     }

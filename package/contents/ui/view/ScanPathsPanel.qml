@@ -19,14 +19,14 @@ import org.kde.plasma.wallpapers.image as PlasmaWallpaper
 /**
  * HTML 壁纸扫描目录列表（左栏）。
  *
- * 展示并管理 htmlWallpaper.scanPaths（QStringList）中的扫描目录，
+ * 展示并管理 wallpaperController.scanPaths（QStringList）中的扫描目录，
  * 支持增删与在文件管理器中打开目录；未配置目录时显示空态提示。
  *
  * 数据源是 config.qml 注入的 WallpaperController（C++）单实例：
- *   目录列表 ← htmlWallpaper.scanPaths；壁纸网格 ← htmlWallpaper.modelFor/allModel
+ *   目录列表 ← wallpaperController.scanPaths；壁纸网格 ← wallpaperController.modelFor/allModel
  *   （每文件夹一个 WallpaperModel）。
  * 目录增删走 config 的 addScanPath/removeScanPath（只改 cfg_ScanPaths 持久化，
- * 由 scanPaths 绑定同步 htmlWallpaper → 重扫）。
+ * 由 scanPaths 绑定同步 wallpaperController → 重扫）。
  *
  */
 // —— 左栏：扫描目录（文件夹）列表 ——
@@ -34,7 +34,7 @@ ColumnLayout {
     id: scanPathsPanel
 
     // 注入的解析器实例（由调用方 config.qml 传入）
-    property QtObject htmlWallpaper: null
+    required property QtObject wallpaperController
 
     // 当前选中的扫描根 URL（"" = 全部）。由 config.qml 绑定到 ThumbnailsPanel.activeFolder
     property string selectedFolder: ""
@@ -55,7 +55,11 @@ ColumnLayout {
         // Kirigami.Action 无 highlighted 属性，用 checkable+checked 达成同语义（上游 plasma-workspace 同款）。
         checkable: true
         checked: scanPathsPanel.selectedFolder.length === 0
-        onTriggered: scanPathsPanel.selectedFolder = ""
+        onTriggered: {
+            scanPathsPanel.selectedFolder = "";
+            // "全部"：活动壁纸集合指向合并 model
+            wallpaperController.activeModel = wallpaperController.allModel();
+        }
     }
 
     Kirigami.Action {
@@ -67,7 +71,7 @@ ColumnLayout {
             const dialogComponent = Qt.createComponent("AddFolderDialog.qml");
             dialogComponent.createObject(scanPathsPanel, {
                 addScanPath: (path) => {
-                    htmlWallpaper.addScanPath(String(path));
+                    wallpaperController.addScanPath(String(path));
                 }
             });
             dialogComponent.destroy();
@@ -90,11 +94,11 @@ ColumnLayout {
             color: Kirigami.Theme.backgroundColor
         }
 
-        // 扫描目录列表：数据源是 htmlWallpaper.scanPaths（跟随 cfg_ScanPaths）
+        // 扫描目录列表：数据源是 wallpaperController.scanPaths（跟随 cfg_ScanPaths）
         ListView {
             id: scanPathsView
 
-            model: htmlWallpaper.scanPaths
+            model: wallpaperController.scanPaths
 
             headerPositioning: ListView.OverlayHeader
             // 悬浮标题栏，含“添加文件夹”按钮
@@ -114,8 +118,12 @@ ColumnLayout {
 
                 width: scanPathsView.width
 
-                // 标签点击：切换中栏为当前文件夹壁纸组
-                onClicked: scanPathsPanel.selectedFolder = modelData
+                // 标签点击：切换中栏为当前文件夹壁纸组，并把活动壁纸集合
+                // 下沉到 controller（activeModel = 该文件夹 model）
+                onClicked: {
+                    scanPathsPanel.selectedFolder = modelData;
+                    wallpaperController.activeModel = wallpaperController.modelFor(modelData);
+                }
                 // 选中态高亮：当前选中文件夹
                 highlighted: scanPathsPanel.selectedFolder === modelData
 
@@ -125,10 +133,10 @@ ColumnLayout {
                 down: false
 
                 // 主标题只显示文件夹名（路径解析在 C++ WallpaperController 实现）
-                text: htmlWallpaper.folderName(modelData)
+                text: wallpaperController.folderName(modelData)
                 // Subtitle: the path to the folder
                 // 副标题显示父目录路径（路径解析在 C++ WallpaperController 实现）
-                subtitle: htmlWallpaper.parentPath(modelData)
+                subtitle: wallpaperController.parentPath(modelData)
 
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.smallSpacing
@@ -148,11 +156,12 @@ ColumnLayout {
                         text: i18nd("plasma_wallpaper_org.kde.image", "Remove Folder")
                         display: QQC2.Button.IconOnly
                         onClicked: {
-                            // 删除的是当前选中文件夹 → 回退到"全部"
+                            // 删除的是当前选中文件夹 → 回退到"全部"（活动壁纸集合同回合并 model）
                             if (scanPathsPanel.selectedFolder === String(baseListItem.modelData)) {
                                 scanPathsPanel.selectedFolder = "";
+                                wallpaperController.activeModel = wallpaperController.allModel();
                             }
-                            htmlWallpaper.removeScanPath(String(baseListItem.modelData));
+                            wallpaperController.removeScanPath(String(baseListItem.modelData));
                         }
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text

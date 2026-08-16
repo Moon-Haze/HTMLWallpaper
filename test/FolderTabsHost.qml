@@ -19,7 +19,7 @@ import "../package/contents/ui/view" as View
  * scanPathsPanel.selectedFolder（经 root 别名引用外层控制器避开同名遮蔽）。
  * 暴露 scanPathsView/thumbnails 供测试断言。
  *
- * mock（htmlWallpaper）模拟新架构：每文件夹一个 model（groupA/groupB），
+ * mock（wallpaperController）模拟新架构：每文件夹一个 model（groupA/groupB），
  * modelFor(url) 按 URL 返回对应组；allModel() 返回合并缓存数组。
  */
 ColumnLayout {
@@ -30,16 +30,18 @@ ColumnLayout {
     width: 800
     height: 400
 
-    property alias htmlWallpaperController: htmlWallpaper
+    property alias wallpaperControllerController: wallpaperController
     // 暴露两个面板供测试断言
     property Item scanPathsView: null
     property Item thumbnails: null
 
     // 模拟 config.qml 外层控制器（新架构：modelFor/allModel）
     QtObject {
-        id: htmlWallpaper
+        id: wallpaperController
         // scanPaths：两个扫描根
         property var scanPaths: ["file:///root/a", "file:///root/b"]
+        // 当前活动壁纸集合：由 ScanPathsPanel 点击驱动（文件夹 → modelFor 组；全部 → allModel）
+        property var activeModel: null
 
         // 每文件夹一个 model：groupA / groupB
         property var groupA: [
@@ -94,14 +96,14 @@ ColumnLayout {
         id: scanPathsPanel
         Layout.preferredWidth: Kirigami.Units.gridUnit * 16
         Layout.preferredHeight: 320
-        htmlWallpaper: htmlWallpaper
+        wallpaperController: wallpaperController
     }
 
     View.ThumbnailsPanel {
         id: thumbnailsPanel
         Layout.fillWidth: true
         Layout.fillHeight: true
-        htmlWallpaper: root.htmlWallpaperController
+        wallpaperController: root.wallpaperControllerController
         // 标签联动（复刻 config.qml）
         activeFolder: scanPathsPanel.selectedFolder
         width: 600

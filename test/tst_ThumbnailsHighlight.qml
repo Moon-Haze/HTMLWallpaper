@@ -15,7 +15,7 @@ import QtTest
  * model 层），且 wallpapersGrid.view.currentIndex = index（高亮跟随点击项）。
  * 不做反向同步：不验证 selectedIndex 变化反向驱动高亮。
  *
- * 环境注意：htmlWallpaper 用 mock（modelFor/allModel 返回的 ListModel，
+ * 环境注意：wallpaperController 用 mock（modelFor/allModel 返回的 ListModel，
  * 其声明 selectedIndex 属性模拟 C++ WallpaperModel 的 model 层状态）。
  * ListModel 是真 model，delegate 里 model.path 等 role 可直接读（单路径）。
  */
@@ -29,15 +29,15 @@ TestCase {
     property var i18nd: function (domain, text) { return text; }
     property var i18ndc: function (domain, context, text) { return text; }
 
-    property var htmlWallpaper: null
+    property var wallpaperController: null
     property var comp: null
 
     function init() {
-        // htmlWallpaper mock：单文件夹 ListModel（modelFor/allModel 返回；
+        // wallpaperController mock：单文件夹 ListModel（modelFor/allModel 返回；
         // 元素含 file/path/title/preview 字段，供 delegate 与 onClicked 读取），
         // ListModel 声明 selectedIndex 属性模拟 C++ WallpaperModel 的选中状态。
         // 注意：createQmlObject 内联对象体成员必须以换行分隔。
-        htmlWallpaper = Qt.createQmlObject(
+        wallpaperController = Qt.createQmlObject(
             'import QtQuick;'
             + '\nQtObject {'
             // QtObject 无 default property，ListModel 需用 property 声明（否则
@@ -52,12 +52,12 @@ TestCase {
             + '\n  function allModel() { return modelA; }'
             + '\n}',
             testCase);
-        verify(htmlWallpaper !== null, "htmlWallpaper mock 实例化失败");
+        verify(wallpaperController !== null, "wallpaperController mock 实例化失败");
 
         let c = Qt.createComponent("../package/contents/ui/view/ThumbnailsPanel.qml");
         verify(c.status === Component.Ready, "ThumbnailsPanel 加载失败: " + c.errorString());
         // 给足尺寸让 GridView 实例化可见 delegate（offscreen 下显式宽高驱动布局）
-        comp = c.createObject(testCase, { htmlWallpaper: htmlWallpaper, width: 600, height: 400 });
+        comp = c.createObject(testCase, { wallpaperController: wallpaperController, width: 600, height: 400 });
         verify(comp !== null, "ThumbnailsPanel 实例化失败");
         c.destroy();
     }
@@ -67,9 +67,9 @@ TestCase {
             comp.destroy();
             comp = null;
         }
-        if (htmlWallpaper) {
-            htmlWallpaper.destroy();
-            htmlWallpaper = null;
+        if (wallpaperController) {
+            wallpaperController.destroy();
+            wallpaperController = null;
         }
     }
 
@@ -99,12 +99,12 @@ TestCase {
     function test_clickDelegate_setsSelectedIndexAndIndex() {
         // 初始选中为空（-1）；点击第 0 项
         clickIndex(0);
-        compare(htmlWallpaper.allModel().selectedIndex, 0);
+        compare(wallpaperController.allModel().selectedIndex, 0);
         compare(comp.view.currentIndex, 0);
 
         // 点击第 1 项 → 选中与高亮跟随点击项
         clickIndex(1);
-        compare(htmlWallpaper.allModel().selectedIndex, 1);
+        compare(wallpaperController.allModel().selectedIndex, 1);
         compare(comp.view.currentIndex, 1);
     }
 }

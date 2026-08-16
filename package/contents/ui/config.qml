@@ -26,14 +26,10 @@ import "view" as View
  */
 ColumnLayout {
     id: root
-    // 把外层控制器暴露给子组件（ThumbnailsPanel）。不能直接用裸 htmlWallpaper——
-    // ThumbnailsPanel 自身有同名 htmlWallpaper 属性，组件内声明式 binding 会
-    // 被自身属性遮蔽成自引用（"Binding loop for htmlWallpaper"，面板拿到 null）。
-    // 经 root 的别名属性引用即可正确解析到外层控制器。
-    property alias htmlWallpaperController: htmlWallpaper
 
+    property alias cfg_SelectWallpaper: wallpaperController.selectWallpaper
     // property alias wallpaper: mainView.wallpaper
-    property alias cfg_ScanPaths: htmlWallpaper.scanPaths
+    property alias cfg_ScanPaths: wallpaperController.scanPaths
 
     spacing: 0
 
@@ -41,14 +37,14 @@ ColumnLayout {
     // 提供壁纸列表 / 参数表 / 预览。ScanPaths 跟随 cfg_ScanPaths（扫描目录），
     // 变化时触发重扫；ScanPaths 本身即 QStringList，QML 侧直接作目录列表的 model。
     WallpaperController {
-        id: htmlWallpaper
+        id: wallpaperController
         // 路径变化时重扫（数据源即 ScanPaths，无需中间模型同步）
         onScanPathsChanged: {
-            htmlWallpaper.scan()
+            wallpaperController.scan()
         }
 
         Component.onCompleted:{
-            htmlWallpaper.scan()
+            wallpaperController.scan()
         }
     }
     // —— 主内容区：接受拖放，加载 HTML 壁纸面板 ——
@@ -73,8 +69,6 @@ ColumnLayout {
             id: mainView
 
             anchors.fill: parent
-
-
             spacing: 0
             
             // —— 左栏：扫描目录（文件夹）列表 ——
@@ -82,7 +76,7 @@ ColumnLayout {
                 id: scanPathsView
                 spacing: 0
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 16
-                htmlWallpaper: htmlWallpaper
+                wallpaperController: wallpaperController
             }
 
             Kirigami.Separator {
@@ -93,7 +87,7 @@ ColumnLayout {
             View.ThumbnailsPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                htmlWallpaper: root.htmlWallpaperController
+                wallpaperController: wallpaperController
                 // 标签联动：左栏选中文件夹 → 中栏显示对应壁纸组
                 activeFolder: scanPathsView.selectedFolder
             }

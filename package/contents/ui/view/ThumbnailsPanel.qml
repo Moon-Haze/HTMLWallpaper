@@ -25,9 +25,8 @@ Item {
     // 暴露底层 GridView，供外部滚动到指定项
     property alias view: wallpapersGrid.view
 
-
     // 注入的解析器实例（由调用方 config.qml 传入）
-    property QtObject htmlWallpaper: null
+    required property QtObject wallpaperController
 
     property var previewSize: {
         const baseSize = Kirigami.Units.gridUnit * 22;
@@ -51,31 +50,29 @@ Item {
         }
     }
 
-    // 当前选中的扫描根 key（"" = 全部）。由调用方 config.qml 注入绑定。
-    property string activeFolder: ""
     // 当前网格 model：全部 → controller.allModel()（懒建合并）；单文件夹 → controller.modelFor(activeFolder)
     property var gridModel: null
 
     // 依 activeFolder 重新计算 gridModel，并滚回顶部、清空选中高亮
-    function refreshModel() {
-        if (!htmlWallpaper) {
-            gridModel = null;
-            return;
-        }
-        gridModel = activeFolder.length === 0
-            ? htmlWallpaper.allModel()
-            : htmlWallpaper.modelFor(activeFolder);
-        wallpapersGrid.view.currentIndex = -1;
-        // 选中态与 currentIndex 对齐：切组后清掉残留高亮。typeof 守卫兼容
-        // 测试 mock 的 JS 数组（数组无 selectedIndex 属性）。
-        if (gridModel && typeof gridModel.selectedIndex !== "undefined") {
-            gridModel.selectedIndex = -1;
-        }
-        wallpapersGrid.view.positionViewAtIndex(0, ListView.Beginning);
-    }
+    // function refreshModel() {
+    //     if (!wallpaperController) {
+    //         gridModel = null;
+    //         return;
+    //     }
+    //     gridModel = activeFolder.length === 0
+    //         ? wallpaperController.allModel()
+    //         : wallpaperController.modelFor(activeFolder);
+    //     wallpapersGrid.view.currentIndex = -1;
+    //     // 选中态与 currentIndex 对齐：切组后清掉残留高亮。typeof 守卫兼容
+    //     // 测试 mock 的 JS 数组（数组无 selectedIndex 属性）。
+    //     if (gridModel && typeof gridModel.selectedIndex !== "undefined") {
+    //         gridModel.selectedIndex = -1;
+    //     }
+    //     wallpapersGrid.view.positionViewAtIndex(0, ListView.Beginning);
+    // }
 
-    onActiveFolderChanged: refreshModel()
-    onHtmlWallpaperChanged: refreshModel()
+    // onActiveFolderChanged: refreshModel()
+    // onWallpaperControllerChanged: refreshModel()
 
     ColumnLayout {
         anchors.fill: parent
@@ -106,7 +103,7 @@ Item {
                 framedView: false
 
                 // 直接挂模型，节省缩略图下方标签的额外空间
-                view.model: thumbnails.gridModel
+                view.model: wallpaperController.activeModel
 
                 // 单元格尺寸随屏幕宽高比调整，保持缩略图比例不拉伸
                 view.implicitCellWidth: {
@@ -124,16 +121,19 @@ Item {
 
                 // 网格项使用 WallpaperDelegate，并传入配色、预览采样尺寸与解析器实例
                 view.delegate: WallpaperDelegate {
-                    htmlWallpaper: thumbnails.htmlWallpaper
+                    wallpaperController: thumbnails.wallpaperController
                     // 计算缩略图采样尺寸：太小会糊，按屏幕 1/8 起，下限一档
                     previewSize: thumbnails.previewSize
-                    // 点击行为：htmlWallpaper && model.path 时响应——把选中行写入
+                    // 点击行为：wallpaperController && model.path 时响应——把选中行写入
                     // view.model.selectedIndex（合并 model 跨源转发到所属文件夹源），
                     // 并让当前项高亮跟随点击项
                     onClicked: {
-                        if (htmlWallpaper && model.path) {
-                            wallpapersGrid.view.model.selectedIndex = index;
-                            wallpapersGrid.view.currentIndex = index;
+                        // console.log("WallpaperDelegate clicked:", model.name, model.path,model.preview, model.file, "at index", index);
+
+                        if (model.path) {
+                            view.model.selectedIndex = index;
+                            view.currentIndex = index;
+                            wallpaperController.selectWallpaper = model.file;
                             console.log("Selected wallpaper:", model.file, "at index", index);
                         }
                     }

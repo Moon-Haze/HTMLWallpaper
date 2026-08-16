@@ -21,12 +21,14 @@
  * @brief HTML 壁纸配置的 C++ 门面（QML 类型 WallpaperController）。
  *
  * 供配置界面（config.qml → ScanPathsPanel → ThumbnailsPanel）消费的
- * Controller：持有 scanPaths 属性与扫描编排，并为每个
- * 扫描根缓存一个单文件夹 WallpaperModel（QList<WallpaperModel *> m_models）。
+ * Controller：持有 scanPaths / selectWallpaper / activeModel 属性与扫描编排，
+ * 并为每个扫描根缓存一个单文件夹 WallpaperModel（QList<WallpaperModel *> m_models）。
  *
  * - modelFor(url)：url 对应文件夹的常驻 WallpaperModel*（key 归一化去重建）。
  * - allModel()：懒建 AllWallpapersModel 聚合全部文件夹；scan 后对缓存实例
  *   setSources 重挂最新源（保活复用，无悬空指针）。
+ * - activeModel：当前活动壁纸集合（ScanPathsPanel 点击驱动）——单文件夹时
+ *   指向对应 WallpaperModel*，"全部"时指向 allModel() 的合并 model。
  * - scan()：后台一次扫所有 scanPaths，逐组 addEntries 到对应文件夹 model。
  */
 class WallpaperController : public QObject
@@ -35,14 +37,27 @@ class WallpaperController : public QObject
     QML_ELEMENT
     QML_NAMED_ELEMENT(WallpaperController)
 
+    Q_PROPERTY(QString selectWallpaper READ selectWallpaper WRITE setSelectWallpaper NOTIFY selectWallpaperChanged)
     Q_PROPERTY(QStringList scanPaths READ scanPaths WRITE setScanPaths NOTIFY scanPathsChanged)
     Q_PROPERTY(bool scanInProgress READ scanInProgress NOTIFY scanInProgressChanged)
+    // 当前活动壁纸集合（WallpaperModel* 单文件夹 或 AllWallpapersModel* 全部）
+    Q_PROPERTY(QAbstractItemModel *activeModel READ activeModel WRITE setActiveModel NOTIFY activeModelChanged)
+    Q_PROPERTY(int activeIndex READ activeIndex NOTIFY activeIndexChanged)
 
 public:
     explicit WallpaperController(QObject *parent = nullptr);
+
+    QString selectWallpaper() const;
+    void setSelectWallpaper(const QString &wallpaper);
+
+    int activeIndex() const;
+
     QStringList scanPaths() const;
     void setScanPaths(const QStringList &urls);
     bool scanInProgress() const;
+    /** 当前活动壁纸集合（nullptr = 尚未设置；由 ScanPathsPanel 点击驱动）。 */
+    QAbstractItemModel *activeModel() const;
+    void setActiveModel(QAbstractItemModel *model);
     /** 已缓存的文件夹 model 数（测试/调试用）。QML 读作方法调用 modelCount()。 */
     Q_INVOKABLE int modelCount() const;
 
@@ -59,19 +74,24 @@ public:
     Q_INVOKABLE QString parentPath(const QString &url) const;
 
 Q_SIGNALS:
+    void selectWallpaperChanged();
     void scanPathsChanged();
     void scanFinished();
     void scanFailed(const QString &path, const QString &error);
     void scanInProgressChanged();
+    void activeModelChanged();
+    void activeIndexChanged();
 
 private:
     WallpaperModel *obtainModel(const QString &url); // modelFor 的实现：创建/复用
     void releaseStaleModels(const QStringList &kept); // 销毁不在 kept 的 model
     void setScanInProgress(bool inProgress);
 
+    QString m_selectWallpaper;
     QStringList m_scanPaths;
     QList<WallpaperModel *> m_models; // 按 key 缓存（key = WallpaperPath::toUrl 归一化）
     QAbstractItemModel *m_allModel = nullptr; // 懒建合并 model（保活复用）
+    QAbstractItemModel *m_activeModel = nullptr; // 当前活动壁纸集合（防悬空见 releaseStaleModels）
     bool m_scanning = false;
     QFutureWatcher<ScanResult> *m_watcher = nullptr;
 };

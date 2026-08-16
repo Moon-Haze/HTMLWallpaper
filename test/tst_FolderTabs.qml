@@ -16,7 +16,7 @@ import QtTest
  *   - 点击"全部"标签 → view.model 切回 allModel()
  *   - 切换标签后 view.currentIndex 复位为 -1（清高亮）
  *
- * 环境注意：htmlWallpaper 用 mock（scanPaths 数组 + modelFor/allModel 缓存数组）；
+ * 环境注意：wallpaperController 用 mock（scanPaths 数组 + modelFor/allModel 缓存数组）；
  * i18n 函数 mock。
  */
 TestCase {
@@ -60,7 +60,7 @@ TestCase {
         compare(host.thumbnails.activeFolder, "");
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
         // 全部模式下 view.model 即 allModel() 引用（缓存数组）
-        compare(host.thumbnails.view.model, host.htmlWallpaperController.allModel());
+        compare(host.thumbnails.view.model, host.wallpaperControllerController.allModel());
     }
 
     // 点击文件夹标签：触发 ListView delegate 的 clicked 信号（等价真实点击），
@@ -78,6 +78,9 @@ TestCase {
         // 单文件夹模式：view.model 应为 groupA（modelFor("file:///root/a") 返回的数组）
         compare(host.thumbnails.view.model.length, 2);
         compare(host.thumbnails.view.model[0].title, "a1");
+        // 点击驱动：controller.activeModel 指向该文件夹的 modelFor 组
+        compare(host.wallpaperControllerController.activeModel,
+                host.wallpaperControllerController.modelFor("file:///root/a"));
     }
 
     // 点击"全部"标签 → 切回全部（先经真实点击选中某文件夹，再触发 allTab）
@@ -94,8 +97,11 @@ TestCase {
         host.scanPathsView.allTab.triggered();
         compare(host.scanPathsView.selectedFolder, "");
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
-        compare(host.thumbnails.view.model, host.htmlWallpaperController.allModel());
+        compare(host.thumbnails.view.model, host.wallpaperControllerController.allModel());
         compare(host.thumbnails.view.model.length, 3);
+        // 点击"全部"：controller.activeModel 指向合并缓存数组
+        compare(host.wallpaperControllerController.activeModel,
+                host.wallpaperControllerController.allModel());
     }
 
     // 切换标签后 currentIndex 复位（清高亮）

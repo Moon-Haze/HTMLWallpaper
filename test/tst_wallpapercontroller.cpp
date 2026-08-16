@@ -6,6 +6,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -33,6 +34,8 @@ private Q_SLOTS:
     void releaseStaleModelsWithAllModelAttached();
     void folderNameAndParentPath();
     void allModelSelectedIndexForwards();
+    void activeModelRoundTrip();
+    void activeModelClearedOnStaleRelease();
 };
 
 void tst_wallpapercontroller::modelForReusesSameKey()
@@ -186,6 +189,44 @@ void tst_wallpapercontroller::allModelSelectedIndexForwards()
     QCOMPARE(merged->selectedIndex(), 2);
     QCOMPARE(b->selectedIndex(), 0);
     QCOMPARE(a->selectedIndex(), -1);
+}
+
+// activeModel 基本读写 + 信号发射（默认 nullptr；同值幂等不重复 emit）
+void tst_wallpapercontroller::activeModelRoundTrip()
+{
+    WallpaperController c;
+    QSignalSpy spy(&c, &WallpaperController::activeModelChanged);
+    QCOMPARE(c.activeModel(), nullptr);
+
+    WallpaperModel *a = c.modelFor(QStringLiteral("file:///root/a"));
+    c.setActiveModel(a);
+    QCOMPARE(c.activeModel(), a);
+    QCOMPARE(spy.count(), 1);
+
+    // 同值幂等：不重复 emit
+    c.setActiveModel(a);
+    QCOMPARE(spy.count(), 1);
+
+    // "全部"：activeModel 指向懒建合并 model
+    c.setActiveModel(c.allModel());
+    QCOMPARE(c.activeModel(), c.allModel());
+    QCOMPARE(spy.count(), 2);
+}
+
+// releaseStaleModels 释放活动文件夹 model → activeModel 同步置空（防悬空）
+void tst_wallpapercontroller::activeModelClearedOnStaleRelease()
+{
+    WallpaperController c;
+    WallpaperModel *a = c.modelFor(QStringLiteral("file:///root/a"));
+    c.modelFor(QStringLiteral("file:///root/b"));
+    c.setActiveModel(a);
+    QCOMPARE(c.activeModel(), a);
+
+    // scanPaths 只剩 b；scan 后 a 的 model 被释放，activeModel 应被清空
+    c.setScanPaths({QStringLiteral("file:///root/b")});
+    c.scan();
+    QTRY_COMPARE_WITH_TIMEOUT(c.modelCount(), 1, 5000);
+    QCOMPARE(c.activeModel(), nullptr);
 }
 
 QTEST_MAIN(tst_wallpapercontroller)
