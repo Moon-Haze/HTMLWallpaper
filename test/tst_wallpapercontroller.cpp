@@ -16,8 +16,8 @@
 /**
  * WallpaperController 多 model 容器 / 扫描编排的 C++ 单测。
  *
- * modelFor / allModel / releaseStaleModels 用纯内存数据验证；
- * scan 用 test/data/wallpapers fixtures（工作目录即 test/）。
+ * modelFor / releaseStaleModels 用纯内存数据验证；scan 用
+ * test/data/wallpapers fixtures（工作目录即 test/）。
  */
 class tst_wallpapercontroller : public QObject
 {
@@ -26,13 +26,10 @@ class tst_wallpapercontroller : public QObject
 private Q_SLOTS:
     void modelForReusesSameKey();
     void modelForCreatesOnePerFolder();
-    void allModelAggregatesAcrossSources();
     void scanPopulatesEachFolderModel();
     void scanClearsGhostEntriesWhenFolderEmptied();
     void releaseStaleModelsDropsRemovedFolders();
-    void releaseStaleModelsWithAllModelAttached();
     void folderNameAndParentPath();
-    void allModelSelectedIndexForwards();
     void activeModelRoundTrip();
     void activeModelClearedOnStaleRelease();
 };
@@ -55,37 +52,6 @@ void tst_wallpapercontroller::modelForCreatesOnePerFolder()
     QVERIFY(c.modelFor(QStringLiteral("file:///root/a")) != nullptr);
     QVERIFY(c.modelFor(QStringLiteral("file:///root/b")) != nullptr);
     QCOMPARE(c.modelCount(), 2);
-}
-
-void tst_wallpapercontroller::allModelAggregatesAcrossSources()
-{
-    WallpaperController c;
-    WallpaperModel *a = c.modelFor(QStringLiteral("file:///root/a"));
-    WallpaperModel *b = c.modelFor(QStringLiteral("file:///root/b"));
-    QList<WallpaperEntry> ea, eb;
-    ea.append(WallpaperEntry());
-    ea.append(WallpaperEntry());
-    // 给源 b 填真实目录探测出的有效条目（name = "b"），使跨源定位断言真正验证
-    // 聚合 WallpaperModel::data 的 remaining 递减跨源定位（非空值可区分越界空）。
-    QTemporaryDir tmp;
-    QVERIFY(tmp.isValid());
-    const QString dirB = QDir(tmp.path()).filePath(QStringLiteral("b"));
-    QVERIFY(QDir().mkpath(dirB));
-    QFile index(dirB + QStringLiteral("/index.html"));
-    QVERIFY(index.open(QIODevice::WriteOnly));
-    index.write("<!doctype html>");
-    index.close();
-    eb.append(WallpaperEntry(WallpaperPath::toUrl(dirB)));
-    a->addEntries(ea);
-    b->addEntries(eb);
-
-    QAbstractItemModel *all = c.allModel();
-    QVERIFY(all != nullptr);
-    QCOMPARE(all->rowCount(), 3);
-    // 跨源定位：行 2 落在源 b，返回其非空 name 而非越界空
-    QCOMPARE(all->data(all->index(2, 0), WallpaperModel::NameRole).toString(), QStringLiteral("b"));
-    // 缓存同一实例
-    QCOMPARE(c.allModel(), all);
 }
 
 void tst_wallpapercontroller::scanPopulatesEachFolderModel()
@@ -139,29 +105,6 @@ void tst_wallpapercontroller::releaseStaleModelsDropsRemovedFolders()
     QVERIFY(c.modelFor(QStringLiteral("file:///root/b")) != nullptr);
 }
 
-void tst_wallpapercontroller::releaseStaleModelsWithAllModelAttached()
-{
-    WallpaperController c;
-    c.modelFor(QStringLiteral("file:///root/a"));
-    c.modelFor(QStringLiteral("file:///root/b"));
-    QCOMPARE(c.modelCount(), 2);
-
-    // 先建合并 model（连接源），触发 use-after-free 修复路径：
-    // setSources 重挂源必须先于 releaseStaleModels 删除 stale model，
-    // 否则 disconnect 会解引用已释放源。
-    QAbstractItemModel *all = c.allModel();
-    QVERIFY(all != nullptr);
-
-    // scanPaths 只剩 b；scan 完成后 a 的 model 应被释放且无崩溃
-    c.setScanPaths({QStringLiteral("file:///root/b")});
-    c.scan();
-    QTRY_COMPARE_WITH_TIMEOUT(c.modelCount(), 1, 5000);
-
-    // 合并 model 仍存活且缓存同一实例；保留源 b 仍可 modelFor
-    QCOMPARE(c.allModel(), all);
-    QVERIFY(c.modelFor(QStringLiteral("file:///root/b")) != nullptr);
-}
-
 void tst_wallpapercontroller::folderNameAndParentPath()
 {
     WallpaperController c;
@@ -171,31 +114,13 @@ void tst_wallpapercontroller::folderNameAndParentPath()
     QCOMPARE(c.parentPath(QStringLiteral("file:///home/user/wallpapers/aurora/")), QStringLiteral("file:///home/user/wallpapers"));
 }
 
-// controller 层集成：合并 model 的 selectedIndex 跨源转发 + 单选清他源
-void tst_wallpapercontroller::allModelSelectedIndexForwards()
-{
-    WallpaperController c;
-    WallpaperModel *a = c.modelFor(QStringLiteral("file:///root/a"));
-    WallpaperModel *b = c.modelFor(QStringLiteral("file:///root/b"));
-    a->addEntries({WallpaperEntry(), WallpaperEntry()});
-    b->addEntries({WallpaperEntry()});
-
-    auto *merged = c.allModel(); // 已收紧为 WallpaperModel *
-    QCOMPARE(merged->selectedIndex(), -1);
-
-    // 全局行 2 落在 B 局部 0；A 选中被清空
-    merged->setSelectedIndex(2);
-    QCOMPARE(merged->selectedIndex(), 2);
-    QCOMPARE(b->selectedIndex(), 0);
-    QCOMPARE(a->selectedIndex(), -1);
-}
-
-// activeModel 基本读写 + 信号发射（默认 nullptr；同值幂等不重复 emit）
+// activeModel 基本读写 + 信号发射（默认指向"全部"汇总 model；同值幂等不重复 emit）
 void tst_wallpapercontroller::activeModelRoundTrip()
 {
     WallpaperController c;
     QSignalSpy spy(&c, &WallpaperController::activeModelChanged);
-    QCOMPARE(c.activeModel(), nullptr);
+    // 默认活动 model 即"全部"汇总 model（构造时创建，非 nullptr）
+    QCOMPARE(c.activeModel(), c.allModel());
 
     WallpaperModel *a = c.modelFor(QStringLiteral("file:///root/a"));
     c.setActiveModel(a);
@@ -206,9 +131,9 @@ void tst_wallpapercontroller::activeModelRoundTrip()
     c.setActiveModel(a);
     QCOMPARE(spy.count(), 1);
 
-    // "全部"：activeModel 指向懒建合并 model
-    c.setActiveModel(c.allModel());
-    QCOMPARE(c.activeModel(), c.allModel());
+    // 置空：activeModel 回退到 nullptr（并发一次 emit）
+    c.setActiveModel(nullptr);
+    QCOMPARE(c.activeModel(), nullptr);
     QCOMPARE(spy.count(), 2);
 }
 

@@ -93,7 +93,7 @@ TestCase {
         compare(m1.count, 6, "fixtureDir 应收录 6 个");
         compare(m2.count, 2, "extraDir 应收录 2 个（red/blue）");
 
-        // 全部视图：allModel 懒建并缓存同一实例
+        // 全部视图：allModel 构造时创建并缓存同一实例
         // （聚合求和/跨源定位的 C++ 逻辑已由 tst_wallpapercontroller 覆盖）
         const all1 = wallpaperController.allModel();
         const all2 = wallpaperController.allModel();
@@ -120,7 +120,7 @@ TestCase {
         const m1 = wallpaperController.modelFor(String(fixtureDir));
         verify(m1 !== null, "modelFor 应返回 model");
 
-        compare(wallpaperController.activeModel, null, "默认 activeModel 应为 null");
+        compare(wallpaperController.activeModel, wallpaperController.allModel(), "默认 activeModel 应为全部汇总 model");
         compare(activeModelSpy.count, 0);
 
         // 模拟点击文件夹：activeModel 指向该文件夹 model
@@ -132,7 +132,7 @@ TestCase {
         wallpaperController.activeModel = m1;
         compare(activeModelSpy.count, 1);
 
-        // 模拟点击"全部"：activeModel 指向懒建合并 model
+        // 模拟点击"全部"：activeModel 指向"全部"汇总 model
         wallpaperController.activeModel = wallpaperController.allModel();
         compare(wallpaperController.activeModel, wallpaperController.allModel(), "点击全部：activeModel 应指向合并 model");
         compare(activeModelSpy.count, 2);

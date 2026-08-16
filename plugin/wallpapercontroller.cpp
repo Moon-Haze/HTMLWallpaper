@@ -9,9 +9,9 @@
 #include <QDir>
 #include <QFutureWatcher>
 #include <QSet>
+#include <QString>
 #include <QUrl>
 #include <QtConcurrent>
-
 namespace
 {
 
@@ -82,10 +82,7 @@ int WallpaperController::activeIndex() const
     if (!m_activeModel) {
         return -1;
     }
-    // activeModel 统一为 WallpaperModel *（单文件夹或聚合模式），均暴露
-    // selectedIndex 属性；动态读取，避免对聚合/单文件夹做额外分派。
-    const QVariant v = m_activeModel->property("selectedIndex");
-    return v.isValid() ? v.toInt() : -1;
+    return m_activeModel->selectedIndex(); // 触发聚合 getter，优先返回最后变化源的选中行
 }
 
 WallpaperModel *WallpaperController::activeModel() const
@@ -100,6 +97,7 @@ void WallpaperController::setActiveModel(WallpaperModel *model)
     }
     m_activeModel = model;
     Q_EMIT activeModelChanged();
+    Q_EMIT activeIndexChanged(); // 触发聚合 getter，优先返回最后变化源的选中行
 }
 
 QStringList WallpaperController::scanPaths() const
@@ -165,11 +163,16 @@ void WallpaperController::scan()
             for (const auto &failure : result.failures) {
                 Q_EMIT scanFailed(failure.first, failure.second);
             }
+            // 汇总 model（"全部"标签）在构造时创建；每次 scan 重建内容：
+            // 先清空再逐组追加，避免重扫重复、目录移除后残留幽灵条目。
+            m_allModel->clear();
             // 本次产生数据的文件夹 key 集合（归一化后与 m->key() 可比）。
             QSet<QString> updatedKeys;
             for (const auto &group : result.groups) {
                 updatedKeys.insert(normalizeKey(group.key));
-                obtainModel(group.key)->addEntries(group.entries);
+                WallpaperModel *model = obtainModel(group.key);
+                model->setEntries(group.entries);
+                m_allModel->addEntries(group.entries);
             }
             // 对仍在 scanPaths、但本次未产生 group 的文件夹（目录被删空或被删除，
             // 或存在但无任何 *.html 入口）显式清空，避免旧壁纸残留成幽灵条目。
@@ -179,22 +182,6 @@ void WallpaperController::scan()
                 if (!updatedKeys.contains(m->key())) {
                     m->clear();
                 }
-            }
-            // 合并 model 保活复用：先重挂最新源（此刻旧源全部存活，
-            // setSources 内 disconnect 安全），再清理已移除文件夹的 model，
-            // 避免对已释放源解引用（use-after-free）。
-            if (m_allModel) {
-                QSet<QString> keptKeys;
-                for (const QString &u : m_scanPaths) {
-                    keptKeys.insert(normalizeKey(WallpaperPath::toUrl(u)));
-                }
-                QList<WallpaperModel *> keptModels;
-                for (WallpaperModel *m : m_models) {
-                    if (keptKeys.contains(m->key())) {
-                        keptModels.append(m);
-                    }
-                }
-                m_allModel->setSources(keptModels);
             }
             releaseStaleModels(m_scanPaths);
             setScanInProgress(false);
@@ -224,11 +211,6 @@ WallpaperModel *WallpaperController::modelFor(const QString &url)
 
 WallpaperModel *WallpaperController::allModel()
 {
-    if (!m_allModel) {
-        auto *merged = new WallpaperModel(QString(), this); // 聚合 model，key 为空
-        merged->setSources(m_models);
-        m_allModel = merged;
-    }
     return m_allModel;
 }
 

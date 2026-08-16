@@ -24,11 +24,12 @@
  * 并为每个扫描根缓存一个单文件夹 WallpaperModel（QList<WallpaperModel *> m_models）。
  *
  * - modelFor(url)：url 对应文件夹的常驻 WallpaperModel*（key 归一化去重建）。
- * - allModel()：懒建聚合 WallpaperModel（空 key）聚合全部文件夹；scan 后对
- *   缓存实例 setSources 重挂最新源（保活复用，无悬空指针）。
+ * - allModel()：懒建的"全部"汇总 WallpaperModel（key = "ALL"），scan 后
+ *   clear 重填全部文件夹条目（保活复用，无悬空指针）。
  * - activeModel：当前活动壁纸集合（ScanPathsPanel 点击驱动）——单文件夹时
- *   指向对应 WallpaperModel*，"全部"时指向 allModel() 的聚合 model。
- * - scan()：后台一次扫所有 scanPaths，逐组 addEntries 到对应文件夹 model。
+ *   指向对应 WallpaperModel*，"全部"时指向 allModel() 的汇总 model。
+ * - scan()：后台一次扫所有 scanPaths，逐组 setEntries 到对应文件夹 model，
+ *   并 addEntries 汇总到 allModel()。
  */
 class WallpaperController : public QObject
 {
@@ -39,7 +40,7 @@ class WallpaperController : public QObject
     Q_PROPERTY(QString selectWallpaper READ selectWallpaper WRITE setSelectWallpaper NOTIFY selectWallpaperChanged)
     Q_PROPERTY(QStringList scanPaths READ scanPaths WRITE setScanPaths NOTIFY scanPathsChanged)
     Q_PROPERTY(bool scanInProgress READ scanInProgress NOTIFY scanInProgressChanged)
-    // 当前活动壁纸集合（单文件夹或聚合 WallpaperModel*）
+    // 当前活动壁纸集合（单文件夹或"全部"汇总 WallpaperModel*）
     Q_PROPERTY(WallpaperModel *activeModel READ activeModel WRITE setActiveModel NOTIFY activeModelChanged)
     Q_PROPERTY(int activeIndex READ activeIndex NOTIFY activeIndexChanged)
 
@@ -65,7 +66,7 @@ public:
     Q_INVOKABLE void removeScanPath(const QString &url);
     /** 返回 url 对应文件夹的常驻 WallpaperModel*；不存在即新建（key 归一化）。 */
     Q_INVOKABLE WallpaperModel *modelFor(const QString &url);
-    /** 返回懒建的聚合 model（全部文件夹聚合）；scan 后缓存实例重挂最新源。 */
+    /** 返回懒建的"全部"汇总 model；scan 时 clear 重填全部文件夹条目。 */
     Q_INVOKABLE WallpaperModel *allModel();
     /** 扫描根 URL → 显示用文件夹名（去末尾斜杠后取最后一段）。 */
     Q_INVOKABLE QString folderName(const QString &url) const;
@@ -88,9 +89,12 @@ private:
 
     QString m_selectWallpaper;
     QStringList m_scanPaths;
-    QList<WallpaperModel *> m_models; // 按 key 缓存（key = WallpaperPath::toUrl 归一化）
-    WallpaperModel *m_allModel = nullptr; // 懒建聚合 model（保活复用）
-    WallpaperModel *m_activeModel = nullptr; // 当前活动壁纸集合（防悬空见 releaseStaleModels）
+
+    QList<WallpaperModel *> m_models;
+
+    WallpaperModel *m_allModel = new WallpaperModel(QStringLiteral("ALL"), this); // 懒建"全部"汇总 model（保活复用）
+    WallpaperModel *m_activeModel = m_allModel; // 当前活动壁纸集合（防悬空见 releaseStaleModels）
+
     bool m_scanning = false;
     QFutureWatcher<ScanResult> *m_watcher = nullptr;
 };
