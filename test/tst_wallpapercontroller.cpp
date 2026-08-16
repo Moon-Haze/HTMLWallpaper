@@ -221,11 +221,15 @@ void tst_wallpapercontroller::activeModelClearedOnStaleRelease()
     c.setActiveModel(a);
     QCOMPARE(c.activeModel(), a);
 
+    // 释放路径应 emit activeModelChanged（且仅一次），驱动 QML view.model 重新求值
+    QSignalSpy spy(&c, &WallpaperController::activeModelChanged);
+
     // scanPaths 只剩 b；scan 后 a 的 model 被释放，activeModel 应被清空
     c.setScanPaths({QStringLiteral("file:///root/b")});
     c.scan();
     QTRY_COMPARE_WITH_TIMEOUT(c.modelCount(), 1, 5000);
     QCOMPARE(c.activeModel(), nullptr);
+    QCOMPARE(spy.count(), 1);
 }
 
 QTEST_MAIN(tst_wallpapercontroller)

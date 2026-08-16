@@ -241,9 +241,11 @@ void WallpaperController::releaseStaleModels(const QStringList &kept)
     for (int i = m_models.size() - 1; i >= 0; --i) {
         WallpaperModel *m = m_models.at(i);
         if (!keptKeys.contains(m->key())) {
-            // 释放的正是当前活动文件夹 model → 同步置空，防 activeModel 悬空
+            // 释放的正是当前活动文件夹 model → 同步置空并 emit，防 activeModel 悬空
+            // （view.model 直接绑定 activeModel，置空不发信号会导致 QML 继续持有已 delete 指针）
             if (m_activeModel == m) {
                 m_activeModel = nullptr;
+                Q_EMIT activeModelChanged();
             }
             delete m_models.takeAt(i);
         }
