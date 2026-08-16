@@ -46,6 +46,9 @@ private Q_SLOTS:
     void mergeSelectedIndexMinusOneClearsAll();
     void mergeSetSourcesRemountRecomputes();
     void mergeSelectedIndexForwardsSourceSignal();
+    void mergeGetCrossesSources();
+    void mergeIndexOfCrossesSources();
+    void mergeRejectsAddEntriesAndClear();
 };
 
 void tst_wallpapermodel::keyRoundTrip()
@@ -338,6 +341,69 @@ void tst_wallpapermodel::mergeSelectedIndexForwardsSourceSignal()
     modelA.setSelectedIndex(1);
     modelA.setSelectedIndex(-1);
     QCOMPARE(spy.count(), 3);
+}
+
+// 聚合模式 get 跨源定位：全局行 → 所属源的本地 WallpaperItem*
+void tst_wallpapermodel::mergeGetCrossesSources()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    WallpaperModel modelB(QStringLiteral("file:///root/b"));
+    modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
+    modelB.addEntries({WallpaperEntry()});
+    WallpaperModel merged(QString{});
+    merged.setSources({&modelA, &modelB});
+
+    QVERIFY(merged.get(0) == modelA.get(0));
+    QVERIFY(merged.get(1) == modelA.get(1));
+    QVERIFY(merged.get(2) == modelB.get(0));
+    QCOMPARE(merged.get(-1), nullptr);
+    QCOMPARE(merged.get(3), nullptr);
+}
+
+// 聚合模式 indexOf 跨源定位：source URL → 全局行
+void tst_wallpapermodel::mergeIndexOfCrossesSources()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    WallpaperModel modelB(QStringLiteral("file:///root/b"));
+    QTemporaryDir tmp;
+    QVERIFY(tmp.isValid());
+    const QString dirA = QDir(tmp.path()).filePath(QStringLiteral("a"));
+    QVERIFY(QDir().mkpath(dirA));
+    const QString dirB = QDir(tmp.path()).filePath(QStringLiteral("b"));
+    QVERIFY(QDir().mkpath(dirB));
+    QFile idxA(dirA + QStringLiteral("/index.html"));
+    QVERIFY(idxA.open(QIODevice::WriteOnly));
+    idxA.write("<!doctype html>");
+    idxA.close();
+    QFile idxB(dirB + QStringLiteral("/index.html"));
+    QVERIFY(idxB.open(QIODevice::WriteOnly));
+    idxB.write("<!doctype html>");
+    idxB.close();
+
+    modelA.addEntries({WallpaperEntry(WallpaperPath::toUrl(dirA))});
+    modelB.addEntries({WallpaperEntry(WallpaperPath::toUrl(dirB))});
+    WallpaperModel merged(QString{});
+    merged.setSources({&modelA, &modelB});
+
+    QCOMPARE(merged.indexOf(WallpaperPath::toUrl(dirA + QStringLiteral("/index.html"))), 0);
+    QCOMPARE(merged.indexOf(WallpaperPath::toUrl(dirB + QStringLiteral("/index.html"))), 1);
+    QCOMPARE(merged.indexOf(QStringLiteral("file:///nonexistent.html")), -1);
+}
+
+// 聚合模式是只读视图：addEntries/clear 非法调用被忽略
+void tst_wallpapermodel::mergeRejectsAddEntriesAndClear()
+{
+    WallpaperModel modelA(QStringLiteral("file:///root/a"));
+    modelA.addEntries({WallpaperEntry(), WallpaperEntry()});
+    WallpaperModel merged(QString{});
+    merged.setSources({&modelA});
+    QCOMPARE(merged.rowCount(), 2);
+
+    merged.addEntries({WallpaperEntry()});
+    QCOMPARE(merged.rowCount(), 2);
+    merged.clear();
+    QCOMPARE(merged.rowCount(), 2);
+    QCOMPARE(modelA.rowCount(), 2);
 }
 
 QTEST_MAIN(tst_wallpapermodel)

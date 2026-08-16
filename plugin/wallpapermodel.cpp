@@ -89,6 +89,9 @@ QHash<int, QByteArray> WallpaperModel::roleNames() const
 
 void WallpaperModel::addEntries(const QList<WallpaperEntry> &wallpapers)
 {
+    if (m_isAggregate) {
+        return; // 聚合模式只读视图，非法调用忽略
+    }
     beginResetModel();
     for (WallpaperItem *p : m_items) {
         delete p; // 释放旧条目（QObject parent = 本 model）
@@ -103,6 +106,9 @@ void WallpaperModel::addEntries(const QList<WallpaperEntry> &wallpapers)
 
 void WallpaperModel::clear()
 {
+    if (m_isAggregate) {
+        return; // 聚合模式只读视图，非法调用忽略
+    }
     beginResetModel();
     for (WallpaperItem *p : m_items) {
         delete p;
@@ -242,6 +248,17 @@ void WallpaperModel::onSourceSelectedIndexChanged()
 
 int WallpaperModel::indexOf(const QString &source) const
 {
+    if (m_isAggregate) {
+        int offset = 0;
+        for (const WallpaperModel *src : m_sources) {
+            const int local = src->indexOf(source);
+            if (local >= 0) {
+                return offset + local;
+            }
+            offset += src->rowCount();
+        }
+        return -1;
+    }
     for (int i = 0; i < m_items.size(); ++i) {
         if (m_items.at(i)->file() == source) {
             return i;
@@ -252,6 +269,20 @@ int WallpaperModel::indexOf(const QString &source) const
 
 WallpaperItem *WallpaperModel::get(int i)
 {
+    if (m_isAggregate) {
+        if (i < 0 || i >= rowCount()) {
+            return nullptr;
+        }
+        int remaining = i;
+        for (WallpaperModel *src : m_sources) {
+            const int count = src->rowCount();
+            if (remaining < count) {
+                return src->get(remaining);
+            }
+            remaining -= count;
+        }
+        return nullptr;
+    }
     if (i < 0 || i >= m_items.size()) {
         return nullptr;
     }
