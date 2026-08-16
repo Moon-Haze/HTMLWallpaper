@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+# 同一分支/PR 并发触发时取消旧运行，避免浪费 runner。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------- 构建 + 测试 ----------
+  build-and-test:
+    name: 构建与测试
+    runs-on: ubuntu-latest
+    # KDE neon 容器：预装最新 Plasma/KF6/Qt6 开发栈，满足
+    # Qt>=6.10 / KF6>=6.26 / Plasma>=6.6.90 的版本下限。
+    # unstable 分支始终提供最新 KDE 软件；默认用户 neon，sudo 免密。
+    container:
+      image: invent-registry.kde.org/neon/docker-images/plasma:unstable
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装构建依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build cmake extra-cmake-modules \
+            qt6-base-dev qt6-declarative-dev qt6-declarative-dev-tools \
+            qt6-webengine-dev \
+            plasma-workspace-dev \
+            libgl1 libegl1 libglx-mesa0
+        # plasma-workspace-dev -> 提供 PlasmaConfig.cmake（find_package(Plasma)）
+        # qt6-declarative-dev-tools -> /usr/lib/qt6/bin/qmltestrunner（Qt6 版）
+        # qt6-webengine-dev -> dev/ 调试程序依赖 Qt6::WebEngineQuick
+
+      - name: 配置（等价 native preset：系统 KF6，不走 vcpkg）
+        run: >
+          cmake -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX="$HOME/.local"
+          -DBUILD_TESTING=ON
+
+      - name: 构建
+        run: cmake --build build --parallel "$(nproc)"
+
+      # C++ 数据层单测（tst_wallpaperproject / model / controller）：严格门禁，失败即红灯。
+      - name: C++ 单测（严格门禁）
+        run: ctest --test-dir build --output-on-failure -R 'tst_wallpaper'
+
+      # QML 测试严格门禁：tst_FolderTabs / tst_ThumbnailsHighlight 已修复
+      # （ThumbnailsPanel 移除 currentIndex 绑定，改手动 + Qt.callLater 复位），
+      # 不再容忍失败。
+      - name: QML 测试
+        run: ctest --test-dir build --output-on-failure -R '^tst_' -E 'tst_wallpaper'
+
+      # 安装到 staging 目录，供 release job 打包（避免跨容器路径问题）。
+      - name: 安装产物到 staging
+        run: cmake --install build --prefix build/staging
+
+      - name: 上传安装产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-staging
+          path: build/staging
+          retention-days: 7
+          if-no-files-found: error
+
+  # ---------- 打 tag 时发布 ----------
+  release:
+    name: 发布到 GitHub Release
+    needs: build-and-test
+    # 仅 tag（v*）触发；PR / 普通 push 跳过。
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: install-staging
+          path: staging
+
+      - name: 打包安装产物
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          tar -C staging -czf "htmlwallpaper-${ver}.tar.gz" .
+          ls -lh htmlwallpaper-*.tar.gz
+
+      # release 不存在则创建（含自动 release notes），已存在则只补传资产。
+      - name: 创建/更新 Release 并上传资产
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" htmlwallpaper-*.tar.gz --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" htmlwallpaper-*.tar.gz --generate-notes
+          fi
