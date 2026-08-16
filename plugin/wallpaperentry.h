@@ -21,12 +21,12 @@ QString pathJoin(const QString &a, const QString &b);
 class WallpaperEntry;
 
 struct ScanGroup {
-    QString key;                       // 扫描根 URL（WallpaperPath::toUrl 归一化）
-    QList<WallpaperEntry> entries;     // 该根下探测到的壁纸
+    QString key; // 扫描根 URL（WallpaperPath::toUrl 归一化）
+    QList<WallpaperEntry> entries; // 该根下探测到的壁纸
 };
 
 struct ScanResult {
-    QList<ScanGroup> groups;           // 按 roots 遍历顺序保序
+    QList<ScanGroup> groups; // 按 roots 遍历顺序保序
     QList<QPair<QString, QString>> failures; // (path, error)
 };
 
@@ -44,11 +44,8 @@ public:
     bool isValid() const;
 
     QString name() const;
-    QString title() const;
     QString path() const;
     QString file() const;
-    QString source() const;
-    QString display() const;
     QString preview() const;
 
 private:

@@ -111,10 +111,6 @@ QString WallpaperEntry::name() const
 {
     return m_name;
 }
-QString WallpaperEntry::title() const
-{
-    return m_name;
-}
 QString WallpaperEntry::path() const
 {
     return m_path;
@@ -122,14 +118,6 @@ QString WallpaperEntry::path() const
 QString WallpaperEntry::file() const
 {
     return m_file;
-}
-QString WallpaperEntry::source() const
-{
-    return m_file;
-}
-QString WallpaperEntry::display() const
-{
-    return m_name;
 }
 QString WallpaperEntry::preview() const
 {

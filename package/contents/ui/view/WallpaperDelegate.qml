@@ -27,7 +27,7 @@ KCM.GridDelegate {
     property alias color: backgroundRect.color
     property alias previewSize: previewImage.sourceSize
     // 注入的解析器实例（点选应用时使用）
-    property QtObject htmlWallpaper: null
+    property QtObject wallpaperController: null
     
     // 标记为"待删除"的项半透明显示（HTML 模式模型无此 role，恒为不透明）
     // 注：pendingDeletion 在 WallpaperModel/WallpaperItem/mock 三态下均为
@@ -36,7 +36,7 @@ KCM.GridDelegate {
     // view.model 恒为真 QAbstractListModel，role 直接可用，不再需要 modelData 双路径。
     opacity: model.pendingDeletion ? 0.5 : 1
 
-    text: model.title
+    text: model.name
 
     // —— 缩略图内容 ——
     thumbnail: Rectangle {

@@ -41,8 +41,6 @@ QVariant WallpaperModel::data(const QModelIndex &index, int role) const
     switch (role) {
     case NameRole:
         return item->name();
-    case TitleRole:
-        return item->title();
     case PathRole:
         return item->path();
     case PreviewRole:
@@ -58,7 +56,6 @@ QHash<int, QByteArray> WallpaperModel::roleNames() const
 {
     return {
         {NameRole, "name"},
-        {TitleRole, "title"},
         {PathRole, "path"},
         {PreviewRole, "preview"},
         {FileRole, "file"},
@@ -120,7 +117,7 @@ void WallpaperModel::setSelectedIndex(int index)
 int WallpaperModel::indexOf(const QString &source) const
 {
     for (int i = 0; i < m_items.size(); ++i) {
-        if (m_items.at(i)->source() == source) {
+        if (m_items.at(i)->file() == source) {
             return i;
         }
     }

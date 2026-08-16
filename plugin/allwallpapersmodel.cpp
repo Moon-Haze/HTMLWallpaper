@@ -69,7 +69,6 @@ QHash<int, QByteArray> AllWallpapersModel::roleNames() const
     // 硬编码对齐 WallpaperModel::roleNames（五字段），QML role 名一致
     return {
         {WallpaperModel::NameRole, "name"},
-        {WallpaperModel::TitleRole, "title"},
         {WallpaperModel::PathRole, "path"},
         {WallpaperModel::PreviewRole, "preview"},
         {WallpaperModel::FileRole, "file"},
@@ -87,8 +86,7 @@ int AllWallpapersModel::selectedIndex() const
     // 优先"最后变化的源"：直接操作源 model 制造多源选中时，getter 反映
     // 最新一次写入，而非被首个非 -1 源的残留选中遮蔽（如 A==1 后再设
     // B==0，应返回 B 的全局行而非 A 的）。该源需仍在挂载中且有选中。
-    if (m_lastChangedSource && m_sources.contains(m_lastChangedSource)
-            && m_lastChangedSource->selectedIndex() >= 0) {
+    if (m_lastChangedSource && m_sources.contains(m_lastChangedSource) && m_lastChangedSource->selectedIndex() >= 0) {
         return offsetOf(m_lastChangedSource) + m_lastChangedSource->selectedIndex();
     }
     // 兜底：单选不变量（合并 setter 写路径保证）下遍历首个非 -1 源即可

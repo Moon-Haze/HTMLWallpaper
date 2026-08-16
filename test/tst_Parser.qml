@@ -116,22 +116,16 @@ TestCase {
         verify(fetch === null, "fetch 无 html 不应被收录");
         verify(paramfallback === null, "paramfallback 无 html 不应被收录");
 
-        // aurora：title/display = name（目录名），缺省入口探测到 index.html
-        compare(aurora.title, "aurora");
-        compare(aurora.display, "aurora");
+        // aurora：缺省入口探测到 index.html
         verify(aurora.file.endsWith("/data/wallpapers/aurora/index.html"), "file: " + aurora.file);
-        // source 是 file 的别名
-        compare(aurora.source, aurora.file);
 
         // matrix 目录下入口为 main.html
         verify(matrix.file.endsWith("/data/wallpapers/matrix/main.html"), "matrix file: " + matrix.file);
 
         // nova 目录下自动探测到 preview.jpg
         verify(nova.preview.endsWith("/data/wallpapers/nova/preview.jpg"), "nova preview 应自动探测: " + nova.preview);
-        compare(nova.title, "nova");
 
         // missing-entry 目录仅 real.html → 探测到 real.html
         verify(missing.file.endsWith("/data/wallpapers/missing-entry/real.html"), "missing file 应自动探测: " + missing.file);
-        compare(missing.title, "missing-entry");
     }
 }

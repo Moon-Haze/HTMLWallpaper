@@ -20,11 +20,8 @@ class WallpaperItem : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString name READ name CONSTANT)
-    Q_PROPERTY(QString title READ title CONSTANT)
     Q_PROPERTY(QString path READ path CONSTANT)
     Q_PROPERTY(QString file READ file CONSTANT)
-    Q_PROPERTY(QString source READ source CONSTANT)
-    Q_PROPERTY(QString display READ display CONSTANT)
     Q_PROPERTY(QString preview READ preview CONSTANT)
 
 public:
@@ -34,10 +31,6 @@ public:
     {
         return m_entry.name();
     }
-    QString title() const
-    {
-        return m_entry.title();
-    }
     QString path() const
     {
         return m_entry.path();
@@ -45,14 +38,6 @@ public:
     QString file() const
     {
         return m_entry.file();
-    }
-    QString source() const
-    {
-        return m_entry.source();
-    }
-    QString display() const
-    {
-        return m_entry.display();
     }
     QString preview() const
     {

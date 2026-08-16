@@ -37,7 +37,6 @@ class WallpaperModel : public QAbstractListModel
 public:
     enum Roles {
         NameRole = Qt::UserRole + 1,
-        TitleRole,
         PathRole,
         PreviewRole,
         FileRole,
@@ -72,7 +71,7 @@ Q_SIGNALS:
 
 private:
     void resetSelectedIndexIfNeeded(); // 整组替换后清选中（仅原值非 -1 时 emit）
-    QString m_key;                  // 本文件夹归一化 URL
+    QString m_key; // 本文件夹归一化 URL
     QList<WallpaperItem *> m_items; // 本文件夹的壁纸项（QObject parent = 本 model）
-    int m_selectedIndex = -1;       // 本文件夹选中行（-1 = 无选中）
+    int m_selectedIndex = -1; // 本文件夹选中行（-1 = 无选中）
 };

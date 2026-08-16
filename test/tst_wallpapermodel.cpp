@@ -10,9 +10,9 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include "wallpapermodel.h"
-#include "wallpaperitem.h"
 #include "allwallpapersmodel.h"
+#include "wallpaperitem.h"
+#include "wallpapermodel.h"
 #include <QSignalSpy>
 
 /**
@@ -109,7 +109,6 @@ void tst_wallpapermodel::dataRolesAndGet()
     QVERIFY(model.get(0) != nullptr);
     // 无效 WallpaperEntry 的各 role data 为空字符串
     QCOMPARE(model.data(model.index(0, 0), WallpaperModel::NameRole).toString(), QString());
-    QCOMPARE(model.data(model.index(0, 0), WallpaperModel::TitleRole).toString(), QString());
     QCOMPARE(model.data(model.index(0, 0), WallpaperModel::PathRole).toString(), QString());
     QCOMPARE(model.data(model.index(0, 0), WallpaperModel::PreviewRole).toString(), QString());
     QCOMPARE(model.data(model.index(0, 0), WallpaperModel::FileRole).toString(), QString());
@@ -218,8 +217,6 @@ void tst_wallpapermodel::mergeAggregatesAcrossSources()
     QCOMPARE(merged.rowCount(), 3);
     // 跨源定位：行 0/1 在 A，行 2 在 B——返回 B 的非空 name 而非越界空
     QCOMPARE(merged.data(merged.index(2, 0), WallpaperModel::NameRole).toString(), QStringLiteral("b"));
-    // roles 对齐
-    QCOMPARE(merged.roleNames().value(WallpaperModel::TitleRole), QByteArray("title"));
 
     // 换源后行数随之变化
     AllWallpapersModel merged2;
