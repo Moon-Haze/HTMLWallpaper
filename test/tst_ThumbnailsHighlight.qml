@@ -43,6 +43,7 @@ TestCase {
             // QtObject 无 default property，ListModel 需用 property 声明（否则
             // 直接作子对象会报 "Cannot assign to non-existent default property"）。
             + '\n  property ListModel modelA: ListModel {'
+            + '\n    id: modelAImpl'
             + '\n    property int selectedIndex: -1'
             + '\n    ListElement { name: "a"; title: "a"; path: "file:///a.html"; file: "file:///a.html"; preview: "" }'
             + '\n    ListElement { name: "b"; title: "b"; path: "file:///b.html"; file: "file:///b.html"; preview: "" }'
@@ -50,6 +51,11 @@ TestCase {
             + '\n  }'
             // ThumbnailsPanel 当前网格 model 直接读 wallpaperController.activeModel
             + '\n  property var activeModel: modelA'
+            // activeIndex 转发 activeModel 选中行（模拟 C++ WallpaperController
+            // activeIndex() 读 activeModel.selectedIndex、setActiveIndex 写之），
+            // alias 到 ListModel 的 selectedIndex 使读写与 selectedIndex 联动。
+            // 注意 alias 目标须是对象 id（modelAImpl），property 名（modelA）不可引用。
+            + '\n  property alias activeIndex: modelAImpl.selectedIndex'
             + '\n  function modelFor(url) { return modelA; }'
             + '\n  function allModel() { return modelA; }'
             + '\n}',
@@ -85,16 +91,18 @@ TestCase {
     }
 
     // 定位到第 i 项并触发其 delegate 的 clicked 信号（等价点击缩略图）。
-    // 触发前把 currentIndex 复位到别的索引（(i + 1) % 3），使随后的
-    // compare(currentIndex, i) 真实验证 onClicked 把高亮移回点击项，
+    // 注意：ThumbnailsPanel 把 view.currentIndex 绑定到 wallpaperController.activeIndex
+    // （高亮由选中行驱动），故不能直接改 view.currentIndex 定位项——那会解除绑定。
+    // 改用 itemAtIndex 取第 i 项 delegate；触发前先把 activeIndex 复位为 -1，
+    // 使随后的 compare(currentIndex, i) 真实验证 onClicked 把高亮移回点击项，
     // 而非因预先设了 currentIndex=i 而恒真（自证循环）。
     function clickIndex(i) {
-        comp.view.currentIndex = i;
-        verify(waitForCondition(() => comp.view.currentItem !== null, 2000),
+        wallpaperController.activeIndex = -1;   // 复位选中与高亮（currentIndex 跟随）
+        comp.view.positionViewAtIndex(i, GridView.Center); // 滚动兜底确保第 i 项可见
+        verify(waitForCondition(() => comp.view.itemAtIndex(i) !== null, 2000),
                "索引 " + i + " 的 delegate 未实例化");
-        const delegate = comp.view.currentItem;   // 持有第 i 项 delegate
-        comp.view.currentIndex = (i + 1) % 3;     // 复位到别的索引，使 currentIndex 断言有意义
-        delegate.clicked();                        // 触发 onClicked（delegate 的 model context 仍有效）
+        const delegate = comp.view.itemAtIndex(i); // 持有第 i 项 delegate
+        delegate.clicked();                         // 触发 onClicked（delegate 的 model context 仍有效）
     }
 
     // 点击缩略图 → view.model.selectedIndex = index，currentIndex = index

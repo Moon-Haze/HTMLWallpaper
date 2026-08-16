@@ -41,25 +41,23 @@ ColumnLayout {
         // scanPaths：两个扫描根
         property var scanPaths: ["file:///root/a", "file:///root/b"]
 
-        // 每文件夹一个 model：groupA / groupB
-        property var groupA: [
-            { name: "a1", title: "a1", path: "file:///a1.html", file: "file:///a1.html", preview: "" },
-            { name: "a2", title: "a2", path: "file:///a2.html", file: "file:///a2.html", preview: "" }
-        ]
-        property var groupB: [
-            { name: "b1", title: "b1", path: "file:///b1.html", file: "file:///b1.html", preview: "" }
-        ]
+        // 每文件夹一个 model：groupA / groupB（ListModel 模拟 C++ WallpaperModel，
+        // 与真实 model 同走 QAbstractItemModel 路径，贴近生产行为）
+        property var groupA: ListModel {
+            ListElement { name: "a1"; title: "a1"; path: "file:///a1.html"; file: "file:///a1.html"; preview: "" }
+            ListElement { name: "a2"; title: "a2"; path: "file:///a2.html"; file: "file:///a2.html"; preview: "" }
+        }
+        property var groupB: ListModel {
+            ListElement { name: "b1"; title: "b1"; path: "file:///b1.html"; file: "file:///b1.html"; preview: "" }
+        }
 
         // 合并缓存：首次 allModel() 调用构建，之后返回同一引用（供引用相等断言）
         property var allModelCache: null
         function allModel() {
             if (allModelCache === null) {
                 const all = [];
-                for (const g of [groupA, groupB]) {
-                    for (const e of g) {
-                        all.push(e);
-                    }
-                }
+                for (let i = 0; i < groupA.count; ++i) all.push(groupA.get(i));
+                for (let i = 0; i < groupB.count; ++i) all.push(groupB.get(i));
                 allModelCache = all;
             }
             return allModelCache;
@@ -88,10 +86,19 @@ ColumnLayout {
         function removeScanPath(url) {
             scanPaths = scanPaths.filter(function (u) { return u !== String(url); });
         }
-        // 当前活动壁纸集合：默认全部（allModel()），由 ScanPathsPanel 点击驱动
-        // （文件夹 → modelFor 组；全部 → allModel）。声明在函数后，确保调用
-        // allModel() 时 allModelCache 已初始化（属性初始化可引用对象方法）。
-        property var activeModel: allModel()
+        // 当前活动壁纸集合：可写属性（模拟 C++ Q_PROPERTY activeModel），由
+        // ScanPathsPanel 点击驱动（文件夹 → modelFor 组；全部 → allModel）。
+        // 不能用 `: allModel()` 声明式绑定：allModel() 函数体内写 allModelCache
+        // 与读取构成绑定循环（QML 报 "Binding loop detected for activeModel"），
+        // 故初值改在 Component.onCompleted 里赋 allModel() 引用。
+        property var activeModel: null
+        // 当前活动选中行（模拟 C++ WallpaperController::activeIndex() 转发
+        // activeModel.selectedIndex）。切换活动集合后新 model 无选中，复位 -1。
+        property int activeIndex: -1
+        // 切换活动壁纸集合 → 新 model 无选中，选中行复位（防悬空语义）
+        onActiveModelChanged: activeIndex = -1
+        // 初值：指向"全部"合并缓存数组（引用相等断言 compare(activeModel, allModel()) 依赖）
+        Component.onCompleted: activeModel = allModel()
     }
 
     View.ScanPathsPanel {

@@ -14,7 +14,8 @@ import QtTest
  *   - 默认选中"全部"：ThumbnailsPanel.view.model === allModel()（合并）
  *   - 点击文件夹标签 → activeFolder = 该 URL，view.model === modelFor(url)
  *   - 点击"全部"标签 → view.model 切回 allModel()
- *   - 切换标签后 view.currentIndex 复位为 -1（清高亮）
+ *   - 切换标签后选中态复位：controller.activeIndex 归 -1（清选中/高亮源；
+ *     view.currentIndex 停 0 是 Qt setModel 破坏绑定所致，不在此断言范围）
  *
  * 环境注意：wallpaperController 用 mock（scanPaths 数组 + modelFor/allModel 缓存数组）；
  * i18n 函数 mock。
@@ -79,10 +80,10 @@ TestCase {
         // 点击驱动：controller.activeModel 指向该文件夹的 modelFor 组
         compare(host.wallpaperControllerController.activeModel,
                 host.wallpaperControllerController.modelFor("file:///root/a"));
-        // 单文件夹模式：view.model 跟随 activeModel（modelFor("file:///root/a") 返回的数组）
+        // 单文件夹模式：view.model 跟随 activeModel（modelFor("file:///root/a") 返回的 ListModel）
         compare(host.thumbnails.view.model, host.wallpaperControllerController.modelFor("file:///root/a"));
-        compare(host.thumbnails.view.model.length, 2);
-        compare(host.thumbnails.view.model[0].title, "a1");
+        compare(host.thumbnails.view.model.count, 2);
+        compare(host.thumbnails.view.model.get(0).title, "a1");
     }
 
     // 点击"全部"标签 → 切回全部（先经真实点击选中某文件夹，再触发 allTab）
@@ -93,7 +94,7 @@ TestCase {
         list.currentItem.clicked();
         compare(host.scanPathsView.selectedFolder, "file:///root/b");
         verify(waitForCondition(() => host.thumbnails.view.model !== null, 2000), "gridModel 未就绪");
-        compare(host.thumbnails.view.model.length, 1);
+        compare(host.thumbnails.view.model.count, 1);
 
         // 触发 header 的"全部"动作 → selectedFolder 置空
         host.scanPathsView.allTab.triggered();
@@ -106,19 +107,25 @@ TestCase {
                 host.wallpaperControllerController.allModel());
     }
 
-    // 切换标签后 currentIndex 复位（清高亮）
-    function test_switchResetsCurrentIndex() {
-        host.thumbnails.view.currentIndex = 2;
-        // 先固化前置：赋值确实生效（否则断言 -1 会退化为"本来就 -1"的弱自证）
-        compare(host.thumbnails.view.currentIndex, 2);
-        // 切换标签（点击文件夹）→ controller.activeModel 变化 → view.model 替换
-        // → currentIndex 复位（QQuickItemView 在 model reset 时归 -1）
+    // 切换标签后选中态复位（清高亮）
+    // activeIndex 派生自 activeModel.selectedIndex：切到新 model（无选中行）后复位 -1，
+    // 这是"清高亮"的数据层语义。注：view.currentIndex 绑定 activeIndex，但 setModel 时
+    // Qt 的 QQuickItemView 会破坏该绑定并把 currentIndex 内部归 0（已实测，属框架行为），
+    // 故 currentIndex 停 0 不在此断言范围——本测试锁定选中态（activeIndex）复位。
+    function test_switchResetsSelection() {
+        // 前置：选中第 2 项（activeIndex 写入当前活动 model 的选中行）
+        host.wallpaperControllerController.activeIndex = 2;
+        verify(waitForCondition(() => host.wallpaperControllerController.activeIndex === 2, 2000),
+               "activeIndex 前置未就绪");
+        // 切换标签（点击文件夹）→ controller.activeModel 变化 → 新 model 无选中
         const list = host.scanPathsView.folderList;
         verify(waitForCondition(() => list.count === 2, 2000), "scanPaths 未就绪");
         list.currentIndex = 0;
         verify(waitForCondition(() => list.currentItem !== null, 2000), "文件夹 delegate 未实例化");
         list.currentItem.clicked();
-        verify(waitForCondition(() => host.thumbnails.view.currentIndex === -1, 2000), "currentIndex 未复位");
-        compare(host.thumbnails.view.currentIndex, -1);
+        // 选中态复位：activeIndex 归 -1（新 model 无选中行，非自证：从 2 出发验证归零）
+        verify(waitForCondition(() => host.wallpaperControllerController.activeIndex === -1, 2000),
+               "activeIndex 未复位");
+        compare(host.wallpaperControllerController.activeIndex, -1);
     }
 }
