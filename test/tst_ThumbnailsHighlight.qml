@@ -48,6 +48,8 @@ TestCase {
             + '\n    ListElement { name: "b"; title: "b"; path: "file:///b.html"; file: "file:///b.html"; preview: "" }'
             + '\n    ListElement { name: "c"; title: "c"; path: "file:///c.html"; file: "file:///c.html"; preview: "" }'
             + '\n  }'
+            // ThumbnailsPanel 当前网格 model 直接读 wallpaperController.activeModel
+            + '\n  property var activeModel: modelA'
             + '\n  function modelFor(url) { return modelA; }'
             + '\n  function allModel() { return modelA; }'
             + '\n}',

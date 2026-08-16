@@ -88,8 +88,6 @@ ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 wallpaperController: wallpaperController
-                // 标签联动：左栏选中文件夹 → 中栏显示对应壁纸组
-                activeFolder: scanPathsView.selectedFolder
             }
         }
     }

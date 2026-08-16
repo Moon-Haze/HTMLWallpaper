@@ -41,6 +41,8 @@ ColumnLayout {
         // 新架构：modelFor/allModel 返回该文件夹 model
         function modelFor(url) { return modelA; }
         function allModel() { return modelA; }
+        // 当前活动 model：ThumbnailsPanel 的 view.model 直接读 activeModel
+        property var activeModel: modelA
     }
 
     // 暴露面板供测试断言

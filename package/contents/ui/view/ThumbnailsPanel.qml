@@ -71,8 +71,20 @@ Item {
     //     wallpapersGrid.view.positionViewAtIndex(0, ListView.Beginning);
     // }
 
-    // onActiveFolderChanged: refreshModel()
-    // onWallpaperControllerChanged: refreshModel()
+    // controller.activeModel 变化（点击文件夹/全部标签）→ 清空选中高亮：
+    // model 替换时 GridView 不自动复位 currentIndex，需显式归 -1。
+    // 选中态与 currentIndex 对齐：切组后清掉残留高亮（typeof 守卫兼容
+    // 测试 mock 的 JS 数组，数组无 selectedIndex 属性）。
+    Connections {
+        target: wallpaperController
+        function onActiveModelChanged() {
+            wallpapersGrid.view.currentIndex = -1;
+            const m = wallpapersGrid.view.model;
+            if (m && typeof m.selectedIndex !== "undefined") {
+                m.selectedIndex = -1;
+            }
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent

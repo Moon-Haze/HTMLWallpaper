@@ -40,8 +40,6 @@ ColumnLayout {
         id: wallpaperController
         // scanPaths：两个扫描根
         property var scanPaths: ["file:///root/a", "file:///root/b"]
-        // 当前活动壁纸集合：由 ScanPathsPanel 点击驱动（文件夹 → modelFor 组；全部 → allModel）
-        property var activeModel: null
 
         // 每文件夹一个 model：groupA / groupB
         property var groupA: [
@@ -90,6 +88,10 @@ ColumnLayout {
         function removeScanPath(url) {
             scanPaths = scanPaths.filter(function (u) { return u !== String(url); });
         }
+        // 当前活动壁纸集合：默认全部（allModel()），由 ScanPathsPanel 点击驱动
+        // （文件夹 → modelFor 组；全部 → allModel）。声明在函数后，确保调用
+        // allModel() 时 allModelCache 已初始化（属性初始化可引用对象方法）。
+        property var activeModel: allModel()
     }
 
     View.ScanPathsPanel {
@@ -104,8 +106,6 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         wallpaperController: root.wallpaperControllerController
-        // 标签联动（复刻 config.qml）
-        activeFolder: scanPathsPanel.selectedFolder
         width: 600
         height: 400
     }
