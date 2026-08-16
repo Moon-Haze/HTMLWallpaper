@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <QAbstractItemModel>
 #include <QFutureWatcher>
 #include <QList>
 #include <QObject>
@@ -25,10 +24,10 @@
  * 并为每个扫描根缓存一个单文件夹 WallpaperModel（QList<WallpaperModel *> m_models）。
  *
  * - modelFor(url)：url 对应文件夹的常驻 WallpaperModel*（key 归一化去重建）。
- * - allModel()：懒建 AllWallpapersModel 聚合全部文件夹；scan 后对缓存实例
- *   setSources 重挂最新源（保活复用，无悬空指针）。
+ * - allModel()：懒建聚合 WallpaperModel（空 key）聚合全部文件夹；scan 后对
+ *   缓存实例 setSources 重挂最新源（保活复用，无悬空指针）。
  * - activeModel：当前活动壁纸集合（ScanPathsPanel 点击驱动）——单文件夹时
- *   指向对应 WallpaperModel*，"全部"时指向 allModel() 的合并 model。
+ *   指向对应 WallpaperModel*，"全部"时指向 allModel() 的聚合 model。
  * - scan()：后台一次扫所有 scanPaths，逐组 addEntries 到对应文件夹 model。
  */
 class WallpaperController : public QObject
@@ -40,8 +39,8 @@ class WallpaperController : public QObject
     Q_PROPERTY(QString selectWallpaper READ selectWallpaper WRITE setSelectWallpaper NOTIFY selectWallpaperChanged)
     Q_PROPERTY(QStringList scanPaths READ scanPaths WRITE setScanPaths NOTIFY scanPathsChanged)
     Q_PROPERTY(bool scanInProgress READ scanInProgress NOTIFY scanInProgressChanged)
-    // 当前活动壁纸集合（WallpaperModel* 单文件夹 或 AllWallpapersModel* 全部）
-    Q_PROPERTY(QAbstractItemModel *activeModel READ activeModel WRITE setActiveModel NOTIFY activeModelChanged)
+    // 当前活动壁纸集合（单文件夹或聚合 WallpaperModel*）
+    Q_PROPERTY(WallpaperModel *activeModel READ activeModel WRITE setActiveModel NOTIFY activeModelChanged)
     Q_PROPERTY(int activeIndex READ activeIndex NOTIFY activeIndexChanged)
 
 public:
@@ -56,8 +55,8 @@ public:
     void setScanPaths(const QStringList &urls);
     bool scanInProgress() const;
     /** 当前活动壁纸集合（nullptr = 尚未设置；由 ScanPathsPanel 点击驱动）。 */
-    QAbstractItemModel *activeModel() const;
-    void setActiveModel(QAbstractItemModel *model);
+    WallpaperModel *activeModel() const;
+    void setActiveModel(WallpaperModel *model);
     /** 已缓存的文件夹 model 数（测试/调试用）。QML 读作方法调用 modelCount()。 */
     Q_INVOKABLE int modelCount() const;
 
@@ -66,8 +65,8 @@ public:
     Q_INVOKABLE void removeScanPath(const QString &url);
     /** 返回 url 对应文件夹的常驻 WallpaperModel*；不存在即新建（key 归一化）。 */
     Q_INVOKABLE WallpaperModel *modelFor(const QString &url);
-    /** 返回懒建的合并 model（全部文件夹聚合）；scan 后缓存实例重挂最新源。 */
-    Q_INVOKABLE QAbstractItemModel *allModel();
+    /** 返回懒建的聚合 model（全部文件夹聚合）；scan 后缓存实例重挂最新源。 */
+    Q_INVOKABLE WallpaperModel *allModel();
     /** 扫描根 URL → 显示用文件夹名（去末尾斜杠后取最后一段）。 */
     Q_INVOKABLE QString folderName(const QString &url) const;
     /** 扫描根 URL → 父目录路径（去末尾斜杠后去掉最后一段；根路径返回空）。 */
@@ -90,8 +89,8 @@ private:
     QString m_selectWallpaper;
     QStringList m_scanPaths;
     QList<WallpaperModel *> m_models; // 按 key 缓存（key = WallpaperPath::toUrl 归一化）
-    QAbstractItemModel *m_allModel = nullptr; // 懒建合并 model（保活复用）
-    QAbstractItemModel *m_activeModel = nullptr; // 当前活动壁纸集合（防悬空见 releaseStaleModels）
+    WallpaperModel *m_allModel = nullptr; // 懒建聚合 model（保活复用）
+    WallpaperModel *m_activeModel = nullptr; // 当前活动壁纸集合（防悬空见 releaseStaleModels）
     bool m_scanning = false;
     QFutureWatcher<ScanResult> *m_watcher = nullptr;
 };

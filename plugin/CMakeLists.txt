@@ -24,7 +24,6 @@ target_sources(plasma_wallpaper_htmlwallpaperplugin PRIVATE
     wallpapercontroller.cpp
     wallpaperitem.cpp
     wallpapermodel.cpp
-    allwallpapersmodel.cpp
     wallpaperentry.cpp
 )
 

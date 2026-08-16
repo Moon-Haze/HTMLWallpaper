@@ -10,7 +10,6 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include "allwallpapersmodel.h"
 #include "wallpapercontroller.h"
 #include "wallpapermodel.h"
 
@@ -67,7 +66,7 @@ void tst_wallpapercontroller::allModelAggregatesAcrossSources()
     ea.append(WallpaperEntry());
     ea.append(WallpaperEntry());
     // 给源 b 填真实目录探测出的有效条目（name = "b"），使跨源定位断言真正验证
-    // AllWallpapersModel::data 的 remaining 递减逻辑（非空值可区分越界空）。
+    // 聚合 WallpaperModel::data 的 remaining 递减跨源定位（非空值可区分越界空）。
     QTemporaryDir tmp;
     QVERIFY(tmp.isValid());
     const QString dirB = QDir(tmp.path()).filePath(QStringLiteral("b"));
@@ -181,7 +180,7 @@ void tst_wallpapercontroller::allModelSelectedIndexForwards()
     a->addEntries({WallpaperEntry(), WallpaperEntry()});
     b->addEntries({WallpaperEntry()});
 
-    auto *merged = static_cast<AllWallpapersModel *>(c.allModel());
+    auto *merged = c.allModel(); // 已收紧为 WallpaperModel *
     QCOMPARE(merged->selectedIndex(), -1);
 
     // 全局行 2 落在 B 局部 0；A 选中被清空

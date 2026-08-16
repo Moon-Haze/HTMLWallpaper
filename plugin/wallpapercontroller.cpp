@@ -6,8 +6,6 @@
 
 #include "wallpapercontroller.h"
 
-#include "allwallpapersmodel.h"
-
 #include <QDir>
 #include <QFutureWatcher>
 #include <QSet>
@@ -84,19 +82,18 @@ int WallpaperController::activeIndex() const
     if (!m_activeModel) {
         return -1;
     }
-    // activeModel 可能是 WallpaperModel 或 AllWallpapersModel，两者均暴露
-    // selectedIndex 属性；动态读取，避免依赖具体类型（Task 4 收紧为
-    // WallpaperModel * 后可简化为直接 selectedIndex()）。
+    // activeModel 统一为 WallpaperModel *（单文件夹或聚合模式），均暴露
+    // selectedIndex 属性；动态读取，避免对聚合/单文件夹做额外分派。
     const QVariant v = m_activeModel->property("selectedIndex");
     return v.isValid() ? v.toInt() : -1;
 }
 
-QAbstractItemModel *WallpaperController::activeModel() const
+WallpaperModel *WallpaperController::activeModel() const
 {
     return m_activeModel;
 }
 
-void WallpaperController::setActiveModel(QAbstractItemModel *model)
+void WallpaperController::setActiveModel(WallpaperModel *model)
 {
     if (m_activeModel == model) {
         return;
@@ -197,7 +194,7 @@ void WallpaperController::scan()
                         keptModels.append(m);
                     }
                 }
-                static_cast<AllWallpapersModel *>(m_allModel)->setSources(keptModels);
+                m_allModel->setSources(keptModels);
             }
             releaseStaleModels(m_scanPaths);
             setScanInProgress(false);
@@ -225,10 +222,10 @@ WallpaperModel *WallpaperController::modelFor(const QString &url)
     return obtainModel(url);
 }
 
-QAbstractItemModel *WallpaperController::allModel()
+WallpaperModel *WallpaperController::allModel()
 {
     if (!m_allModel) {
-        auto *merged = new AllWallpapersModel(this);
+        auto *merged = new WallpaperModel(QString(), this); // 聚合 model，key 为空
         merged->setSources(m_models);
         m_allModel = merged;
     }

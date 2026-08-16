@@ -10,7 +10,6 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-#include "allwallpapersmodel.h"
 #include "wallpaperitem.h"
 #include "wallpapermodel.h"
 #include <QSignalSpy>
