@@ -14,20 +14,50 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ---------- amd64：KDE neon 容器方案（最可靠） ----------
+  # ---------- amd64：KDE neon 容器方案 ----------
   build-amd64:
     name: 构建与测试 (amd64)
     runs-on: ubuntu-latest
     # KDE neon 容器：预装最新 Plasma/KF6/Qt6 开发栈，满足版本下限
-    # （Qt>=6.10 / KF6>=6.26 / Plasma>=6.6.90）。该镜像为单架构（amd64），
-    # 仅本 job 使用容器；arm64/riscv64 走各自方案。
+    # （Qt>=6.10 / KF6>=6.26 / Plasma>=6.6.90）。镜像为单架构（amd64），与本 job 匹配。
     container:
       image: invent-registry.kde.org/neon/docker-images/plasma:unstable
     steps:
       - uses: actions/checkout@v4
 
-      - name: 依赖安装 + 构建 + 测试 + 安装
-        run: bash .github/scripts/build-test.sh amd64
+      # 容器预装最新 KDE 栈，补装编译工具与 WebEngine 预览依赖。
+      # plasma-workspace-dev -> PlasmaConfig.cmake；qt6-declarative-dev-tools -> qmltestrunner。
+      # 容器内通常为 root；若非 root 且有 sudo 则自动加前缀。
+      - name: 安装系统依赖
+        run: |
+          SUDO=()
+          if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null; then SUDO=(sudo); fi
+          "${SUDO[@]}" apt-get update
+          "${SUDO[@]}" apt-get install -y --no-install-recommends \
+            gcc g++ ninja-build cmake extra-cmake-modules \
+            qt6-base-dev qt6-declarative-dev qt6-declarative-dev-tools \
+            qt6-webengine-dev plasma-workspace-dev \
+            libgl1 libegl1 libglx-mesa0
+
+      # 版本下限（Qt>=6.10 / KF6>=6.26 / Plasma>=6.6.90）由 find_package 兜底校验。
+      - name: 配置与构建
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$HOME/.local" \
+            -DBUILD_TESTING=ON
+          cmake --build build --parallel "$(nproc)"
+
+      # C++ 数据层单测（tst_wallpaperproject / model / controller）：严格门禁，失败即红灯。
+      # QML 测试：ThumbnailsPanel 已修复，不再容忍失败。
+      - name: 运行测试
+        run: |
+          ctest --test-dir build --output-on-failure -R 'tst_wallpaper'
+          ctest --test-dir build --output-on-failure -R '^tst_' -E 'tst_wallpaper'
+
+      # 安装到 staging，供 release job 打包。
+      - name: 安装到 staging
+        run: cmake --install build --prefix build/staging
 
       - name: 上传安装产物
         uses: actions/upload-artifact@v4
@@ -37,65 +67,11 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # ---------- arm64：GitHub 原生 ARM runner + KDE neon 源，无需 QEMU ----------
-  # neon apt 源提供 arm64 二进制（noble 分支与容器镜像同源）；
-  # 依赖安装逻辑见 .github/scripts/build-test.sh 的 arm64 分支。
-  build-arm64:
-    name: 构建与测试 (arm64)
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 依赖安装 + 构建 + 测试 + 安装
-        run: bash .github/scripts/build-test.sh arm64
-
-      - name: 上传安装产物
-        uses: actions/upload-artifact@v4
-        with:
-          name: install-staging-arm64
-          path: build/staging
-          retention-days: 7
-          if-no-files-found: error
-
-  # ---------- riscv64：QEMU 模拟 + Debian 基础镜像，实验性，失败不阻塞 ----------
-  # riscv64 无原生 hosted runner，且 Plasma/KF6/QtWebEngine 无 riscv64 二进制包，
-  # 仅作「能否编译」的探索性验证。构建慢（QEMU 模拟），建议以 workflow_dispatch 手动触发。
-  build-riscv64:
-    name: 构建与测试 (riscv64, 实验性)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 注册 QEMU 模拟器 (riscv64)
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: riscv64
-
-      # 基础镜像用 Debian（官方镜像含 linux/riscv64 manifest）；
-      # 备选：若 debian:stable 无 riscv64 层，可换 debian:trixie 或 riscv64/debian。
-      - name: riscv64 容器内构建（尽力）
-        run: >
-          docker run --rm --platform linux/riscv64
-          -v "$PWD:$PWD" -w "$PWD"
-          debian:stable
-          bash .github/scripts/build-test.sh riscv64
-
-      - name: 上传 riscv64 构建日志
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: riscv64-logs
-          path: riscv64-*.log
-          retention-days: 7
-          if-no-files-found: warn
-
   # ---------- 打 tag 时发布 ----------
-  # riscv64 为实验性 job，不参与发布；仅打包 amd64/arm64 正式产物。
   release:
     name: 发布到 GitHub Release
-    needs: [build-amd64, build-arm64]
-    if: startsWith(github.ref, 'refs/tags/v') && needs.build-amd64.result == 'success' && needs.build-arm64.result == 'success'
+    needs: [build-amd64]
+    if: startsWith(github.ref, 'refs/tags/v') && needs.build-amd64.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -106,7 +82,7 @@ jobs:
           path: staging
           merge-multiple: false
 
-      - name: 打包各架构产物
+      - name: 打包产物
         run: |
           ver="${GITHUB_REF_NAME#v}"
           for d in staging/install-staging-*; do
