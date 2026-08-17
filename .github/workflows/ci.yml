@@ -23,6 +23,11 @@ jobs:
     container:
       image: invent-registry.kde.org/neon/docker-images/plasma:unstable
     steps:
+      # 容器未预装 git：否则 checkout 退化为 REST API 下载归档，易触发 429 限流。
+      - name: 安装 git
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends git
       - uses: actions/checkout@v4
 
       # 容器预装最新 KDE 栈，补装编译工具与 WebEngine 预览依赖。
