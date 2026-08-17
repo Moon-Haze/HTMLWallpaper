@@ -14,9 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ---------- amd64：KDE neon 容器方案 ----------
-  build-amd64:
-    name: 构建与测试 (amd64)
+  # ---------- KDE neon 容器方案 ----------
+  build:
+    name: 构建与测试
     runs-on: ubuntu-latest
     # KDE neon 容器：预装最新 Plasma/KF6/Qt6 开发栈，满足版本下限
     # （Qt>=6.10 / KF6>=6.26 / Plasma>=6.6.90）。镜像为单架构（amd64），与本 job 匹配。
@@ -62,7 +62,7 @@ jobs:
       - name: 上传安装产物
         uses: actions/upload-artifact@v4
         with:
-          name: install-staging-amd64
+          name: install-staging
           path: build/staging
           retention-days: 7
           if-no-files-found: error
@@ -70,26 +70,21 @@ jobs:
   # ---------- 打 tag 时发布 ----------
   release:
     name: 发布到 GitHub Release
-    needs: [build-amd64]
-    if: startsWith(github.ref, 'refs/tags/v') && needs.build-amd64.result == 'success'
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/v') && needs.build.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: install-staging-*
+          name: install-staging
           path: staging
-          merge-multiple: false
 
       - name: 打包产物
         run: |
           ver="${GITHUB_REF_NAME#v}"
-          for d in staging/install-staging-*; do
-            [ -d "$d" ] || continue
-            arch="${d##*-}"
-            tar -C "$d" -czf "htmlwallpaper-${ver}-${arch}.tar.gz" .
-          done
+          tar -C staging/install-staging -czf "htmlwallpaper-${ver}-amd64.tar.gz" .
           ls -lh htmlwallpaper-*.tar.gz
 
       # release 不存在则创建（含自动 release notes），已存在则只补传资产。
