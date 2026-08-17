@@ -30,10 +30,8 @@ jobs:
       # 容器内通常为 root；若非 root 且有 sudo 则自动加前缀。
       - name: 安装系统依赖
         run: |
-          SUDO=()
-          if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null; then SUDO=(sudo); fi
-          "${SUDO[@]}" apt-get update
-          "${SUDO[@]}" apt-get install -y --no-install-recommends \
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
             gcc g++ ninja-build cmake extra-cmake-modules \
             qt6-base-dev qt6-declarative-dev qt6-declarative-dev-tools \
             qt6-webengine-dev plasma-workspace-dev \
