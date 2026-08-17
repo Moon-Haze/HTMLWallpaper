@@ -29,7 +29,7 @@ case "$ARCH" in
     # plasma-workspace-dev -> PlasmaConfig.cmake;qt6-declarative-dev-tools -> qmltestrunner。
     "${SUDO[@]}" apt-get update
     "${SUDO[@]}" apt-get install -y --no-install-recommends \
-      gcc ninja-build cmake extra-cmake-modules \
+      gcc g++ ninja-build cmake extra-cmake-modules \
       qt6-base-dev qt6-declarative-dev qt6-declarative-dev-tools \
       qt6-webengine-dev plasma-workspace-dev \
       libgl1 libegl1 libglx-mesa0
@@ -45,7 +45,7 @@ case "$ARCH" in
     wget -qO- https://archive.neon.kde.org/public.key | "${SUDO[@]}" gpg --dearmor -o /etc/apt/keyrings/neon.gpg
     "${SUDO[@]}" apt-get update
     "${SUDO[@]}" apt-get install -y --no-install-recommends \
-      gcc ninja-build cmake extra-cmake-modules \
+      gcc g++ ninja-build cmake extra-cmake-modules \
       qt6-base-dev qt6-declarative-dev qt6-declarative-dev-tools \
       qt6-webengine-dev plasma-workspace-dev \
       libgl1 libegl1 libglx-mesa0
