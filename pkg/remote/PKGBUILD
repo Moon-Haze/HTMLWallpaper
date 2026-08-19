@@ -3,10 +3,10 @@
 # 上游: https://github.com/Marcel1202/HTMLWallpaper
 
 # 从 git 仓库克隆最新源码构建的 VCS 包。
-# 版本号由 pkgver() 基于 git tag/提交动态生成，每次构建都会拉取最新代码。
+# 版本号由 pkgver() 自动解析 GitHub 最新 release/tag 生成，每次构建都会拉取最新代码并锁定到最新版本。
 _pkgname=plasma6-wallpapers-htmlwallpaper
 pkgname="${_pkgname}-git"
-pkgver=1.0.0
+pkgver=1.0.0 # 占位版本号，会被 pkgver() 自动覆盖
 pkgrel=1
 pkgdesc="KDE Plasma 6 HTML wallpaper plugin - set any HTML page as desktop wallpaper with mouse interaction (git version)"
 arch=('x86_64')
@@ -29,11 +29,26 @@ conflicts=("${_pkgname}")
 source=("${_pkgname}::git+https://github.com/Moon-Haze/HTMLWallpaper.git")
 sha256sums=('SKIP')
 
-# 动态版本号：优先用最近 tag，形如 1.0.0.r2.g62444ec；
-# 无 tag 时 --always 会退化为提交短哈希（如 62444ec），保证返回值非空。
+# 版本号自动解析：查询 GitHub 最新 release 的 tag（如 v1.0.0）去 v 前缀得到干净版本号；
+# 无 release 时回退到最新 tag；再兜底用本地 git tag，保证返回值非空。
 pkgver() {
+  _ver="$(curl -fsSL "https://api.github.com/repos/Moon-Haze/HTMLWallpaper/releases/latest" \
+    | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+  [ -n "$_ver" ] || _ver="$(curl -fsSL "https://api.github.com/repos/Moon-Haze/HTMLWallpaper/tags" \
+    | grep -m1 '"name"' | cut -d'"' -f4)"
+  [ -n "$_ver" ] || _ver="$(git -C "$srcdir/$_pkgname" tag --sort=-version:refname | head -n1)"
+  printf '%s' "${_ver#v}"
+}
+
+prepare() {
   cd "$srcdir/$_pkgname"
-  git describe --long --tags --always 2>/dev/null | sed 's/^v//; s/\([^-]*-g\)/r\1/; s/-/./g'
+  # 锁定源码到 pkgver 对应的 tag（兼容 v1.0.0 / 1.0.0 两种命名），保证源码与版本号一致
+  for _tag in "v${pkgver}" "${pkgver}"; do
+    if git rev-parse -q --verify "refs/tags/${_tag}" >/dev/null 2>&1; then
+      git checkout -q "$_tag"
+      break
+    fi
+  done
 }
 
 build() {
