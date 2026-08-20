@@ -83,7 +83,8 @@ jobs:
       - name: 打包产物
         run: |
           ver="${GITHUB_REF_NAME#v}"
-          tar -C staging/install-staging -czf "htmlwallpaper-${ver}-amd64.tar.gz" .
+          # download-artifact@v4 直接把 artifact 内容解压到 staging/（不保留上传目录名）
+          tar -C staging -czf "htmlwallpaper-${ver}-amd64.tar.gz" .
           ls -lh htmlwallpaper-*.tar.gz
 
       # release 不存在则创建（含自动 release notes），已存在则只补传资产。
